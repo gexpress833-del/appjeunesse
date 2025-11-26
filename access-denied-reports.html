@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accès Restreint - Rapports PDF</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .access-denied-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .access-denied-card {
+      background: var(--surface-elevated);
+      border-radius: 1.5rem;
+      padding: 3rem;
+      border: 1px solid var(--border-bright);
+      text-align: center;
+      max-width: 600px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .access-denied-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--danger), var(--warning));
+    }
+    
+    .access-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.3));
+    }
+    
+    .access-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      font-family: "JetBrains Mono", monospace;
+      background: linear-gradient(135deg, var(--danger), var(--warning));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .access-description {
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+    
+    .permissions-info {
+      background: var(--surface-light);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      margin: 2rem 0;
+      text-align: left;
+    }
+    
+    .permission-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 0.75rem 0;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      background: var(--surface);
+    }
+    
+    .permission-allowed {
+      border-left: 4px solid var(--success);
+    }
+    
+    .permission-denied {
+      border-left: 4px solid var(--danger);
+    }
+    
+    .current-role-info {
+      background: linear-gradient(135deg, var(--surface-light), var(--surface-elevated));
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 1px solid var(--border-bright);
+      margin: 2rem 0;
+    }
+    
+    .role-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin: 0.25rem;
+    }
+    
+    .role-admin {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .role-secretariat {
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    
+    .role-responsable {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .role-user {
+      background: rgba(148, 163, 184, 0.2);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="access-denied-container">
+    <div class="access-denied-card">
+      <div class="access-icon">🔒</div>
+      
+      <h1 class="access-title">ACCÈS RESTREINT</h1>
+      
+      <p class="access-description">
+        Les rapports PDF de présences sont réservés aux rôles d'administration. 
+        Votre niveau d'autorisation actuel ne permet pas d'accéder à cette fonctionnalité.
+      </p>
+      
+      <div class="current-role-info">
+        <h3 style="color: var(--accent); margin: 0 0 1rem;">👤 Votre Rôle Actuel</h3>
+        <div id="currentRoleDisplay">
+          <span class="role-badge" id="roleBadge">Chargement...</span>
+        </div>
+        <p style="color: var(--muted); margin: 1rem 0 0; font-size: 0.9rem;">
+          Connecté en tant que <strong id="userName">Utilisateur</strong>
+        </p>
+      </div>
+      
+      <div class="permissions-info">
+        <h3 style="color: var(--accent-tertiary); margin: 0 0 1rem;">🔐 Permissions d'Export PDF</h3>
+        
+        <div class="permission-item permission-allowed">
+          <span style="font-size: 1.5rem;">✅</span>
+          <div>
+            <strong style="color: var(--success);">Administrateur</strong>
+            <div style="color: var(--muted); font-size: 0.9rem;">Accès complet à tous les rapports PDF</div>
+          </div>
+        </div>
+        
+        <div class="permission-item permission-allowed">
+          <span style="font-size: 1.5rem;">✅</span>
+          <div>
+            <strong style="color: var(--success);">Secrétariat</strong>
+            <div style="color: var(--muted); font-size: 0.9rem;">Accès complet à tous les rapports PDF</div>
+          </div>
+        </div>
+        
+        <div class="permission-item permission-denied">
+          <span style="font-size: 1.5rem;">❌</span>
+          <div>
+            <strong style="color: var(--danger);">Responsable de Département</strong>
+            <div style="color: var(--muted); font-size: 0.9rem;">Accès en lecture seule aux données</div>
+          </div>
+        </div>
+        
+        <div class="permission-item permission-denied">
+          <span style="font-size: 1.5rem;">❌</span>
+          <div>
+            <strong style="color: var(--danger);">Utilisateur</strong>
+            <div style="color: var(--muted); font-size: 0.9rem;">Accès en consultation uniquement</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background: rgba(255, 107, 107, 0.1); border-radius: 0.75rem; padding: 1rem; border: 1px solid rgba(255, 107, 107, 0.3); margin: 2rem 0;">
+        <h4 style="color: var(--danger); margin: 0 0 0.5rem;">📋 Alternatives Disponibles</h4>
+        <p style="color: var(--muted); margin: 0; font-size: 0.9rem;">
+          Vous pouvez consulter les données de présences en temps réel sur la page des présences, 
+          mais l'export PDF nécessite des privilèges administratifs.
+        </p>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="primary" onclick="goToAttendances()">
+          📊 Consulter les Présences
+        </button>
+        <button class="secondary" onclick="goToDashboard()">
+          🏠 Retour au Tableau de Bord
+        </button>
+        <button class="secondary" onclick="contactAdmin()">
+          📧 Contacter l'Administrateur
+        </button>
+      </div>
+      
+      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem;">
+        <p style="margin: 0;">
+          Si vous pensez que vous devriez avoir accès à cette fonctionnalité, 
+          veuillez contacter votre administrateur système.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/notifications.js"></script>
+  <script>
+    function initAccessDeniedPage() {
+      // Récupérer les informations de l'utilisateur
+      const currentRole = localStorage.getItem('appRole');
+      const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+      
+      // Mettre à jour l'affichage du rôle
+      const roleLabels = {
+        'admin': 'Administrateur',
+        'secretariat': 'Secrétariat',
+        'responsable': 'Responsable de Département',
+        'user': 'Utilisateur'
+      };
+      
+      const roleClasses = {
+        'admin': 'role-admin',
+        'secretariat': 'role-secretariat',
+        'responsable': 'role-responsable',
+        'user': 'role-user'
+      };
+      
+      document.getElementById('userName').textContent = userName;
+      
+      const roleBadge = document.getElementById('roleBadge');
+      roleBadge.textContent = roleLabels[currentRole] || currentRole;
+      roleBadge.className = `role-badge ${roleClasses[currentRole] || 'role-user'}`;
+      
+      // Vérifier si l'utilisateur a vraiment accès (au cas où il arriverait ici par erreur)
+      if (['admin', 'secretariat'].includes(currentRole)) {
+        // Rediriger vers les rapports si l'utilisateur a les permissions
+        window.location.href = 'reports.html';
+        return;
+      }
+    }
+    
+    function goToAttendances() {
+      window.location.href = 'attendances.html';
+    }
+    
+    function goToDashboard() {
+      const currentRole = localStorage.getItem('appRole');
+      const dashboardPages = {
+        'responsable': 'responsable.html',
+        'user': 'user.html'
+      };
+      
+      window.location.href = dashboardPages[currentRole] || 'index.html';
+    }
+    
+    function contactAdmin() {
+      if (window.notificationSystem) {
+        window.notificationSystem.info('Fonctionnalité de contact en cours de développement. Veuillez contacter votre administrateur directement.', { duration: 5000 });
+      } else {
+        alert('Veuillez contacter votre administrateur système pour demander l\'accès aux rapports PDF.');
+      }
+    }
+    
+    // Initialiser la page
+    document.addEventListener('DOMContentLoaded', initAccessDeniedPage);
+  </script>
+</body>
+</html>

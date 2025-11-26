@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test de préservation du rôle</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    .container {
+      background: #1f2937;
+      padding: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .test-result {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    .success {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #10b981;
+    }
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+    .warning {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .simulate-btn {
+      background: #10b981;
+    }
+    .simulate-btn:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔒 Test de préservation du rôle</h1>
+    
+    <p>Ce test vérifie que le rôle ne change pas automatiquement quand on accède à users.html</p>
+    
+    <button onclick="simulateSecretariatLogin()">Simuler connexion Secrétariat</button>
+    <button onclick="testRolePreservation()">Tester préservation du rôle</button>
+    <button onclick="checkCurrentRole()">Vérifier rôle actuel</button>
+    
+    <div id="results"></div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    function addResult(message, type = 'success') {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+      div.innerHTML = `${type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️'} ${message}`;
+      results.appendChild(div);
+    }
+
+    function simulateSecretariatLogin() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        // Simuler une connexion secrétariat
+        localStorage.setItem('appUser', 'secretariat');
+        localStorage.setItem('appUserName', 'Marie Kabongo');
+        localStorage.setItem('appRole', 'secretariat');
+        localStorage.setItem('appLoginTime', Date.now().toString());
+        
+        addResult('✅ Connexion secrétariat simulée avec succès');
+        addResult(`Rôle défini: ${localStorage.getItem('appRole')}`);
+        
+      } catch (error) {
+        addResult(`Erreur lors de la simulation: ${error.message}`, 'error');
+      }
+    }
+
+    function testRolePreservation() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        const initialRole = localStorage.getItem('appRole');
+        addResult(`🔍 Rôle initial: ${initialRole}`);
+        
+        if (!initialRole) {
+          addResult('Aucun rôle défini. Simulez d\'abord une connexion.', 'warning');
+          return;
+        }
+        
+        // Simuler l'initialisation de auth comme dans role-page.js
+        if (window.auth) {
+          // Test de la nouvelle fonction initAuthFromStorage
+          if (typeof auth.initAuthFromStorage === 'function') {
+            auth.initAuthFromStorage();
+            addResult('✅ auth.initAuthFromStorage() appelée');
+          }
+          
+          // Test de applyNavPermissions
+          if (typeof auth.applyNavPermissions === 'function') {
+            auth.applyNavPermissions();
+            addResult('✅ auth.applyNavPermissions() appelée');
+          }
+        }
+        
+        const finalRole = localStorage.getItem('appRole');
+        addResult(`🔍 Rôle final: ${finalRole}`);
+        
+        if (initialRole === finalRole) {
+          addResult('✅ SUCCÈS: Le rôle a été préservé!', 'success');
+        } else {
+          addResult(`❌ ÉCHEC: Le rôle a changé de "${initialRole}" à "${finalRole}"`, 'error');
+        }
+        
+      } catch (error) {
+        addResult(`Erreur lors du test: ${error.message}`, 'error');
+      }
+    }
+
+    function checkCurrentRole() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        const appRole = localStorage.getItem('appRole');
+        const appUser = localStorage.getItem('appUser');
+        const appUserName = localStorage.getItem('appUserName');
+        const loginTime = localStorage.getItem('appLoginTime');
+        
+        addResult(`👤 Utilisateur: ${appUser || 'Non défini'}`);
+        addResult(`📛 Nom: ${appUserName || 'Non défini'}`);
+        addResult(`🎭 Rôle: ${appRole || 'Non défini'}`);
+        addResult(`⏰ Connexion: ${loginTime ? new Date(parseInt(loginTime)).toLocaleString() : 'Non défini'}`);
+        
+        // Vérifier les variables internes d'auth
+        if (window.auth && typeof auth.getRoleContext === 'function') {
+          const context = auth.getRoleContext();
+          addResult(`🔧 Auth interne - Rôle: ${context.currentRole}`);
+          addResult(`🔧 Auth interne - Département: ${context.currentDepartmentScope || 'Aucun'}`);
+        }
+        
+      } catch (error) {
+        addResult(`Erreur lors de la vérification: ${error.message}`, 'error');
+      }
+    }
+
+    // Test automatique au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      addResult('Page de test chargée avec succès');
+      checkCurrentRole();
+    });
+  </script>
+</body>
+</html>

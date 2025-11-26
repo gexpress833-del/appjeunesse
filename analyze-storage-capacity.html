@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyse de la capacité de stockage</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    .container {
+      background: #1f2937;
+      padding: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .analysis-section {
+      background: #374151;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+    .warning {
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .success {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .info {
+      border-left-color: #6366f1;
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .storage-bar {
+      width: 100%;
+      height: 20px;
+      background: #111827;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .storage-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      transition: width 0.3s ease;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: #111827;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #3b82f6;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-top: 5px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 8px;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .test-btn {
+      background: #10b981;
+    }
+    .test-btn:hover {
+      background: #059669;
+    }
+    .clear-btn {
+      background: #ef4444;
+    }
+    .clear-btn:hover {
+      background: #dc2626;
+    }
+    pre {
+      background: #111827;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .recommendation {
+      background: #1e40af;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Analyse de la capacité de stockage des photos</h1>
+    
+    <div class="analysis-section info">
+      <h3>🔍 Méthode de stockage actuelle</h3>
+      <p><strong>Localisation :</strong> <code>localStorage</code> du navigateur</p>
+      <p><strong>Format :</strong> Base64 (encodage des images en texte)</p>
+      <p><strong>Clé de stockage :</strong> <code>userProfiles</code></p>
+      <p><strong>Structure :</strong> <code>{ "username": { "photo": "data:image/jpeg;base64,..." } }</code></p>
+    </div>
+
+    <button onclick="analyzeCurrentStorage()">📈 Analyser stockage actuel</button>
+    <button onclick="simulatePhotoLoad()" class="test-btn">🧪 Simuler charge de photos</button>
+    <button onclick="testStorageLimit()" class="test-btn">⚡ Tester limite localStorage</button>
+    <button onclick="clearTestData()" class="clear-btn">🧹 Nettoyer données test</button>
+    
+    <div id="results"></div>
+  </div>
+
+  <script>
+    function addSection(title, content, type = 'info') {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `analysis-section ${type}`;
+      div.innerHTML = `<h3>${title}</h3><div>${content}</div>`;
+      results.appendChild(div);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getStorageUsage() {
+      let totalSize = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          totalSize += localStorage[key].length + key.length;
+        }
+      }
+      return totalSize;
+    }
+
+    function analyzeCurrentStorage() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        // Analyser le stockage actuel
+        const totalUsage = getStorageUsage();
+        const storageLimit = 5 * 1024 * 1024; // 5MB limite typique localStorage
+        const usagePercent = (totalUsage / storageLimit * 100).toFixed(2);
+
+        // Analyser les profils utilisateurs
+        const userProfiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+        const profilesSize = JSON.stringify(userProfiles).length;
+        
+        let photosCount = 0;
+        let totalPhotosSize = 0;
+        let avgPhotoSize = 0;
+
+        Object.values(userProfiles).forEach(profile => {
+          if (profile.photo) {
+            photosCount++;
+            totalPhotosSize += profile.photo.length;
+          }
+        });
+
+        if (photosCount > 0) {
+          avgPhotoSize = totalPhotosSize / photosCount;
+        }
+
+        // Créer la barre de progression
+        const storageBar = `
+          <div class="storage-bar">
+            <div class="storage-fill" style="width: ${Math.min(usagePercent, 100)}%"></div>
+          </div>
+          <p><strong>${usagePercent}%</strong> utilisé (${formatBytes(totalUsage)} / ${formatBytes(storageLimit)})</p>
+        `;
+
+        addSection('📊 Utilisation actuelle du localStorage', storageBar, 'info');
+
+        // Statistiques détaillées
+        const statsGrid = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">${photosCount}</div>
+              <div class="stat-label">Photos stockées</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${formatBytes(totalPhotosSize)}</div>
+              <div class="stat-label">Taille total photos</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${formatBytes(avgPhotoSize)}</div>
+              <div class="stat-label">Taille moyenne/photo</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${formatBytes(profilesSize)}</div>
+              <div class="stat-label">Taille userProfiles</div>
+            </div>
+          </div>
+        `;
+
+        addSection('📈 Statistiques des photos', statsGrid, 'success');
+
+        // Estimation pour 7000 photos
+        const estimatedSizeFor7000 = avgPhotoSize > 0 ? avgPhotoSize * 7000 : 50000 * 7000; // 50KB par défaut
+        const wouldExceedLimit = estimatedSizeFor7000 > storageLimit;
+
+        const estimation = `
+          <p><strong>Taille estimée pour 7000 photos :</strong> ${formatBytes(estimatedSizeFor7000)}</p>
+          <p><strong>Limite localStorage :</strong> ${formatBytes(storageLimit)}</p>
+          <p><strong>Dépassement :</strong> ${wouldExceedLimit ? '❌ OUI' : '✅ NON'}</p>
+          <p><strong>Facteur de dépassement :</strong> ${(estimatedSizeFor7000 / storageLimit).toFixed(1)}x</p>
+        `;
+
+        addSection('🎯 Estimation pour 7000 photos', estimation, wouldExceedLimit ? 'error' : 'success');
+
+        // Recommandations
+        if (wouldExceedLimit) {
+          const recommendations = `
+            <h4>🚨 PROBLÈME IDENTIFIÉ</h4>
+            <p>Le localStorage ne peut PAS supporter 7000 photos avec la méthode actuelle.</p>
+            
+            <h4>💡 Solutions recommandées :</h4>
+            <ol>
+              <li><strong>Stockage serveur</strong> : Utiliser un serveur pour stocker les images</li>
+              <li><strong>IndexedDB</strong> : Migrer vers IndexedDB (limite ~250MB-1GB)</li>
+              <li><strong>Compression d'images</strong> : Réduire la qualité/taille des images</li>
+              <li><strong>Stockage cloud</strong> : Utiliser AWS S3, Cloudinary, etc.</li>
+              <li><strong>Lazy loading</strong> : Charger les photos à la demande</li>
+            </ol>
+            
+            <h4>📋 Plan de migration suggéré :</h4>
+            <ol>
+              <li>Implémenter IndexedDB comme solution temporaire</li>
+              <li>Ajouter compression automatique des images</li>
+              <li>Planifier migration vers solution serveur</li>
+            </ol>
+          `;
+          
+          addSection('🔧 Recommandations', recommendations, 'warning');
+        }
+
+      } catch (error) {
+        addSection('❌ Erreur', `Erreur lors de l'analyse: ${error.message}`, 'error');
+      }
+    }
+
+    function simulatePhotoLoad() {
+      try {
+        // Créer une image de test (petit carré coloré en base64)
+        const canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d');
+        
+        // Dessiner un carré coloré
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(0, 0, 100, 100);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Arial';
+        ctx.fillText('Test', 35, 55);
+        
+        const testPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        const photoSize = testPhotoBase64.length;
+        
+        const simulation = `
+          <p><strong>Taille d'une photo test :</strong> ${formatBytes(photoSize)}</p>
+          <p><strong>Estimation pour 7000 photos :</strong> ${formatBytes(photoSize * 7000)}</p>
+          <p><strong>Limite localStorage :</strong> ${formatBytes(5 * 1024 * 1024)}</p>
+          <p><strong>Nombre max de photos possibles :</strong> ${Math.floor((5 * 1024 * 1024) / photoSize)}</p>
+          
+          <h4>🖼️ Aperçu de la photo test :</h4>
+          <img src="${testPhotoBase64}" alt="Photo test" style="border: 1px solid #4b5563; border-radius: 4px;">
+        `;
+        
+        addSection('🧪 Simulation de charge', simulation, 'info');
+        
+      } catch (error) {
+        addSection('❌ Erreur simulation', `Erreur: ${error.message}`, 'error');
+      }
+    }
+
+    function testStorageLimit() {
+      try {
+        const testKey = 'storage_limit_test';
+        let testData = 'x';
+        let size = 0;
+        let success = true;
+        
+        // Doubler la taille jusqu'à atteindre la limite
+        while (success && size < 10 * 1024 * 1024) { // Max 10MB test
+          try {
+            testData += testData; // Double la taille
+            localStorage.setItem(testKey, testData);
+            size = testData.length;
+          } catch (e) {
+            success = false;
+            localStorage.removeItem(testKey);
+          }
+        }
+        
+        const result = `
+          <p><strong>Limite détectée :</strong> ${formatBytes(size)}</p>
+          <p><strong>Type d'erreur :</strong> ${success ? 'Limite de test atteinte' : 'QuotaExceededError'}</p>
+          <p><strong>Photos possibles (50KB/photo) :</strong> ${Math.floor(size / 50000)}</p>
+          <p><strong>Photos possibles (100KB/photo) :</strong> ${Math.floor(size / 100000)}</p>
+        `;
+        
+        addSection('⚡ Test de limite', result, success ? 'warning' : 'error');
+        
+      } catch (error) {
+        addSection('❌ Erreur test limite', `Erreur: ${error.message}`, 'error');
+      }
+    }
+
+    function clearTestData() {
+      try {
+        // Supprimer les données de test
+        localStorage.removeItem('storage_limit_test');
+        
+        addSection('🧹 Nettoyage', 'Données de test supprimées', 'success');
+        
+      } catch (error) {
+        addSection('❌ Erreur nettoyage', `Erreur: ${error.message}`, 'error');
+      }
+    }
+
+    // Analyse automatique au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      analyzeCurrentStorage();
+    });
+  </script>
+</body>
+</html>

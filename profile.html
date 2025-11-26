@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon Profil - Gestion d'équipe</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .profile-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .profile-photo-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .profile-photo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #3b82f6;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    .profile-photo img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .photo-upload {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .photo-upload input[type="file"] {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .photo-upload-btn {
+      background: #3b82f6;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border: none;
+      transition: background 0.2s;
+    }
+
+    .photo-upload-btn:hover {
+      background: #2563eb;
+    }
+
+    .profile-info {
+      flex: 1;
+    }
+
+    .profile-name {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin: 0 0 0.5rem;
+    }
+
+    .profile-role {
+      font-size: 1.1rem;
+      color: #60a5fa;
+      margin: 0 0 1rem;
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1rem;
+    }
+
+    .profile-stat {
+      text-align: center;
+    }
+
+    .profile-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin: 0;
+    }
+
+    .profile-stat-label {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin: 0;
+    }
+
+    .profile-form {
+      background: #1f2937;
+      padding: 2rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+    }
+
+    .form-section h3 {
+      color: #f1f5f9;
+      margin: 0 0 1rem;
+      font-size: 1.2rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+    }
+
+    .success-message {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #4ade80;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .success-message.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .profile-stats {
+        justify-content: center;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header>
+        <h1>👤 Mon Profil</h1>
+        <div class="login-panel">
+          <div class="user-info">
+            <span class="welcome-message">Bienvenue</span>
+            <span class="user-role">Gestion du profil</span>
+          </div>
+          <button class="secondary logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+      </header>
+
+      <nav class="nav">
+        <a href="javascript:history.back()">← Retour</a>
+        <a href="#" class="active">Mon Profil</a>
+      </nav>
+
+      <div id="notifications" class="notifications"></div>
+
+      <div class="profile-container">
+        <div class="success-message" id="successMessage">
+          Profil mis à jour avec succès !
+        </div>
+
+        <div class="profile-header">
+          <div class="profile-photo-container">
+            <div class="profile-photo" id="profilePhoto">
+              <span id="profileInitials">U</span>
+            </div>
+            <div class="photo-upload">
+              <input type="file" id="photoInput" accept="image/*">
+              <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
+                📷 Changer la photo
+              </button>
+            </div>
+          </div>
+          
+          <div class="profile-info">
+            <h2 class="profile-name" id="profileName">Utilisateur</h2>
+            <p class="profile-role" id="profileRole">Utilisateur</p>
+            
+            <div class="profile-stats">
+              <div class="profile-stat">
+                <p class="profile-stat-value" id="memberSince">2024</p>
+                <p class="profile-stat-label">Membre depuis</p>
+              </div>
+              <div class="profile-stat">
+                <p class="profile-stat-value" id="lastLogin">Aujourd'hui</p>
+                <p class="profile-stat-label">Dernière connexion</p>
+              </div>
+              <div class="profile-stat" id="departmentStat" style="display: none;">
+                <p class="profile-stat-value" id="userDepartment">-</p>
+                <p class="profile-stat-label">Département</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form class="profile-form" id="profileForm">
+          <div class="form-section">
+            <h3>📝 Informations personnelles</h3>
+            <div class="form-row">
+              <div class="form-control">
+                <label for="firstName">Prénom</label>
+                <input type="text" id="firstName" name="firstName" required>
+              </div>
+              <div class="form-control">
+                <label for="lastName">Nom</label>
+                <input type="text" id="lastName" name="lastName" required>
+              </div>
+            </div>
+            <div class="form-control">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-control">
+              <label for="phone">Téléphone (optionnel)</label>
+              <input type="tel" id="phone" name="phone">
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>🔒 Sécurité</h3>
+            <div class="form-control">
+              <label for="currentPassword">Mot de passe actuel</label>
+              <input type="password" id="currentPassword" name="currentPassword">
+            </div>
+            <div class="form-row">
+              <div class="form-control">
+                <label for="newPassword">Nouveau mot de passe</label>
+                <input type="password" id="newPassword" name="newPassword">
+              </div>
+              <div class="form-control">
+                <label for="confirmPassword">Confirmer le mot de passe</label>
+                <input type="password" id="confirmPassword" name="confirmPassword">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>⚙️ Préférences</h3>
+            <div class="form-control">
+              <label for="notifications">Notifications</label>
+              <select id="notifications" name="notifications">
+                <option value="all">Toutes les notifications</option>
+                <option value="important">Notifications importantes uniquement</option>
+                <option value="none">Aucune notification</option>
+              </select>
+            </div>
+            <div class="form-control">
+              <label for="language">Langue</label>
+              <select id="language" name="language">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>🔔 Paramètres de notifications</h3>
+            <div class="form-control">
+              <label class="checkbox-label">
+                <input type="checkbox" id="notifMembers" name="notifMembers" checked>
+                <span class="checkmark"></span>
+                Notifications pour les nouveaux membres
+              </label>
+            </div>
+            
+            <div class="form-control">
+              <label class="checkbox-label">
+                <input type="checkbox" id="notifEvents" name="notifEvents" checked>
+                <span class="checkmark"></span>
+                Notifications pour les événements
+              </label>
+            </div>
+            
+            <div class="form-control">
+              <label class="checkbox-label">
+                <input type="checkbox" id="notifAttendances" name="notifAttendances" checked>
+                <span class="checkmark"></span>
+                Notifications pour les présences
+              </label>
+            </div>
+            
+            <div class="form-control">
+              <label class="checkbox-label">
+                <input type="checkbox" id="notifSystem" name="notifSystem" checked>
+                <span class="checkmark"></span>
+                Notifications système
+              </label>
+            </div>
+            
+            <div class="form-control">
+              <label for="notifDuration">Durée d'affichage des notifications</label>
+              <select id="notifDuration" name="notifDuration">
+                <option value="3000">3 secondes</option>
+                <option value="5000" selected>5 secondes</option>
+                <option value="7000">7 secondes</option>
+                <option value="10000">10 secondes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="profile-actions">
+            <button type="button" class="secondary" onclick="resetForm()">Annuler</button>
+            <button type="submit" class="primary">💾 Sauvegarder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script>
+    let currentUser = null;
+
+    function logout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        localStorage.removeItem('appRole');
+        localStorage.removeItem('appUser');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appLoginTime');
+        localStorage.removeItem('appDept');
+        window.location.href = 'login.html';
+      }
+    }
+
+    function showSuccess(message) {
+      const successMsg = document.getElementById('successMessage');
+      successMsg.textContent = message;
+      successMsg.classList.add('show');
+      setTimeout(() => {
+        successMsg.classList.remove('show');
+      }, 3000);
+    }
+
+    function showError(message) {
+      const notifications = document.getElementById('notifications');
+      notifications.innerHTML = `<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem;">${message}</div>`;
+      notifications.style.display = 'block';
+      setTimeout(() => {
+        notifications.style.display = 'none';
+      }, 5000);
+    }
+
+    function getInitials(name) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    }
+
+    function updateProfilePhoto(photoData) {
+      const profilePhoto = document.getElementById('profilePhoto');
+      const profileInitials = document.getElementById('profileInitials');
+      
+      if (photoData) {
+        profilePhoto.innerHTML = `<img src="${photoData}" alt="Photo de profil">`;
+      } else {
+        profilePhoto.innerHTML = `<span id="profileInitials">${getInitials(currentUser.name || 'Utilisateur')}</span>`;
+      }
+    }
+
+    function loadUserProfile() {
+      const username = localStorage.getItem('appUser');
+      const role = localStorage.getItem('appRole');
+      const dept = localStorage.getItem('appDept');
+      const loginTime = localStorage.getItem('appLoginTime');
+
+      console.log('Loading profile for:', username); // Debug
+
+      if (!username) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Get user data
+      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+      currentUser = users.find(user => user.username === username);
+
+      if (!currentUser) {
+        showError('Utilisateur introuvable');
+        return;
+      }
+
+      // Get user profile data (extended info)
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      const userProfile = profiles[username] || {};
+
+      console.log('Current user:', currentUser); // Debug
+      console.log('User profile:', userProfile); // Debug
+
+      // Update header info
+      document.getElementById('profileName').textContent = currentUser.name || 'Utilisateur';
+      document.getElementById('profileRole').textContent = getRoleDisplayName(role);
+      
+      // Update stats
+      if (loginTime) {
+        const loginDate = new Date(parseInt(loginTime));
+        document.getElementById('lastLogin').textContent = loginDate.toLocaleDateString('fr-FR');
+      }
+      
+      if (dept) {
+        document.getElementById('userDepartment').textContent = dept;
+        document.getElementById('departmentStat').style.display = 'block';
+      }
+
+      // Update welcome message
+      const welcomeEl = document.querySelector('.welcome-message');
+      if (welcomeEl) {
+        welcomeEl.textContent = `Bienvenue, ${currentUser.name || 'Utilisateur'}`;
+      }
+
+      // Load profile photo
+      updateProfilePhoto(userProfile.photo);
+
+      // Fill form with current data - prioritize profile data over user data
+      let firstName = userProfile.firstName;
+      let lastName = userProfile.lastName;
+      
+      // If no profile data, try to extract from user.name
+      if (!firstName || !lastName) {
+        const nameParts = (currentUser.name || '').split(' ');
+        firstName = firstName || nameParts[0] || '';
+        lastName = lastName || nameParts.slice(1).join(' ') || '';
+      }
+
+      document.getElementById('firstName').value = firstName;
+      document.getElementById('lastName').value = lastName;
+      document.getElementById('email').value = userProfile.email || currentUser.email || '';
+      document.getElementById('phone').value = userProfile.phone || '';
+      document.getElementById('notifications').value = userProfile.notifications || 'all';
+      document.getElementById('language').value = userProfile.language || 'fr';
+      
+      // Load notification preferences
+      document.getElementById('notifMembers').checked = userProfile.notifMembers !== false;
+      document.getElementById('notifEvents').checked = userProfile.notifEvents !== false;
+      document.getElementById('notifAttendances').checked = userProfile.notifAttendances !== false;
+      document.getElementById('notifSystem').checked = userProfile.notifSystem !== false;
+      document.getElementById('notifDuration').value = userProfile.notifDuration || '5000';
+
+      // Update initials if no photo
+      const initialsEl = document.getElementById('profileInitials');
+      if (initialsEl) {
+        initialsEl.textContent = getInitials(currentUser.name || 'Utilisateur');
+      }
+
+      console.log('Profile loaded successfully'); // Debug
+    }
+
+    function getRoleDisplayName(role) {
+      const roleNames = {
+        admin: 'Administrateur',
+        secretariat: 'Secrétariat',
+        responsable: 'Responsable',
+        user: 'Utilisateur'
+      };
+      return roleNames[role] || 'Utilisateur';
+    }
+
+    function resetForm() {
+      if (confirm('Êtes-vous sûr de vouloir annuler les modifications ?')) {
+        loadUserProfile(); // Reload original data
+        showSuccess('Modifications annulées');
+      }
+    }
+
+    // Handle photo upload
+    document.getElementById('photoInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showError('Veuillez sélectionner une image valide');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showError('L\'image ne doit pas dépasser 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const photoData = e.target.result;
+        updateProfilePhoto(photoData);
+        
+        // Save photo to profile
+        const username = localStorage.getItem('appUser');
+        const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+        if (!profiles[username]) profiles[username] = {};
+        profiles[username].photo = photoData;
+        localStorage.setItem('userProfiles', JSON.stringify(profiles));
+        
+        showSuccess('Photo de profil mise à jour !');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Handle form submission
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const data = {
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        notifications: document.getElementById('notifications').value,
+        language: document.getElementById('language').value,
+        notifMembers: document.getElementById('notifMembers').checked,
+        notifEvents: document.getElementById('notifEvents').checked,
+        notifAttendances: document.getElementById('notifAttendances').checked,
+        notifSystem: document.getElementById('notifSystem').checked,
+        notifDuration: document.getElementById('notifDuration').value,
+        currentPassword: document.getElementById('currentPassword').value,
+        newPassword: document.getElementById('newPassword').value,
+        confirmPassword: document.getElementById('confirmPassword').value
+      };
+      const username = localStorage.getItem('appUser');
+
+      console.log('Form data:', data); // Debug
+      console.log('Current user:', currentUser); // Debug
+
+      // Basic validation
+      if (!data.firstName || !data.lastName || !data.email) {
+        showError('Veuillez remplir tous les champs obligatoires');
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.email)) {
+        showError('Veuillez saisir une adresse email valide');
+        return;
+      }
+
+      // Validate passwords if provided
+      if (data.newPassword || data.confirmPassword) {
+        if (!data.currentPassword) {
+          showError('Veuillez saisir votre mot de passe actuel pour le modifier');
+          return;
+        }
+
+        if (currentUser.password !== data.currentPassword) {
+          showError('Mot de passe actuel incorrect');
+          return;
+        }
+
+        if (data.newPassword !== data.confirmPassword) {
+          showError('Les mots de passe ne correspondent pas');
+          return;
+        }
+        
+        if (data.newPassword.length < 6) {
+          showError('Le mot de passe doit contenir au moins 6 caractères');
+          return;
+        }
+      }
+
+      try {
+        // Update user profile (extended data)
+        const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+        if (!profiles[username]) profiles[username] = {};
+        
+        profiles[username] = {
+          ...profiles[username],
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone || '',
+          notifications: data.notifications,
+          language: data.language,
+          notifMembers: data.notifMembers,
+          notifEvents: data.notifEvents,
+          notifAttendances: data.notifAttendances,
+          notifSystem: data.notifSystem,
+          notifDuration: data.notifDuration,
+          updatedAt: new Date().toISOString()
+        };
+
+        // Update main user data
+        const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+        const userIndex = users.findIndex(user => user.username === username);
+        
+        if (userIndex === -1) {
+          showError('Utilisateur introuvable');
+          return;
+        }
+
+        // Update user in the main users array
+        users[userIndex] = {
+          ...users[userIndex],
+          name: `${data.firstName} ${data.lastName}`,
+          email: data.email
+        };
+        
+        if (data.newPassword) {
+          users[userIndex].password = data.newPassword;
+        }
+
+        // Save all changes
+        localStorage.setItem('userProfiles', JSON.stringify(profiles));
+        localStorage.setItem('appUsers', JSON.stringify(users));
+        localStorage.setItem('appUserName', `${data.firstName} ${data.lastName}`);
+
+        console.log('Saved profiles:', profiles); // Debug
+        console.log('Saved users:', users); // Debug
+
+        // Update current user reference
+        currentUser = users[userIndex];
+
+        // Clear password fields
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+
+        // Reload profile display with updated data
+        setTimeout(() => {
+          loadUserProfile();
+        }, 100);
+
+        showSuccess('Profil mis à jour avec succès !');
+
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        showError('Erreur lors de la sauvegarde du profil: ' + error.message);
+      }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check session
+      const currentRole = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      
+      if (!currentRole || !loginTime) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Check session timeout
+      const sessionTimeout = 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(loginTime) > sessionTimeout) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        logout();
+        return;
+      }
+
+      loadUserProfile();
+    });
+  </script>
+</body>
+</html>

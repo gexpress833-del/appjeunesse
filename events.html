@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Événements</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header>
+        <h1>Événements</h1>
+        <div class="login-panel">
+          <div class="user-info">
+            <span class="welcome-message">Bienvenue</span>
+            <span class="user-role">Gestion des événements</span>
+          </div>
+          <button class="secondary logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+      </header>
+      <nav class="nav">
+        <a href="index.html" data-section="dashboard">📊 Tableau de bord</a>
+        <a href="members.html" data-section="members">👥 Membres</a>
+        <a href="departments.html" data-section="departments">🏛️ Départements</a>
+        <a href="events.html" data-section="events" class="active">🗓️ Événements</a>
+        <a href="attendances.html" data-section="attendances">📝 Présences</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+      <div id="notifications" class="notifications"></div>
+      <section>
+        <div class="card admin-only" id="eventFormCard">
+          <h3>Ajouter / modifier un événement</h3>
+          <form id="eventForm">
+            <div class="form-control">
+              <label for="eventName">Nom</label>
+              <input type="text" id="eventName" placeholder="ex : Soirée louange" required />
+            </div>
+            <div class="form-control">
+              <label for="eventDate">Date</label>
+              <input type="date" id="eventDate" required />
+            </div>
+            <div class="form-control">
+              <label for="eventDescription">Description (optionnelle)</label>
+              <textarea id="eventDescription" placeholder="Description de l'événement..." rows="3"></textarea>
+            </div>
+            <div class="form-control">
+              <label for="eventPhoto">Photo de l'événement (optionnelle)</label>
+              <div class="photo-upload-container">
+                <input type="file" id="eventPhoto" accept="image/*" style="display: none;">
+                <div class="photo-preview" id="eventPhotoPreview" style="display: none;">
+                  <img id="eventPhotoImg" src="" alt="Aperçu">
+                  <button type="button" class="remove-photo" onclick="removeEventPhoto()">×</button>
+                </div>
+                <button type="button" class="photo-upload-btn" onclick="document.getElementById('eventPhoto').click()">
+                  📷 Ajouter une photo
+                </button>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary" id="eventSubmit">Ajouter</button>
+              <button type="button" class="secondary" id="eventCancel" style="display:none;">Annuler</button>
+            </div>
+          </form>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <div class="events-header">
+            <h3>Liste des événements</h3>
+            <div class="events-filter">
+              <select id="eventsFilter">
+                <option value="all">Tous les événements</option>
+                <option value="upcoming">À venir</option>
+                <option value="current">En cours</option>
+                <option value="past">Passés</option>
+              </select>
+            </div>
+          </div>
+          <div class="events-legend">
+            <div class="legend-item">
+              <span class="status-dot status-upcoming"></span>
+              <span>À venir</span>
+            </div>
+            <div class="legend-item">
+              <span class="status-dot status-current"></span>
+              <span>En cours (aujourd'hui)</span>
+            </div>
+            <div class="legend-item">
+              <span class="status-dot status-past"></span>
+              <span>Passés</span>
+            </div>
+          </div>
+          <div class="events-grid" id="eventsGrid">
+            <!-- Events will be populated here -->
+          </div>
+        </div>
+        
+        <!-- Event Detail Modal -->
+        <div class="modal-overlay" id="eventModal" style="display: none;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Détails de l'événement</h3>
+              <button class="modal-close" onclick="closeEventModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="event-detail-header">
+                <div class="event-detail-photo" id="modalEventPhoto" style="display: none;">
+                  <img id="modalEventImg" src="" alt="Photo de l'événement">
+                </div>
+                <div class="event-detail-info">
+                  <h4 id="modalEventName">Nom de l'événement</h4>
+                  <p id="modalEventDate">Date</p>
+                  <p id="modalEventDescription" style="display: none;"></p>
+                </div>
+              </div>
+              <div class="event-detail-stats">
+                <div class="detail-stat">
+                  <span class="stat-label">Participants inscrits</span>
+                  <span class="stat-value" id="modalEventParticipants">0</span>
+                </div>
+                <div class="detail-stat">
+                  <span class="stat-label">Présents</span>
+                  <span class="stat-value" id="modalEventPresent">0</span>
+                </div>
+                <div class="detail-stat">
+                  <span class="stat-label">Taux de présence</span>
+                  <span class="stat-value" id="modalEventRate">0%</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="secondary" onclick="closeEventModal()">Fermer</button>
+              <button class="primary" id="modalEventEditBtn" onclick="editEventFromModal()">Modifier</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/events.js" defer></script>
+  <script>
+    function logout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        localStorage.removeItem('appRole');
+        localStorage.removeItem('appUser');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appLoginTime');
+        localStorage.removeItem('appDept');
+        window.location.href = 'login.html';
+      }
+    }
+    
+    // Check if user is logged in and apply role-based visibility
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentRole = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      
+      if (!currentRole || !loginTime) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Check session timeout
+      const sessionTimeout = 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(loginTime) > sessionTimeout) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        logout();
+        return;
+      }
+      
+      // Update welcome message
+      const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+      const welcomeEl = document.querySelector('.welcome-message');
+      if (welcomeEl) {
+        welcomeEl.textContent = `Bienvenue, ${userName}`;
+      }
+      
+      // Hide forms for users and responsables (events are admin/secretariat only)
+      if (currentRole === 'user' || currentRole === 'responsable') {
+        const formCard = document.getElementById('eventFormCard');
+        if (formCard) {
+          formCard.style.display = 'none';
+        }
+        
+        // Hide action buttons for users and responsables
+        const style = document.createElement('style');
+        style.textContent = '.event-actions { display: none !important; }';
+        document.head.appendChild(style);
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migration des photos vers dossier local</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .migration-container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .migration-step {
+      background: #374151;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+    .migration-step.completed {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .migration-step.warning {
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .photo-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .photo-item {
+      background: #1f2937;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #4b5563;
+    }
+    .photo-item img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+    .photo-item .initials {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 24px;
+      margin: 0 auto 10px;
+    }
+    .download-btn {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .download-btn:hover {
+      background: #059669;
+    }
+    .instructions {
+      background: #1e293b;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: #374151;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #3b82f6);
+      transition: width 0.3s ease;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: #1f2937;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #4b5563;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #3b82f6;
+    }
+    .file-drop-zone {
+      border: 2px dashed #4b5563;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      margin: 20px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .file-drop-zone:hover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+    .file-drop-zone.dragover {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="migration-container">
+    <header style="text-align: center; margin-bottom: 30px;">
+      <h1>📁 Migration des photos vers dossier local</h1>
+      <p>Migrez vos photos de profil du localStorage vers un stockage en fichiers locaux</p>
+    </header>
+
+    <div class="migration-step" id="step1">
+      <h3>📊 Étape 1 : Analyse du stockage actuel</h3>
+      <button onclick="analyzeCurrentStorage()" class="primary">Analyser le stockage</button>
+      <div id="storageAnalysis"></div>
+    </div>
+
+    <div class="migration-step" id="step2">
+      <h3>📤 Étape 2 : Télécharger les photos existantes</h3>
+      <p>Téléchargez toutes les photos stockées en Base64 pour les sauvegarder comme fichiers</p>
+      <button onclick="downloadAllPhotos()" class="primary">Télécharger toutes les photos</button>
+      <div id="photoPreview"></div>
+    </div>
+
+    <div class="migration-step" id="step3">
+      <h3>📁 Étape 3 : Organiser les fichiers</h3>
+      <div class="instructions">
+Après téléchargement, organisez vos photos dans la structure suivante :
+
+C:\APPJEUNE-KZI\images\profiles\
+├── users\
+│   ├── user_admin_[timestamp].jpg
+│   ├── user_secretariat_[timestamp].jpg
+│   └── ...
+├── members\
+│   ├── member_123_[timestamp].jpg
+│   └── ...
+└── temp\
+    └── (photos temporaires)
+      </div>
+    </div>
+
+    <div class="migration-step" id="step4">
+      <h3>🔄 Étape 4 : Mettre à jour les références</h3>
+      <p>Mettez à jour les références dans l'application pour pointer vers les nouveaux fichiers</p>
+      <button onclick="updateReferences()" class="primary">Mettre à jour les références</button>
+      <div id="updateResults"></div>
+    </div>
+
+    <div class="migration-step" id="step5">
+      <h3>🧪 Étape 5 : Tester le nouveau système</h3>
+      <p>Testez l'upload et l'affichage des photos avec le nouveau système</p>
+      
+      <div class="file-drop-zone" id="dropZone">
+        <p>📎 Glissez une photo ici ou cliquez pour sélectionner</p>
+        <input type="file" id="testFileInput" accept="image/*" style="display: none;">
+      </div>
+      
+      <div id="testResults"></div>
+    </div>
+
+    <div class="migration-step" id="step6">
+      <h3>🧹 Étape 6 : Nettoyage final</h3>
+      <p>Supprimez les anciennes données Base64 du localStorage</p>
+      <button onclick="cleanupOldData()" class="secondary">Nettoyer les anciennes données</button>
+      <div id="cleanupResults"></div>
+    </div>
+
+  </div>
+
+  <script src="js/photo-storage.js"></script>
+  <script>
+    let migrationData = {};
+
+    function addResult(containerId, content, type = 'info') {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.style.cssText = `
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border-left: 4px solid ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        background: ${type === 'success' ? 'rgba(16, 185, 129, 0.1)' : type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)'};
+      `;
+      div.innerHTML = content;
+      container.appendChild(div);
+    }
+
+    function analyzeCurrentStorage() {
+      const report = window.photoStorage.generateStorageReport();
+      migrationData.report = report;
+      
+      const statsHtml = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${report.totalProfiles}</div>
+            <div class="stat-label">Profils total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${report.base64Photos}</div>
+            <div class="stat-label">Photos Base64</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${report.filePhotos}</div>
+            <div class="stat-label">Photos fichiers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${report.base64SizeFormatted}</div>
+            <div class="stat-label">Taille Base64</div>
+          </div>
+        </div>
+        
+        ${report.migrationNeeded ? 
+          '<p style="color: #f59e0b;">⚠️ Migration nécessaire : Des photos Base64 ont été détectées</p>' :
+          '<p style="color: #10b981;">✅ Aucune migration nécessaire : Toutes les photos sont déjà en fichiers</p>'
+        }
+      `;
+      
+      addResult('storageAnalysis', statsHtml, report.migrationNeeded ? 'warning' : 'success');
+      
+      if (report.migrationNeeded) {
+        document.getElementById('step1').classList.add('warning');
+      } else {
+        document.getElementById('step1').classList.add('completed');
+      }
+    }
+
+    function downloadAllPhotos() {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      let downloadCount = 0;
+      let photoPreviewHtml = '<div class="photo-preview">';
+      
+      Object.entries(profiles).forEach(([username, profile]) => {
+        if (profile.photo && profile.photo.startsWith('data:image/')) {
+          downloadCount++;
+          
+          // Créer le nom de fichier
+          const extension = profile.photo.includes('jpeg') ? 'jpg' : 'png';
+          const fileName = `user_${username.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${extension}`;
+          
+          photoPreviewHtml += `
+            <div class="photo-item">
+              <img src="${profile.photo}" alt="${username}">
+              <div><strong>${username}</strong></div>
+              <button class="download-btn" onclick="downloadPhoto('${username}', '${fileName}')">
+                📥 Télécharger
+              </button>
+            </div>
+          `;
+        } else if (profile.photoPath) {
+          photoPreviewHtml += `
+            <div class="photo-item">
+              <img src="${profile.photoPath}" alt="${username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="initials" style="display: none;">${window.photoStorage.getInitials(username)}</div>
+              <div><strong>${username}</strong></div>
+              <div style="color: #10b981; font-size: 12px;">✅ Déjà migré</div>
+            </div>
+          `;
+        } else {
+          photoPreviewHtml += `
+            <div class="photo-item">
+              <div class="initials">${window.photoStorage.getInitials(username)}</div>
+              <div><strong>${username}</strong></div>
+              <div style="color: #6b7280; font-size: 12px;">Pas de photo</div>
+            </div>
+          `;
+        }
+      });
+      
+      photoPreviewHtml += '</div>';
+      
+      if (downloadCount > 0) {
+        photoPreviewHtml = `<p>📤 ${downloadCount} photo(s) à télécharger :</p>` + photoPreviewHtml;
+        photoPreviewHtml += `<button onclick="downloadAllAtOnce()" class="primary" style="margin-top: 15px;">📦 Télécharger tout en ZIP</button>`;
+      } else {
+        photoPreviewHtml = '<p style="color: #10b981;">✅ Aucune photo Base64 à télécharger</p>' + photoPreviewHtml;
+      }
+      
+      addResult('photoPreview', photoPreviewHtml, downloadCount > 0 ? 'info' : 'success');
+    }
+
+    function downloadPhoto(username, fileName) {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      const profile = profiles[username];
+      
+      if (profile && profile.photo) {
+        // Créer un lien de téléchargement
+        const link = document.createElement('a');
+        link.href = profile.photo;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Marquer comme téléchargé
+        const button = event.target;
+        button.textContent = '✅ Téléchargé';
+        button.disabled = true;
+        button.style.background = '#10b981';
+      }
+    }
+
+    function downloadAllAtOnce() {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      let delay = 0;
+      
+      Object.entries(profiles).forEach(([username, profile]) => {
+        if (profile.photo && profile.photo.startsWith('data:image/')) {
+          setTimeout(() => {
+            const extension = profile.photo.includes('jpeg') ? 'jpg' : 'png';
+            const fileName = `user_${username.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${extension}`;
+            downloadPhoto(username, fileName);
+          }, delay);
+          delay += 500; // Délai entre les téléchargements
+        }
+      });
+      
+      addResult('photoPreview', '<p style="color: #10b981;">📦 Téléchargement en cours... Vérifiez votre dossier de téléchargements</p>', 'success');
+    }
+
+    function updateReferences() {
+      // Simuler la mise à jour des références
+      // En réalité, l'utilisateur devra placer manuellement les fichiers
+      
+      const instructions = `
+        <h4>📋 Instructions de mise à jour :</h4>
+        <ol>
+          <li>Placez vos photos téléchargées dans : <code>C:\\APPJEUNE-KZI\\images\\profiles\\users\\</code></li>
+          <li>Renommez-les selon le format : <code>user_[username].[ext]</code></li>
+          <li>Cliquez sur "Tester" ci-dessous pour vérifier</li>
+        </ol>
+        
+        <button onclick="testFileReferences()" class="primary">🔍 Tester les références</button>
+      `;
+      
+      addResult('updateResults', instructions, 'info');
+    }
+
+    function testFileReferences() {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      let testResults = '<h4>🧪 Résultats des tests :</h4><ul>';
+      
+      Object.keys(profiles).forEach(username => {
+        const expectedPath = `images/profiles/users/user_${username}.jpg`;
+        testResults += `<li><strong>${username}</strong>: <span id="test_${username}">Testing...</span></li>`;
+        
+        // Tester si le fichier existe
+        window.photoStorage.checkFileExists(expectedPath).then(exists => {
+          const testElement = document.getElementById(`test_${username}`);
+          if (testElement) {
+            testElement.innerHTML = exists ? 
+              '<span style="color: #10b981;">✅ Fichier trouvé</span>' : 
+              '<span style="color: #ef4444;">❌ Fichier manquant</span>';
+          }
+        });
+      });
+      
+      testResults += '</ul>';
+      addResult('updateResults', testResults, 'info');
+    }
+
+    // Gestion du drag & drop pour les tests
+    function setupFileDropZone() {
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('testFileInput');
+      
+      dropZone.addEventListener('click', () => fileInput.click());
+      
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleTestFile(files[0]);
+        }
+      });
+      
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleTestFile(e.target.files[0]);
+        }
+      });
+    }
+
+    async function handleTestFile(file) {
+      try {
+        const result = await window.photoStorage.processPhotoUpload(file, 'test_user', 'users');
+        
+        const testHtml = `
+          <h4>✅ Test d'upload réussi !</h4>
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: center;">
+            <img src="${result.preview}" alt="Aperçu" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+            <div>
+              <p><strong>Nom de fichier :</strong> ${result.fileName}</p>
+              <p><strong>Chemin relatif :</strong> ${result.relativePath}</p>
+              <p><strong>Taille :</strong> ${window.photoStorage.formatBytes(result.size)}</p>
+              <p><strong>Type :</strong> ${result.type}</p>
+            </div>
+          </div>
+          <div class="instructions">
+Pour finaliser : Copiez ce fichier vers ${result.fullPath}
+          </div>
+        `;
+        
+        addResult('testResults', testHtml, 'success');
+        
+      } catch (error) {
+        addResult('testResults', `❌ Erreur : ${error.message}`, 'error');
+      }
+    }
+
+    function cleanupOldData() {
+      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+      let cleanedCount = 0;
+      
+      Object.entries(profiles).forEach(([username, profile]) => {
+        if (profile.photo && profile.photo.startsWith('data:image/')) {
+          delete profile.photo;
+          cleanedCount++;
+        }
+      });
+      
+      if (cleanedCount > 0) {
+        localStorage.setItem('userProfiles', JSON.stringify(profiles));
+        addResult('cleanupResults', `🧹 ${cleanedCount} photo(s) Base64 supprimée(s) du localStorage`, 'success');
+      } else {
+        addResult('cleanupResults', '✅ Aucune donnée Base64 à nettoyer', 'success');
+      }
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      setupFileDropZone();
+      analyzeCurrentStorage();
+    });
+  </script>
+</body>
+</html>

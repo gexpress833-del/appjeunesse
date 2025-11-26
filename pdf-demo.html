@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Démonstration Export PDF - La Parole Eternelle</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .demo-section {
+      margin: 2rem 0;
+      background: var(--surface-elevated);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      border: 1px solid var(--border-bright);
+      position: relative;
+    }
+    
+    .demo-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-tertiary));
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .feature-card {
+      background: var(--surface-light);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+    
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
+    }
+    
+    .pdf-preview {
+      background: var(--surface);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      margin: 1rem 0;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem;
+    }
+    
+    .sample-data {
+      background: var(--surface-light);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border-left: 4px solid var(--accent-tertiary);
+      margin: 1rem 0;
+    }
+    
+    .tech-specs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .spec-item {
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .spec-value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--accent);
+      font-family: "JetBrains Mono", monospace;
+    }
+    
+    .spec-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header style="text-align: center;">
+        <h1>📊 EXPORT PDF PROFESSIONNEL</h1>
+        <p style="color: var(--muted); font-size: 1.1rem;">
+          Système de génération de rapports de niveau entreprise
+        </p>
+      </header>
+
+      <div class="demo-section">
+        <h2 style="color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">
+          🎯 Fonctionnalités Avancées
+        </h2>
+        
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">📄</div>
+            <h3 style="color: var(--accent-tertiary); margin: 0 0 0.5rem;">Rapport par Événement</h3>
+            <p style="color: var(--muted); margin-bottom: 1rem;">
+              Rapport détaillé pour un événement spécifique avec statistiques complètes et liste des participants.
+            </p>
+            <div class="sample-data">
+              <strong>Contenu inclus :</strong><br>
+              • En-tête professionnel avec logo<br>
+              • Statistiques visuelles (présents, absents, excusés)<br>
+              • Taux de présence avec barre de progression<br>
+              • Tableau détaillé de tous les membres<br>
+              • Pied de page avec informations de contact
+            </div>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">🌍</div>
+            <h3 style="color: var(--accent-tertiary); margin: 0 0 0.5rem;">Rapport Global</h3>
+            <p style="color: var(--muted); margin-bottom: 1rem;">
+              Analyse complète sur une période donnée avec statistiques par département et tendances.
+            </p>
+            <div class="sample-data">
+              <strong>Contenu inclus :</strong><br>
+              • Statistiques par département<br>
+              • Analyse comparative des événements<br>
+              • Taux de présence globaux<br>
+              • Graphiques et visualisations<br>
+              • Rapport multi-pages automatique
+            </div>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">👤</div>
+            <h3 style="color: var(--accent-tertiary); margin: 0 0 0.5rem;">Rapport Individuel</h3>
+            <p style="color: var(--muted); margin-bottom: 1rem;">
+              Profil personnalisé d'un membre avec historique complet et statistiques personnelles.
+            </p>
+            <div class="sample-data">
+              <strong>Contenu inclus :</strong><br>
+              • Profil détaillé du membre<br>
+              • Statistiques personnelles de présence<br>
+              • Graphiques en barres visuels<br>
+              • Historique chronologique complet<br>
+              • Analyse de performance individuelle
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2 style="color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">
+          🎨 Design Professionnel
+        </h2>
+        
+        <div class="pdf-preview">
+          <div style="background: linear-gradient(90deg, var(--accent), var(--accent-secondary)); color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+            <strong>🏛️ La Parole Eternelle</strong><br>
+            <span style="font-size: 0.9rem;">RAPPORT DE PRÉSENCES</span><br>
+            <span style="font-size: 0.8rem; opacity: 0.8;">Événement: Culte Dominical - 22 novembre 2025</span>
+          </div>
+          
+          <div style="margin: 1rem 0;">
+            <strong>📊 STATISTIQUES GÉNÉRALES</strong><br><br>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+              <div style="background: var(--surface-elevated); padding: 0.5rem; border-radius: 0.25rem;">
+                <div style="color: var(--accent); font-weight: bold;">247</div>
+                <div style="font-size: 0.7rem;">Total</div>
+              </div>
+              <div style="background: rgba(34, 197, 94, 0.2); padding: 0.5rem; border-radius: 0.25rem;">
+                <div style="color: #22c55e; font-weight: bold;">198</div>
+                <div style="font-size: 0.7rem;">Présents</div>
+              </div>
+              <div style="background: rgba(239, 68, 68, 0.2); padding: 0.5rem; border-radius: 0.25rem;">
+                <div style="color: #ef4444; font-weight: bold;">35</div>
+                <div style="font-size: 0.7rem;">Absents</div>
+              </div>
+              <div style="background: rgba(249, 115, 22, 0.2); padding: 0.5rem; border-radius: 0.25rem;">
+                <div style="color: #f97316; font-weight: bold;">14</div>
+                <div style="font-size: 0.7rem;">Excusés</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin: 1rem 0;">
+            <strong>Taux de présence: 80.2%</strong><br>
+            <div style="background: #f0f0f0; height: 8px; border-radius: 4px; margin: 0.5rem 0;">
+              <div style="background: #22c55e; height: 8px; width: 80.2%; border-radius: 4px;"></div>
+            </div>
+          </div>
+          
+          <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem; font-size: 0.7rem; color: var(--muted);">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Kolwezi, République Démocratique du Congo</span>
+              <span>Page 1 sur 2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2 style="color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">
+          ⚙️ Spécifications Techniques
+        </h2>
+        
+        <div class="tech-specs">
+          <div class="spec-item">
+            <div class="spec-value">jsPDF</div>
+            <div class="spec-label">Bibliothèque PDF</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">autoTable</div>
+            <div class="spec-label">Plugin Tableaux</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">A4</div>
+            <div class="spec-label">Format Standard</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">Multi-pages</div>
+            <div class="spec-label">Support Automatique</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">Responsive</div>
+            <div class="spec-label">Design Adaptatif</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">Vectoriel</div>
+            <div class="spec-label">Qualité Parfaite</div>
+          </div>
+        </div>
+        
+        <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border); margin-top: 1.5rem;">
+          <h3 style="color: var(--accent-tertiary); margin: 0 0 1rem;">🚀 Fonctionnalités Avancées</h3>
+          <ul style="color: var(--muted); line-height: 1.8;">
+            <li><strong>En-têtes personnalisés</strong> avec logo et informations de l'entreprise</li>
+            <li><strong>Pieds de page automatiques</strong> avec numérotation et contact</li>
+            <li><strong>Tableaux stylisés</strong> avec couleurs conditionnelles selon le statut</li>
+            <li><strong>Graphiques visuels</strong> avec barres de progression et statistiques</li>
+            <li><strong>Mise en page responsive</strong> qui s'adapte au contenu</li>
+            <li><strong>Export automatique</strong> avec noms de fichiers intelligents</li>
+            <li><strong>Gestion des erreurs</strong> avec notifications utilisateur</li>
+            <li><strong>Performance optimisée</strong> pour de gros volumes de données</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2 style="color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">
+          📋 Types de Rapports Disponibles
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border-left: 4px solid var(--accent);">
+            <h4 style="margin: 0 0 0.5rem; color: var(--accent);">📅 Par Événement</h4>
+            <p style="margin: 0; color: var(--muted); font-size: 0.9rem;">
+              Rapport détaillé pour un événement spécifique avec toutes les présences enregistrées
+            </p>
+          </div>
+          
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border-left: 4px solid var(--accent-secondary);">
+            <h4 style="margin: 0 0 0.5rem; color: var(--accent-secondary);">🌍 Global Période</h4>
+            <p style="margin: 0; color: var(--muted); font-size: 0.9rem;">
+              Analyse complète sur une période avec statistiques par département
+            </p>
+          </div>
+          
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border-left: 4px solid var(--accent-tertiary);">
+            <h4 style="margin: 0 0 0.5rem; color: var(--accent-tertiary);">👤 Individuel</h4>
+            <p style="margin: 0; color: var(--muted); font-size: 0.9rem;">
+              Profil personnalisé d'un membre avec historique et statistiques
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: linear-gradient(135deg, var(--surface-elevated), var(--surface-light)); border-radius: 1rem; border: 1px solid var(--border-bright);">
+        <h2 style="margin: 0 0 1rem; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--accent), var(--accent-tertiary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          🎉 SYSTÈME D'EXPORT PDF PRÊT
+        </h2>
+        <p style="color: var(--muted); margin: 0 0 1.5rem; font-size: 1.1rem;">
+          Générez des rapports professionnels de niveau entreprise en quelques clics
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button class="primary" onclick="window.location.href='reports.html'">
+            📊 Accéder aux Rapports
+          </button>
+          <button class="secondary" onclick="window.location.href='attendances.html'">
+            ✅ Gérer les Présences
+          </button>
+          <button class="secondary" onclick="window.location.href='admin.html'">
+            🏠 Tableau de Bord
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Animation des cartes au scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Animer les sections au chargement
+      const sections = document.querySelectorAll('.demo-section');
+      sections.forEach((section, index) => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(30px)';
+        section.style.transition = 'all 0.6s ease';
+        
+        setTimeout(() => {
+          observer.observe(section);
+        }, index * 100);
+      });
+    });
+  </script>
+</body>
+</html>

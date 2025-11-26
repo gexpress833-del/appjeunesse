@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapports PDF - La Parole Eternelle</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .report-section {
+      margin: 2rem 0;
+      background: var(--surface-elevated);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      border: 1px solid var(--border-bright);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .report-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-tertiary));
+    }
+    
+    .report-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-tertiary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .report-description {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    
+    .report-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .form-group label {
+      font-weight: 600;
+      color: var(--text-bright);
+      font-size: 0.9rem;
+    }
+    
+    .form-group select,
+    .form-group input {
+      padding: 0.875rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-bright);
+      background: var(--surface-light);
+      color: var(--text);
+      font-family: "Inter", sans-serif;
+      transition: all 0.3s ease;
+    }
+    
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    }
+    
+    .export-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      color: var(--text-bright);
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      font-family: "Inter", sans-serif;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 212, 255, 0.3);
+    }
+    
+    .export-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .export-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .export-btn:hover::before {
+      left: 100%;
+    }
+    
+    .preview-section {
+      background: var(--surface-light);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      margin-top: 1.5rem;
+    }
+    
+    .preview-title {
+      font-weight: 600;
+      color: var(--accent-tertiary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    
+    .stat-card {
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      font-family: "JetBrains Mono", monospace;
+      background: linear-gradient(135deg, var(--accent), var(--accent-tertiary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .loading-content {
+      background: var(--surface-elevated);
+      padding: 2rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-bright);
+      text-align: center;
+      max-width: 300px;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body data-page-role="reports">
+  <div class="app">
+    <div class="panel">
+      <header>
+        <div class="header-left">
+          <img src="images/logo.jpg" alt="Logo" class="app-logo">
+          <div class="app-title">
+            <span class="app-name">La Parole Eternelle</span>
+            <span class="app-subtitle">Rapports PDF</span>
+          </div>
+        </div>
+        <div class="header-center">
+          <div class="profile-avatar" id="headerProfilePhoto">
+            <span id="headerInitials">U</span>
+          </div>
+          <div class="header-info">
+            <h1 class="header-title">📊 Rapports PDF</h1>
+            <span class="welcome-message">Bienvenue, Utilisateur</span>
+          </div>
+        </div>
+        <div class="login-panel">
+          <div class="notification-bell" onclick="openNotificationCenter()">
+            🔔
+            <span class="notification-badge" id="notificationBadge">0</span>
+          </div>
+          <div class="user-info">
+            <span class="user-role" id="currentUserRole">Rôle : <strong>Admin</strong></span>
+            <span class="user-status">● En ligne</span>
+          </div>
+          <button class="secondary logout-btn" id="logoutBtn" type="button">Déconnexion</button>
+        </div>
+      </header>
+
+      <nav class="nav role-nav">
+        <a href="#" onclick="goToHomePage()">🏠 Accueil</a>
+        <a href="members.html">👥 Membres</a>
+        <a href="events.html">📅 Événements</a>
+        <a href="attendances.html">✅ Présences</a>
+        <a href="reports.html" class="active">📊 Rapports</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+
+      <!-- Rapport par événement -->
+      <div class="report-section">
+        <h2 class="report-title">
+          📅 Rapport de Présences par Événement
+        </h2>
+        <p class="report-description">
+          Générez un rapport détaillé des présences pour un événement spécifique. 
+          Inclut les statistiques complètes, le taux de présence et la liste détaillée de tous les membres.
+        </p>
+        
+        <div class="report-form">
+          <div class="form-group">
+            <label for="eventSelect">Sélectionner un événement</label>
+            <select id="eventSelect">
+              <option value="">Choisir un événement...</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="preview-section" id="eventPreview" style="display: none;">
+          <h3 class="preview-title">📋 Aperçu des données</h3>
+          <div class="stats-grid" id="eventStats"></div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="export-btn" id="exportEventBtn" disabled>
+            📄 Rapport Complet
+          </button>
+          <button class="export-btn secondary" id="fastExportEventBtn" disabled style="background: linear-gradient(135deg, #10b981, #059669);">
+            ⚡ Rapport Rapide
+          </button>
+        </div>
+      </div>
+
+      <!-- Rapport global -->
+      <div class="report-section">
+        <h2 class="report-title">
+          🌍 Rapport Global de Présences
+        </h2>
+        <p class="report-description">
+          Générez un rapport complet sur une période donnée avec les statistiques par département, 
+          les tendances de présence et l'analyse comparative des événements.
+        </p>
+        
+        <div class="report-form">
+          <div class="form-group">
+            <label for="startDate">Date de début</label>
+            <input type="date" id="startDate">
+          </div>
+          <div class="form-group">
+            <label for="endDate">Date de fin</label>
+            <input type="date" id="endDate">
+          </div>
+        </div>
+        
+        <div class="preview-section" id="globalPreview" style="display: none;">
+          <h3 class="preview-title">📊 Aperçu de la période</h3>
+          <div class="stats-grid" id="globalStats"></div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="export-btn" id="exportGlobalBtn" disabled>
+            📈 Rapport Global Complet
+          </button>
+          <button class="export-btn secondary" id="fastExportGlobalBtn" disabled style="background: linear-gradient(135deg, #10b981, #059669);">
+            ⚡ Rapport Global Rapide
+          </button>
+        </div>
+      </div>
+
+      <!-- Rapport individuel -->
+      <div class="report-section">
+        <h2 class="report-title">
+          👤 Rapport Individuel de Membre
+        </h2>
+        <p class="report-description">
+          Générez un rapport personnalisé pour un membre spécifique avec son historique complet, 
+          ses statistiques de présence et son évolution dans le temps.
+        </p>
+        
+        <div class="report-form">
+          <div class="form-group">
+            <label for="memberSelect">Sélectionner un membre</label>
+            <select id="memberSelect">
+              <option value="">Choisir un membre...</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="preview-section" id="memberPreview" style="display: none;">
+          <h3 class="preview-title">👤 Profil du membre</h3>
+          <div class="stats-grid" id="memberStats"></div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="export-btn" id="exportMemberBtn" disabled>
+            📋 Rapport Individuel Complet
+          </button>
+          <button class="export-btn secondary" id="fastExportMemberBtn" disabled style="background: linear-gradient(135deg, #10b981, #059669);">
+            ⚡ Rapport Individuel Rapide
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Overlay de chargement -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <h3 style="margin: 0 0 0.5rem; color: var(--accent);">Génération en cours...</h3>
+      <p style="margin: 0; color: var(--muted);">Veuillez patienter pendant la création du rapport PDF</p>
+    </div>
+  </div>
+
+  <!-- Préchargement des bibliothèques PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/notifications.js" defer></script>
+  <script src="js/pdf-performance-optimizer.js" defer></script>
+  <script src="js/pdf-reports.js" defer></script>
+  <script src="js/pdf-fast-generator.js" defer></script>
+  
+  <script>
+    let currentData = {
+      events: [],
+      members: [],
+      attendances: [],
+      departments: []
+    };
+
+    function checkSessionValidity() {
+      const loginTime = localStorage.getItem('appLoginTime');
+      const sessionTimeout = 2 * 60 * 60 * 1000; // 2 heures
+      
+      if (!loginTime) return false;
+      
+      return (Date.now() - parseInt(loginTime)) <= sessionTimeout;
+    }
+
+    function initReportsPage() {
+      // Vérifier la validité de la session
+      if (!checkSessionValidity()) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Vérifier les permissions d'accès aux rapports PDF
+      const currentRole = localStorage.getItem('appRole');
+      if (!['admin', 'secretariat'].includes(currentRole)) {
+        // Afficher un message d'erreur et rediriger
+        if (window.notificationSystem) {
+          window.notificationSystem.error('Accès refusé. Seuls l\'Administrateur et le Secrétariat peuvent accéder aux rapports PDF.', { duration: 5000 });
+        } else {
+          alert('Accès refusé. Seuls l\'Administrateur et le Secrétariat peuvent accéder aux rapports PDF.');
+        }
+        
+        window.location.href = 'access-denied-reports.html';
+        return;
+      }
+
+      // Mettre à jour l'interface utilisateur
+      updateWelcomeMessage();
+      setupLogoutButton();
+
+      loadData();
+      setupEventListeners();
+      populateSelects();
+    }
+
+    function updateWelcomeMessage() {
+      const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+      const welcomeEl = document.querySelector('.welcome-message');
+      if (welcomeEl) {
+        welcomeEl.textContent = `Bienvenue, ${userName}`;
+      }
+
+      // Mettre à jour les initiales du profil
+      const headerInitials = document.getElementById('headerInitials');
+      if (headerInitials && userName !== 'Utilisateur') {
+        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        headerInitials.textContent = initials;
+      }
+    }
+
+    function setupLogoutButton() {
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+            localStorage.removeItem('appRole');
+            localStorage.removeItem('appDept');
+            localStorage.removeItem('appUserName');
+            localStorage.removeItem('appLoginTime');
+            window.location.href = 'login.html';
+          }
+        });
+      }
+    }
+
+    function loadData() {
+      currentData.events = JSON.parse(localStorage.getItem('events') || '[]');
+      currentData.members = JSON.parse(localStorage.getItem('members') || '[]');
+      currentData.attendances = JSON.parse(localStorage.getItem('attendances') || '[]');
+      currentData.departments = JSON.parse(localStorage.getItem('departments') || '[]');
+    }
+
+    function populateSelects() {
+      // Peupler la liste des événements
+      const eventSelect = document.getElementById('eventSelect');
+      eventSelect.innerHTML = '<option value="">Choisir un événement...</option>';
+      
+      currentData.events.forEach(event => {
+        const option = document.createElement('option');
+        option.value = event.id;
+        option.textContent = `${event.name} - ${new Date(event.date).toLocaleDateString('fr-FR')}`;
+        eventSelect.appendChild(option);
+      });
+
+      // Peupler la liste des membres
+      const memberSelect = document.getElementById('memberSelect');
+      memberSelect.innerHTML = '<option value="">Choisir un membre...</option>';
+      
+      currentData.members.forEach(member => {
+        const option = document.createElement('option');
+        option.value = member.id;
+        option.textContent = `${member.name} (${member.dept || 'N/A'})`;
+        memberSelect.appendChild(option);
+      });
+
+      // Définir les dates par défaut
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      document.getElementById('startDate').value = firstDayOfMonth.toISOString().split('T')[0];
+      document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    }
+
+    function setupEventListeners() {
+      // Événement sélectionné
+      document.getElementById('eventSelect').addEventListener('change', function() {
+        const eventId = this.value;
+        const exportBtn = document.getElementById('exportEventBtn');
+        const fastExportBtn = document.getElementById('fastExportEventBtn');
+        const preview = document.getElementById('eventPreview');
+        
+        if (eventId) {
+          showEventPreview(eventId);
+          exportBtn.disabled = false;
+          fastExportBtn.disabled = false;
+          preview.style.display = 'block';
+        } else {
+          exportBtn.disabled = true;
+          fastExportBtn.disabled = true;
+          preview.style.display = 'none';
+        }
+      });
+
+      // Dates pour rapport global
+      ['startDate', 'endDate'].forEach(id => {
+        document.getElementById(id).addEventListener('change', function() {
+          const startDate = document.getElementById('startDate').value;
+          const endDate = document.getElementById('endDate').value;
+          const exportBtn = document.getElementById('exportGlobalBtn');
+          const fastExportBtn = document.getElementById('fastExportGlobalBtn');
+          const preview = document.getElementById('globalPreview');
+          
+          if (startDate && endDate && new Date(startDate) <= new Date(endDate)) {
+            showGlobalPreview(startDate, endDate);
+            exportBtn.disabled = false;
+            fastExportBtn.disabled = false;
+            preview.style.display = 'block';
+          } else {
+            exportBtn.disabled = true;
+            fastExportBtn.disabled = true;
+            preview.style.display = 'none';
+          }
+        });
+      });
+
+      // Membre sélectionné
+      document.getElementById('memberSelect').addEventListener('change', function() {
+        const memberId = this.value;
+        const exportBtn = document.getElementById('exportMemberBtn');
+        const fastExportBtn = document.getElementById('fastExportMemberBtn');
+        const preview = document.getElementById('memberPreview');
+        
+        if (memberId) {
+          showMemberPreview(memberId);
+          exportBtn.disabled = false;
+          fastExportBtn.disabled = false;
+          preview.style.display = 'block';
+        } else {
+          exportBtn.disabled = true;
+          fastExportBtn.disabled = true;
+          preview.style.display = 'none';
+        }
+      });
+
+      // Boutons d'export
+      document.getElementById('exportEventBtn').addEventListener('click', async function() {
+        const eventId = document.getElementById('eventSelect').value;
+        if (eventId) {
+          showLoading(true);
+          await window.exportEventAttendance(eventId);
+          showLoading(false);
+        }
+      });
+
+      document.getElementById('exportGlobalBtn').addEventListener('click', async function() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate && endDate) {
+          showLoading(true);
+          await window.exportGlobalAttendance(startDate, endDate);
+          showLoading(false);
+        }
+      });
+
+      document.getElementById('exportMemberBtn').addEventListener('click', async function() {
+        const memberId = document.getElementById('memberSelect').value;
+        if (memberId) {
+          showLoading(true);
+          await window.exportMemberReport(memberId);
+          showLoading(false);
+        }
+      });
+
+      // Boutons d'export rapide
+      document.getElementById('fastExportEventBtn').addEventListener('click', async function() {
+        const eventId = document.getElementById('eventSelect').value;
+        if (eventId) {
+          await window.fastExportEventAttendance(eventId);
+        }
+      });
+
+      document.getElementById('fastExportGlobalBtn').addEventListener('click', async function() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate && endDate) {
+          await window.fastExportGlobalAttendance(startDate, endDate);
+        }
+      });
+
+      document.getElementById('fastExportMemberBtn').addEventListener('click', async function() {
+        const memberId = document.getElementById('memberSelect').value;
+        if (memberId) {
+          await window.fastExportMemberReport(memberId);
+        }
+      });
+    }
+
+    function showEventPreview(eventId) {
+      const event = currentData.events.find(e => e.id == eventId);
+      const eventAttendances = currentData.attendances.filter(a => a.eventId == eventId);
+      
+      const totalMembers = currentData.members.length;
+      const presentCount = eventAttendances.filter(a => a.status === 'P').length;
+      const absentCount = eventAttendances.filter(a => a.status === 'A').length;
+      const excusedCount = eventAttendances.filter(a => a.status === 'AJ').length;
+      const attendanceRate = totalMembers > 0 ? ((presentCount / totalMembers) * 100).toFixed(1) : 0;
+
+      const statsContainer = document.getElementById('eventStats');
+      statsContainer.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${totalMembers}</div>
+          <div class="stat-label">Total Membres</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${presentCount}</div>
+          <div class="stat-label">Présents</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${absentCount}</div>
+          <div class="stat-label">Absents</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${attendanceRate}%</div>
+          <div class="stat-label">Taux de Présence</div>
+        </div>
+      `;
+    }
+
+    function showGlobalPreview(startDate, endDate) {
+      const filteredEvents = currentData.events.filter(event => {
+        const eventDate = new Date(event.date);
+        return eventDate >= new Date(startDate) && eventDate <= new Date(endDate);
+      });
+
+      const totalEvents = filteredEvents.length;
+      const totalMembers = currentData.members.length;
+      const totalDepartments = currentData.departments.length;
+      
+      let totalPresences = 0;
+      filteredEvents.forEach(event => {
+        const eventAttendances = currentData.attendances.filter(a => a.eventId == event.id);
+        totalPresences += eventAttendances.filter(a => a.status === 'P').length;
+      });
+
+      const possibleAttendances = totalMembers * totalEvents;
+      const globalRate = possibleAttendances > 0 ? ((totalPresences / possibleAttendances) * 100).toFixed(1) : 0;
+
+      const statsContainer = document.getElementById('globalStats');
+      statsContainer.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${totalEvents}</div>
+          <div class="stat-label">Événements</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalDepartments}</div>
+          <div class="stat-label">Départements</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalPresences}</div>
+          <div class="stat-label">Total Présences</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${globalRate}%</div>
+          <div class="stat-label">Taux Global</div>
+        </div>
+      `;
+    }
+
+    function showMemberPreview(memberId) {
+      const member = currentData.members.find(m => m.id == memberId);
+      const memberAttendances = currentData.attendances.filter(a => a.memberId == memberId);
+      
+      const totalEvents = currentData.events.length;
+      const presentCount = memberAttendances.filter(a => a.status === 'P').length;
+      const absentCount = memberAttendances.filter(a => a.status === 'A').length;
+      const attendanceRate = totalEvents > 0 ? ((presentCount / totalEvents) * 100).toFixed(1) : 0;
+
+      const statsContainer = document.getElementById('memberStats');
+      statsContainer.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${member.name}</div>
+          <div class="stat-label">Nom</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${member.dept || 'N/A'}</div>
+          <div class="stat-label">Département</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${presentCount}/${totalEvents}</div>
+          <div class="stat-label">Présences</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${attendanceRate}%</div>
+          <div class="stat-label">Taux Personnel</div>
+        </div>
+      `;
+    }
+
+    function showLoading(show) {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.style.display = show ? 'flex' : 'none';
+    }
+
+    function goToHomePage() {
+      const currentRole = localStorage.getItem('appRole');
+      const homePages = {
+        'admin': 'admin.html',
+        'secretariat': 'secretariat.html',
+        'responsable': 'responsable.html',
+        'user': 'user.html'
+      };
+      
+      window.location.href = homePages[currentRole] || 'login.html';
+    }
+
+    // Vérifier que les bibliothèques PDF sont chargées
+    function waitForPDFLibraries() {
+      return new Promise((resolve) => {
+        const checkLibraries = () => {
+          if (typeof window.jsPDF !== 'undefined' && window.jsPDF.jsPDF) {
+            console.log('✅ Bibliothèques PDF chargées avec succès');
+            resolve();
+          } else {
+            console.log('⏳ Attente des bibliothèques PDF...');
+            setTimeout(checkLibraries, 100);
+          }
+        };
+        checkLibraries();
+      });
+    }
+
+    // Initialiser la page après chargement des bibliothèques
+    document.addEventListener('DOMContentLoaded', async () => {
+      await waitForPDFLibraries();
+      initReportsPage();
+    });
+  </script>
+</body>
+</html>

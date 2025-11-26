@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion - Gestion d'équipe</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* Enhanced login styles */
+    .login-container {
+      max-width: 450px;
+      margin: 3rem auto;
+      padding: 3rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 1.5rem;
+      box-shadow: 0 25px 100px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .login-form h2 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #f1f5f9;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .login-form .form-control {
+      margin-bottom: 0;
+    }
+
+    .login-form .form-control input {
+      padding: 1rem;
+      font-size: 1rem;
+      border: 2px solid rgba(148, 163, 184, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .login-form .form-control input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      outline: none;
+    }
+
+    .login-form button {
+      margin-top: 1rem;
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-form button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top: 2px solid #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    .loading .loading-spinner {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .forgot-password {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .forgot-password a {
+      color: #60a5fa;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .forgot-password a:hover {
+      color: #93c5fd;
+    }
+
+    .register-link {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .register-link a {
+      color: #10b981;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .register-link a:hover {
+      color: #34d399;
+    }
+
+    .demo-credentials {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: rgba(59, 130, 246, 0.05);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 1rem;
+    }
+
+    .demo-credentials h4 {
+      margin: 0 0 1rem;
+      color: #60a5fa;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .demo-user {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .demo-user .role {
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .demo-user .credentials {
+      color: #cbd5e1;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="login-container">
+      <form class="login-form" id="loginForm">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <img src="images/logo.jpg" alt="Logo La Parole Eternelle" class="app-logo-large">
+          <h2>Connexion</h2>
+          <p style="color: #94a3b8; margin: 0;">La Parole Eternelle - Kolwezi</p>
+        </div>
+        
+        <div class="form-control">
+          <label for="username">Nom d'utilisateur</label>
+          <input type="text" id="username" name="username" required autocomplete="username">
+        </div>
+        
+        <div class="form-control">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="primary" id="loginBtn">
+          <span class="loading-spinner"></span>
+          <span class="btn-text">Se connecter</span>
+        </button>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="forgot-password">
+          <a href="#" onclick="showForgotPassword()">Mot de passe oublié ?</a>
+        </div>
+        
+        <div class="register-link">
+          <a href="#" onclick="showRegister()">Créer un compte</a>
+        </div>
+      </form>
+      
+      <div class="demo-credentials">
+        <h4>🧪 Comptes de démonstration</h4>
+        <div class="demo-user">
+          <span class="role">Admin</span>
+          <span class="credentials">admin / admin123</span>
+        </div>
+        <div class="demo-user">
+          <span class="role">Secrétariat</span>
+          <span class="credentials">secretariat / secret123</span>
+        </div>
+        <div class="demo-user">
+          <span class="role">Responsable</span>
+          <span class="credentials">responsable / resp123</span>
+        </div>
+        <div class="demo-user">
+          <span class="role">Utilisateur</span>
+          <span class="credentials">user / user123</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/notifications.js"></script>
+  <script>
+    // Enhanced login functionality
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+
+    // Initialize users if not exists
+    if (!localStorage.getItem('appUsers')) {
+      const defaultUsers = [
+        { 
+          username: 'admin', 
+          password: 'admin123', 
+          role: 'admin', 
+          name: 'Jean-Baptiste Mukendi',
+          status: 'active',
+          email: 'admin@laparole.cd',
+          birthDate: '1985-03-15',
+          address: '123 Avenue de la Liberté, Quartier Golf, Kolwezi',
+          createdAt: new Date().toISOString()
+        },
+        { 
+          username: 'secretariat', 
+          password: 'secret123', 
+          role: 'secretariat', 
+          name: 'Marie Kabongo',
+          status: 'active',
+          email: 'secretariat@laparole.cd',
+          birthDate: '1990-07-22',
+          address: '456 Rue de la Paix, Quartier Makomeno, Kolwezi',
+          createdAt: new Date().toISOString()
+        },
+        { 
+          username: 'responsable', 
+          password: 'resp123', 
+          role: 'responsable', 
+          dept: 'DLB', 
+          name: 'Paul Mwanza',
+          status: 'active',
+          email: 'responsable@laparole.cd',
+          birthDate: '1988-11-10',
+          address: '789 Boulevard Lumumba, Quartier Dilala, Kolwezi',
+          createdAt: new Date().toISOString()
+        },
+        { 
+          username: 'user', 
+          password: 'user123', 
+          role: 'user', 
+          name: 'Grace Kasongo',
+          status: 'active',
+          email: 'user@laparole.cd',
+          birthDate: '1995-05-08',
+          address: '321 Avenue Mobutu, Quartier Kapata, Kolwezi',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      localStorage.setItem('appUsers', JSON.stringify(defaultUsers));
+    }
+
+    function showError(message) {
+      // Use new notification system if available
+      if (window.notificationSystem) {
+        window.notificationSystem.error(message);
+        return;
+      }
+      
+      // Fallback to old system
+      errorMessage.textContent = message;
+      errorMessage.classList.add('show');
+      setTimeout(() => {
+        errorMessage.classList.remove('show');
+      }, 5000);
+    }
+
+    function setLoading(loading) {
+      loginBtn.classList.toggle('loading', loading);
+      loginBtn.disabled = loading;
+      if (loading) {
+        loginBtn.querySelector('.btn-text').textContent = 'Connexion...';
+      } else {
+        loginBtn.querySelector('.btn-text').textContent = 'Se connecter';
+      }
+    }
+
+    function validateCredentials(username, password) {
+      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+      const user = users.find(user => user.username === username && user.password === password);
+      
+      // Debug: afficher les informations de l'utilisateur trouvé
+      if (user) {
+        console.log('Utilisateur trouvé:', {
+          username: user.username,
+          role: user.role,
+          name: user.name,
+          status: user.status
+        });
+      }
+      
+      return user;
+    }
+
+    function redirectToRole(role) {
+      const rolePages = {
+        admin: 'admin.html',
+        secretariat: 'secretariat.html',
+        responsable: 'responsable.html',
+        user: 'user.html'
+      };
+      
+      window.location.href = rolePages[role] || 'user.html';
+    }
+
+    function simulateNetworkDelay() {
+      return new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
+      
+      if (!username || !password) {
+        showError('Veuillez remplir tous les champs');
+        return;
+      }
+      
+      setLoading(true);
+      
+      try {
+        // Simulate network delay for realism
+        await simulateNetworkDelay();
+        
+        const user = validateCredentials(username, password);
+        
+        if (!user) {
+          showError('Nom d\'utilisateur ou mot de passe incorrect');
+          setLoading(false);
+          return;
+        }
+        
+        // Check user status
+        if (user.status === 'pending') {
+          showError('Votre compte est en attente d\'attribution de rôle par l\'administrateur. Veuillez patienter.');
+          setLoading(false);
+          return;
+        }
+        
+        if (user.status === 'inactive') {
+          showError('Votre compte a été désactivé. Contactez l\'administrateur.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!user.role) {
+          showError('Aucun rôle attribué à votre compte. Contactez l\'administrateur.');
+          setLoading(false);
+          return;
+        }
+        
+        // Store session data
+        localStorage.setItem('appRole', user.role);
+        localStorage.setItem('appUser', user.username);
+        localStorage.setItem('appUserName', user.name);
+        localStorage.setItem('appLoginTime', Date.now().toString());
+        
+        if (user.dept) {
+          localStorage.setItem('appDept', user.dept);
+        }
+        
+        // Debug: vérifier ce qui est stocké
+        console.log('Données de session stockées:', {
+          appRole: localStorage.getItem('appRole'),
+          appUser: localStorage.getItem('appUser'),
+          appUserName: localStorage.getItem('appUserName'),
+          appDept: localStorage.getItem('appDept')
+        });
+        
+        // Success animation
+        loginBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        loginBtn.querySelector('.btn-text').textContent = 'Connexion réussie !';
+        
+        setTimeout(() => {
+          redirectToRole(user.role);
+        }, 1000);
+        
+      } catch (error) {
+        showError('Erreur de connexion. Veuillez réessayer.');
+        setLoading(false);
+      }
+    });
+
+    function showForgotPassword() {
+      alert('Fonctionnalité de récupération de mot de passe à venir.\n\nPour la démo, utilisez les identifiants affichés ci-dessous.');
+    }
+
+    function showRegister() {
+      alert('Fonctionnalité d\'inscription à venir.\n\nPour la démo, utilisez les comptes existants.');
+    }
+
+    // Auto-focus username field
+    usernameInput.focus();
+
+    // Clear error on input
+    [usernameInput, passwordInput].forEach(input => {
+      input.addEventListener('input', () => {
+        errorMessage.classList.remove('show');
+      });
+    });
+  </script>
+</body>
+</html>

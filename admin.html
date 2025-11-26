@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="admin">
+  <div class="app">
+    <div class="panel">
+      <header>
+        <div class="header-left">
+          <img src="images/logo.jpg" alt="Logo" class="app-logo">
+          <div class="app-title">
+            <span class="app-name">La Parole Eternelle</span>
+            <span class="app-subtitle">Administration</span>
+          </div>
+        </div>
+        <div class="header-center">
+          <div class="profile-avatar" id="headerProfilePhoto">
+            <span id="headerInitials">A</span>
+          </div>
+          <div class="header-info">
+            <h1 class="header-title">Administration</h1>
+            <span class="welcome-message">Bienvenue, Administrateur</span>
+          </div>
+        </div>
+        <div class="login-panel">
+          <div class="notification-bell" onclick="openNotificationCenter()">
+            🔔
+            <span class="notification-badge" id="notificationBadge">0</span>
+          </div>
+          <div class="user-info">
+            <span class="user-role">Rôle : <strong>Admin</strong></span>
+            <span class="user-status">● En ligne</span>
+          </div>
+          <button class="secondary logout-btn" id="logoutBtn" type="button">Déconnexion</button>
+        </div>
+      </header>
+      <nav class="nav role-nav">
+        <a href="index.html">Accueil</a>
+        <a href="members.html" data-section="members">Gestion des membres</a>
+        <a href="departments.html" data-section="departments">Départements</a>
+        <a href="events.html" data-section="events">Événements</a>
+        <a href="attendances.html" data-section="attendances">Présences</a>
+        <a href="users.html" data-section="users">⚙️ Gestion des rôles</a>
+        <a href="reports.html" data-section="reports">📊 Rapports PDF</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+      <section class="grid role-stats">
+        <div class="card">
+          <h3>Membres</h3>
+          <p class="value" id="roleStatMembers">0</p>
+        </div>
+        <div class="card">
+          <h3>Départements</h3>
+          <p class="value" id="roleStatDepts">0</p>
+        </div>
+        <div class="card">
+          <h3>Événements</h3>
+          <p class="value" id="roleStatEvents">0</p>
+        </div>
+        <div class="card">
+          <h3>Présences</h3>
+          <p class="value" id="roleStatAttendance">0 %</p>
+        </div>
+      </section>
+      <section class="card" style="margin-top:1.5rem;">
+        <h3>Actions rapides</h3>
+        <div class="quick-actions">
+          <a href="departments.html" class="quick-action-card">
+            <div class="quick-action-icon">🏢</div>
+            <h4 class="quick-action-title">Départements</h4>
+            <p class="quick-action-subtitle">Créer et gérer</p>
+          </a>
+          <a href="events.html" class="quick-action-card">
+            <div class="quick-action-icon">📅</div>
+            <h4 class="quick-action-title">Événements</h4>
+            <p class="quick-action-subtitle">Planifier et organiser</p>
+          </a>
+          <a href="members.html" class="quick-action-card">
+            <div class="quick-action-icon">👥</div>
+            <h4 class="quick-action-title">Membres</h4>
+            <p class="quick-action-subtitle">Gérer la communauté</p>
+          </a>
+          <a href="reports.html" class="quick-action-card">
+            <div class="quick-action-icon">📊</div>
+            <h4 class="quick-action-title">Rapports PDF</h4>
+            <p class="quick-action-subtitle">Exporter et analyser</p>
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/notifications.js" defer></script>
+  <script src="js/role-page.js" defer></script>
+</body>
+</html>
+

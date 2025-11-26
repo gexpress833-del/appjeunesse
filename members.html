@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestion des membres</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header>
+        <h1>Membres</h1>
+        <div class="login-panel">
+          <div class="user-info">
+            <span class="welcome-message">Bienvenue</span>
+            <span class="user-role">Gestion des membres</span>
+          </div>
+          <button class="secondary logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+      </header>
+      <nav class="nav">
+        <a href="index.html" data-section="dashboard">📊 Tableau de bord</a>
+        <a href="members.html" data-section="members" class="active">👥 Membres</a>
+        <a href="departments.html" data-section="departments">🏛️ Départements</a>
+        <a href="events.html" data-section="events">🗓️ Événements</a>
+        <a href="attendances.html" data-section="attendances">📝 Présences</a>
+        <a href="users.html" data-section="users" class="secretariat-only">👤 Créer utilisateurs</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+      <div id="notifications" class="notifications"></div>
+      
+      <!-- Information pour le secrétaire -->
+      <div class="info-banner secretariat-only" id="userCreationInfo" style="display: none;">
+        <div class="info-content">
+          <div class="info-icon">ℹ️</div>
+          <div class="info-text">
+            <h4>Création de comptes utilisateurs</h4>
+            <p>Pour créer de nouveaux comptes utilisateurs, rendez-vous sur la page <strong>"👤 Utilisateurs"</strong> dans le menu ci-dessus.</p>
+            <p><small>Cette page "Membres" sert à gérer les membres existants de l'église.</small></p>
+          </div>
+          <button class="info-action" onclick="window.location.href='users.html'">
+            Aller aux Utilisateurs
+          </button>
+        </div>
+      </div>
+      
+      <section>
+        <div class="card admin-only" id="memberFormCard">
+          <h3>Ajouter ou modifier</h3>
+          <form id="memberForm">
+            <div class="form-control">
+              <label for="memberName">Nom complet</label>
+              <input type="text" id="memberName" placeholder="ex : Marie Dubois" required />
+            </div>
+            <div class="form-control">
+              <label for="memberDeptSelect">Département</label>
+              <select id="memberDeptSelect"></select>
+            </div>
+            <div class="form-control">
+              <label for="memberRole">Rôle</label>
+              <select id="memberRole">
+                <option value="user">Utilisateur</option>
+                <option value="responsable">Responsable</option>
+                <option value="secretariat">Secrétariat</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary" id="memberSubmit">Ajouter</button>
+              <button type="button" class="secondary" id="memberCancel" style="display:none;">Annuler</button>
+            </div>
+          </form>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <div class="form-control" style="margin-bottom:0;">
+            <label for="memberFilter">Filtrer par département</label>
+            <select id="memberFilter"></select>
+          </div>
+          <div class="legend">
+            <span><span class="dot dot-green"></span>Admin / Secrétariat / Responsable</span>
+            <span><span class="dot dot-orange"></span>User lecture seule</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <h3>Liste des membres</h3>
+          <div class="members-grid" id="membersGrid">
+            <!-- Members will be populated here -->
+          </div>
+        </div>
+        
+        <!-- Member Detail Modal -->
+        <div class="modal-overlay" id="memberModal" style="display: none;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Détails du membre</h3>
+              <button class="modal-close" onclick="closeMemberModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="member-detail-header">
+                <div class="member-detail-photo" id="modalMemberPhoto">
+                  <span id="modalMemberInitials">M</span>
+                </div>
+                <div class="member-detail-info">
+                  <h4 id="modalMemberName">Nom du membre</h4>
+                  <p id="modalMemberRole">Rôle</p>
+                  <p id="modalMemberDept">Département</p>
+                </div>
+              </div>
+              <div class="member-detail-stats">
+                <div class="detail-stat">
+                  <span class="stat-label">Présences totales</span>
+                  <span class="stat-value" id="modalMemberAttendances">0</span>
+                </div>
+                <div class="detail-stat">
+                  <span class="stat-label">Taux de présence</span>
+                  <span class="stat-value" id="modalMemberRate">0%</span>
+                </div>
+                <div class="detail-stat">
+                  <span class="stat-label">Dernière présence</span>
+                  <span class="stat-value" id="modalMemberLastSeen">Jamais</span>
+                </div>
+              </div>
+              <div class="member-detail-contact" id="modalMemberContact">
+                <!-- Contact info will be populated if available -->
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="secondary" onclick="closeMemberModal()">Fermer</button>
+              <button class="primary" id="modalEditBtn" onclick="editMemberFromModal()">Modifier</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/members.js" defer></script>
+  <script>
+    function logout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        localStorage.removeItem('appRole');
+        localStorage.removeItem('appUser');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appLoginTime');
+        localStorage.removeItem('appDept');
+        window.location.href = 'login.html';
+      }
+    }
+    
+    // Check if user is logged in and apply role-based visibility
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentRole = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      
+      if (!currentRole || !loginTime) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Check session timeout
+      const sessionTimeout = 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(loginTime) > sessionTimeout) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        logout();
+        return;
+      }
+      
+      // Update welcome message
+      const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+      const welcomeEl = document.querySelector('.welcome-message');
+      if (welcomeEl) {
+        welcomeEl.textContent = `Bienvenue, ${userName}`;
+      }
+      
+      // Show info banner for secretariat
+      if (currentRole === 'secretariat') {
+        const infoBanner = document.getElementById('userCreationInfo');
+        if (infoBanner) {
+          infoBanner.style.display = 'block';
+        }
+      }
+      
+      // Hide forms for users and responsables
+      if (currentRole === 'user' || currentRole === 'responsable') {
+        const formCard = document.getElementById('memberFormCard');
+        if (formCard) {
+          formCard.style.display = 'none';
+        }
+        
+        // Hide action buttons for users
+        if (currentRole === 'user') {
+          const style = document.createElement('style');
+          style.textContent = '.member-actions { display: none !important; }';
+          document.head.appendChild(style);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+

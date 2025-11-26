@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aperçu des designs - Actions rapides</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .design-section {
+      margin: 2rem 0;
+      padding: 2rem;
+      background: var(--surface-light);
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .design-title {
+      margin: 0 0 1rem;
+      color: var(--accent);
+      font-size: 1.25rem;
+    }
+    .design-description {
+      margin-bottom: 1.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    .before-after {
+      text-align: center;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 768px) {
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header style="text-align: center; margin-bottom: 2rem;">
+        <h1>🎨 Aperçu des designs - Actions rapides</h1>
+        <p style="color: var(--muted);">Comparaison des différents styles disponibles</p>
+      </header>
+
+      <div class="comparison-grid">
+        <div>
+          <div class="before-after">❌ Ancien design</div>
+          <div class="card">
+            <h3>Actions rapides</h3>
+            <div class="form-actions" style="margin-top:1rem;">
+              <a class="primary" href="#" onclick="return false;">Créer un département</a>
+              <a class="primary" href="#" onclick="return false;">Planifier un événement</a>
+              <a class="primary" href="#" onclick="return false;">Gérer les membres</a>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="before-after">✅ Nouveau design</div>
+          <div class="card">
+            <h3>Actions rapides</h3>
+            <div class="quick-actions">
+              <a href="#" onclick="return false;" class="quick-action-card">
+                <div class="quick-action-icon">🏢</div>
+                <h4 class="quick-action-title">Départements</h4>
+                <p class="quick-action-subtitle">Créer et gérer</p>
+              </a>
+              <a href="#" onclick="return false;" class="quick-action-card">
+                <div class="quick-action-icon">📅</div>
+                <h4 class="quick-action-title">Événements</h4>
+                <p class="quick-action-subtitle">Planifier et organiser</p>
+              </a>
+              <a href="#" onclick="return false;" class="quick-action-card">
+                <div class="quick-action-icon">👥</div>
+                <h4 class="quick-action-title">Membres</h4>
+                <p class="quick-action-subtitle">Gérer la communauté</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="design-section">
+        <h2 class="design-title">🎯 Style principal - Cartes avec icônes</h2>
+        <p class="design-description">
+          Design moderne avec des cartes individuelles, des icônes expressives et des effets de survol élégants.
+        </p>
+        
+        <div class="card">
+          <h3>Actions rapides</h3>
+          <div class="quick-actions">
+            <a href="#" onclick="return false;" class="quick-action-card">
+              <div class="quick-action-icon">🏢</div>
+              <h4 class="quick-action-title">Départements</h4>
+              <p class="quick-action-subtitle">Créer et gérer</p>
+            </a>
+            <a href="#" onclick="return false;" class="quick-action-card">
+              <div class="quick-action-icon">📅</div>
+              <h4 class="quick-action-title">Événements</h4>
+              <p class="quick-action-subtitle">Planifier et organiser</p>
+            </a>
+            <a href="#" onclick="return false;" class="quick-action-card">
+              <div class="quick-action-icon">👥</div>
+              <h4 class="quick-action-title">Membres</h4>
+              <p class="quick-action-subtitle">Gérer la communauté</p>
+            </a>
+            <a href="#" onclick="return false;" class="quick-action-card">
+              <div class="quick-action-icon">✅</div>
+              <h4 class="quick-action-title">Présences</h4>
+              <p class="quick-action-subtitle">Enregistrer et suivre</p>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="design-section">
+        <h2 class="design-title">📋 Style alternatif - Liste minimaliste</h2>
+        <p class="design-description">
+          Design plus compact avec une approche liste, idéal pour les espaces restreints.
+        </p>
+        
+        <div class="card">
+          <h3>Actions rapides</h3>
+          <div class="quick-actions-minimal">
+            <a href="#" onclick="return false;" class="quick-action-minimal">
+              <div class="icon">🏢</div>
+              <div class="content">
+                <h4 class="title">Gérer les départements</h4>
+                <p class="description">Créer, modifier et organiser les départements</p>
+              </div>
+            </a>
+            <a href="#" onclick="return false;" class="quick-action-minimal">
+              <div class="icon">📅</div>
+              <div class="content">
+                <h4 class="title">Planifier un événement</h4>
+                <p class="description">Créer et organiser des événements communautaires</p>
+              </div>
+            </a>
+            <a href="#" onclick="return false;" class="quick-action-minimal">
+              <div class="icon">👥</div>
+              <div class="content">
+                <h4 class="title">Gérer les membres</h4>
+                <p class="description">Ajouter, modifier et suivre les membres</p>
+              </div>
+            </a>
+            <a href="#" onclick="return false;" class="quick-action-minimal">
+              <div class="icon">✅</div>
+              <div class="content">
+                <h4 class="title">Enregistrer les présences</h4>
+                <p class="description">Suivre la participation aux événements</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="design-section">
+        <h2 class="design-title">🎨 Avantages du nouveau design</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+          <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #10b981;">
+            <h4 style="margin: 0 0 0.5rem; color: #10b981;">✨ Plus élégant</h4>
+            <p style="margin: 0; font-size: 0.9rem;">Design moderne avec des cartes individuelles et des effets visuels subtils</p>
+          </div>
+          <div style="background: rgba(59, 130, 246, 0.1); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">
+            <h4 style="margin: 0 0 0.5rem; color: #3b82f6;">🎯 Plus intuitif</h4>
+            <p style="margin: 0; font-size: 0.9rem;">Icônes expressives et descriptions claires pour chaque action</p>
+          </div>
+          <div style="background: rgba(147, 51, 234, 0.1); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #9333ea;">
+            <h4 style="margin: 0 0 0.5rem; color: #9333ea;">📱 Responsive</h4>
+            <p style="margin: 0; font-size: 0.9rem;">S'adapte automatiquement à toutes les tailles d'écran</p>
+          </div>
+          <div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #f59e0b;">
+            <h4 style="margin: 0 0 0.5rem; color: #f59e0b;">⚡ Interactif</h4>
+            <p style="margin: 0; font-size: 0.9rem;">Animations fluides et feedback visuel au survol</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="design-section">
+        <h2 class="design-title">🔧 Personnalisation</h2>
+        <p class="design-description">
+          Le design peut être facilement personnalisé en modifiant les couleurs, icônes et textes dans le CSS.
+        </p>
+        
+        <div style="background: var(--surface); padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.85rem; margin-top: 1rem;">
+          <div style="color: #10b981;">/* Personnaliser les couleurs */</div>
+          <div>.quick-action-card {</div>
+          <div style="margin-left: 1rem;">background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05));</div>
+          <div style="margin-left: 1rem;">border: 1px solid rgba(59, 130, 246, 0.2);</div>
+          <div>}</div>
+          <br>
+          <div style="color: #10b981;">/* Modifier les icônes */</div>
+          <div>.quick-action-icon {</div>
+          <div style="margin-left: 1rem;">font-size: 2rem; /* Taille des icônes */</div>
+          <div>}</div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 2rem; padding: 2rem; background: rgba(59, 130, 246, 0.1); border-radius: 1rem;">
+        <h3 style="margin: 0 0 1rem; color: var(--accent);">🎉 Design appliqué avec succès !</h3>
+        <p style="margin: 0; color: var(--muted);">
+          Le nouveau design des actions rapides est maintenant actif sur toutes les pages de rôle.
+          <br>Rechargez vos pages pour voir les changements.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

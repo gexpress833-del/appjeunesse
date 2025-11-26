@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Départements</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header>
+        <h1>Départements</h1>
+        <div class="login-panel">
+          <div class="user-info">
+            <span class="welcome-message">Bienvenue</span>
+            <span class="user-role">Gestion des départements</span>
+          </div>
+          <button class="secondary logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+      </header>
+      <nav class="nav">
+        <a href="index.html" data-section="dashboard">📊 Tableau de bord</a>
+        <a href="members.html" data-section="members">👥 Membres</a>
+        <a href="departments.html" data-section="departments" class="active">🏛️ Départements</a>
+        <a href="events.html" data-section="events">🗓️ Événements</a>
+        <a href="attendances.html" data-section="attendances">📝 Présences</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+      <div id="notifications" class="notifications"></div>
+      <section>
+        <div class="card admin-only" id="departmentFormCard">
+          <h3>Créer un département</h3>
+          <form id="departmentForm">
+            <div class="form-control">
+              <label for="departmentName">Nom du département</label>
+              <input type="text" id="departmentName" placeholder="ex : Mission" required />
+            </div>
+            <button type="submit" class="primary">Ajouter le département</button>
+          </form>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <h3>Liste des départements</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Département</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="departmentsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/departments.js" defer></script>
+  <script>
+    function logout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        localStorage.removeItem('appRole');
+        localStorage.removeItem('appUser');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appLoginTime');
+        localStorage.removeItem('appDept');
+        window.location.href = 'login.html';
+      }
+    }
+    
+    // Check if user is logged in and apply role-based visibility
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentRole = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      
+      if (!currentRole || !loginTime) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Check session timeout
+      const sessionTimeout = 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(loginTime) > sessionTimeout) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        logout();
+        return;
+      }
+      
+      // Update welcome message
+      const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+      const welcomeEl = document.querySelector('.welcome-message');
+      if (welcomeEl) {
+        welcomeEl.textContent = `Bienvenue, ${userName}`;
+      }
+      
+      // Hide forms for non-admin users (departments are admin only)
+      if (currentRole !== 'admin') {
+        const formCard = document.getElementById('departmentFormCard');
+        if (formCard) {
+          formCard.style.display = 'none';
+        }
+        
+        // Hide action buttons in table for non-admin users
+        const style = document.createElement('style');
+        style.textContent = '.actions { display: none !important; }';
+        document.head.appendChild(style);
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design Futuriste - La Parole Eternelle</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .demo-section {
+      margin: 2rem 0;
+      padding: 2rem;
+      background: var(--surface-elevated);
+      border-radius: 1.25rem;
+      border: 1px solid var(--border-bright);
+      position: relative;
+    }
+    .demo-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-tertiary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    .feature-card {
+      background: var(--surface-light);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
+    }
+    .scan-line {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100vh;
+      background: linear-gradient(to bottom, 
+        transparent 0%, 
+        var(--accent) 50%, 
+        transparent 100%);
+      animation: scan-line 12s linear infinite;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+    .hologram-text {
+      font-family: "JetBrains Mono", monospace;
+      color: var(--accent-tertiary);
+      text-shadow: 0 0 10px var(--accent-tertiary);
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    .matrix-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 25% 25%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -2;
+      animation: float 6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="matrix-bg"></div>
+  <div class="scan-line"></div>
+  
+  <div class="app">
+    <div class="panel">
+      <header style="text-align: center;">
+        <h1>🚀 DESIGN FUTURISTE</h1>
+        <p class="hologram-text">INTERFACE INTELLECTUELLE & CYBERPUNK</p>
+      </header>
+
+      <div class="demo-section">
+        <h2 class="demo-title">🎨 Transformation Complète</h2>
+        <p style="color: var(--muted); margin-bottom: 2rem;">
+          L'application a été entièrement repensée avec une esthétique futuriste et intellectuelle, 
+          inspirée des interfaces cyberpunk et des systèmes avancés.
+        </p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🌌</div>
+            <h3 style="color: var(--accent); margin: 0 0 0.5rem;">Arrière-plan Spatial</h3>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">
+              Dégradés cosmiques avec grille futuriste et effets de particules lumineux
+            </p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3 style="color: var(--accent); margin: 0 0 0.5rem;">Animations Fluides</h3>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">
+              Transitions cubiques, effets de survol et animations de scan futuristes
+            </p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">💎</div>
+            <h3 style="color: var(--accent); margin: 0 0 0.5rem;">Effets Néon</h3>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">
+              Bordures lumineuses, ombres colorées et effets de lueur cyberpunk
+            </p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">🔮</div>
+            <h3 style="color: var(--accent); margin: 0 0 0.5rem;">Typographie Tech</h3>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">
+              Polices JetBrains Mono et Inter pour un look professionnel et moderne
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2 class="demo-title">🎯 Éléments Redesignés</h2>
+        
+        <!-- Exemple de navigation -->
+        <h3 style="color: var(--accent-tertiary); margin-bottom: 1rem;">Navigation Futuriste</h3>
+        <nav class="nav">
+          <a href="#" class="active">🏠 Accueil</a>
+          <a href="#">👥 Membres</a>
+          <a href="#">🏢 Départements</a>
+          <a href="#">📅 Événements</a>
+          <a href="#">✅ Présences</a>
+        </nav>
+
+        <!-- Exemple de cartes statistiques -->
+        <h3 style="color: var(--accent-tertiary); margin: 2rem 0 1rem;">Cartes Statistiques</h3>
+        <div class="grid">
+          <div class="card">
+            <h3>Membres Actifs</h3>
+            <p class="value">247</p>
+          </div>
+          <div class="card">
+            <h3>Départements</h3>
+            <p class="value">7</p>
+          </div>
+          <div class="card">
+            <h3>Événements</h3>
+            <p class="value">12</p>
+          </div>
+          <div class="card">
+            <h3>Taux Présence</h3>
+            <p class="value">89%</p>
+          </div>
+        </div>
+
+        <!-- Exemple d'actions rapides -->
+        <h3 style="color: var(--accent-tertiary); margin: 2rem 0 1rem;">Actions Rapides Redesignées</h3>
+        <div class="quick-actions">
+          <a href="#" onclick="return false;" class="quick-action-card">
+            <div class="quick-action-icon">🏢</div>
+            <h4 class="quick-action-title">Départements</h4>
+            <p class="quick-action-subtitle">Créer et gérer</p>
+          </a>
+          <a href="#" onclick="return false;" class="quick-action-card">
+            <div class="quick-action-icon">📅</div>
+            <h4 class="quick-action-title">Événements</h4>
+            <p class="quick-action-subtitle">Planifier et organiser</p>
+          </a>
+          <a href="#" onclick="return false;" class="quick-action-card">
+            <div class="quick-action-icon">👥</div>
+            <h4 class="quick-action-title">Membres</h4>
+            <p class="quick-action-subtitle">Gérer la communauté</p>
+          </a>
+        </div>
+
+        <!-- Exemple de boutons -->
+        <h3 style="color: var(--accent-tertiary); margin: 2rem 0 1rem;">Boutons Futuristes</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="primary">🚀 Action Principale</button>
+          <button class="secondary">⚙️ Action Secondaire</button>
+          <button class="primary" disabled>🔒 Désactivé</button>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2 class="demo-title">🎨 Palette de Couleurs</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div style="background: var(--accent); padding: 1rem; border-radius: 0.5rem; text-align: center; color: black; font-weight: bold;">
+            Accent Principal<br><code style="font-size: 0.8rem;">#00d4ff</code>
+          </div>
+          <div style="background: var(--accent-secondary); padding: 1rem; border-radius: 0.5rem; text-align: center; color: white; font-weight: bold;">
+            Accent Secondaire<br><code style="font-size: 0.8rem;">#7c3aed</code>
+          </div>
+          <div style="background: var(--accent-tertiary); padding: 1rem; border-radius: 0.5rem; text-align: center; color: black; font-weight: bold;">
+            Accent Tertiaire<br><code style="font-size: 0.8rem;">#06ffa5</code>
+          </div>
+          <div style="background: var(--surface-elevated); padding: 1rem; border-radius: 0.5rem; text-align: center; border: 1px solid var(--border-bright);">
+            Surface Élevée<br><code style="font-size: 0.8rem;">#252545</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2 class="demo-title">⚡ Effets Spéciaux</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-bright); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-tertiary)); animation: pulse-glow 2s infinite;"></div>
+            <h4 style="color: var(--accent); margin: 0 0 0.5rem;">Bordures Lumineuses</h4>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Effets de pulsation et dégradés colorés</p>
+          </div>
+          
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-bright); box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);">
+            <h4 style="color: var(--accent); margin: 0 0 0.5rem;">Ombres Néon</h4>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Lueurs colorées et effets de profondeur</p>
+          </div>
+          
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-bright); backdrop-filter: blur(10px);">
+            <h4 style="color: var(--accent); margin: 0 0 0.5rem;">Flou de Fond</h4>
+            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Effets de transparence et de flou</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: linear-gradient(135deg, var(--surface-elevated), var(--surface-light)); border-radius: 1rem; border: 1px solid var(--border-bright);">
+        <h2 style="margin: 0 0 1rem; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--accent), var(--accent-tertiary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          🎉 TRANSFORMATION TERMINÉE
+        </h2>
+        <p style="color: var(--muted); margin: 0; font-size: 1.1rem;">
+          Votre application dispose maintenant d'un design futuriste et intellectuel de niveau professionnel.
+        </p>
+        <div style="margin-top: 1.5rem;">
+          <button class="primary" onclick="window.location.href='admin.html'">🚀 Voir l'Admin</button>
+          <button class="secondary" onclick="window.location.href='login.html'">🔐 Page de Connexion</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Effet de particules flottantes
+    function createParticle() {
+      const particle = document.createElement('div');
+      particle.style.cssText = `
+        position: fixed;
+        width: 2px;
+        height: 2px;
+        background: var(--accent);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: -1;
+        opacity: 0.6;
+        animation: float 4s linear infinite;
+      `;
+      
+      particle.style.left = Math.random() * window.innerWidth + 'px';
+      particle.style.top = window.innerHeight + 'px';
+      
+      document.body.appendChild(particle);
+      
+      setTimeout(() => {
+        particle.remove();
+      }, 4000);
+    }
+
+    // Créer des particules périodiquement
+    setInterval(createParticle, 2000);
+
+    // Animation de scan
+    let scanLine = document.querySelector('.scan-line');
+    if (scanLine) {
+      setInterval(() => {
+        scanLine.style.opacity = Math.random() * 0.5 + 0.2;
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

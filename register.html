@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscription - Gestion d'équipe</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .register-container {
+      max-width: 500px;
+      margin: 2rem auto;
+      padding: 3rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 1.5rem;
+      box-shadow: 0 25px 100px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .register-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .register-form h2 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #f1f5f9;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .password-strength {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .strength-bar {
+      height: 4px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 2px;
+      margin: 0.5rem 0;
+      overflow: hidden;
+    }
+
+    .strength-fill {
+      height: 100%;
+      transition: all 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .strength-weak { background: #ef4444; width: 25%; }
+    .strength-fair { background: #f97316; width: 50%; }
+    .strength-good { background: #eab308; width: 75%; }
+    .strength-strong { background: #22c55e; width: 100%; }
+
+    .terms-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .terms-checkbox input[type="checkbox"] {
+      margin-top: 0.25rem;
+    }
+
+    .terms-checkbox label {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .terms-checkbox a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .terms-checkbox a:hover {
+      color: #93c5fd;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .login-link a {
+      color: #60a5fa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-link a:hover {
+      color: #93c5fd;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="register-container">
+      <form class="register-form" id="registerForm">
+        <h2>📝 Inscription</h2>
+        
+        <div class="form-row">
+          <div class="form-control">
+            <label for="firstName">Prénom</label>
+            <input type="text" id="firstName" name="firstName" required>
+          </div>
+          <div class="form-control">
+            <label for="lastName">Nom</label>
+            <input type="text" id="lastName" name="lastName" required>
+          </div>
+        </div>
+        
+        <div class="form-control">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-control">
+          <label for="username">Nom d'utilisateur</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-control">
+          <label for="department">Département</label>
+          <select id="department" name="department" required>
+            <option value="">Sélectionner un département</option>
+            <option value="Chorale">Chorale</option>
+            <option value="Intercession">Intercession</option>
+            <option value="Accueil">Accueil</option>
+            <option value="Médias">Médias</option>
+            <option value="DLB">DLB (Département de Lecteur de la Bible)</option>
+            <option value="DCC">DCC (Département de Communication et Coordination)</option>
+            <option value="DFF">DFF (Département de Famille et Fiançailles)</option>
+          </select>
+        </div>
+        
+        <div class="form-control">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" required>
+          <div class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill" id="strengthFill"></div>
+            </div>
+            <span id="strengthText">Entrez un mot de passe</span>
+          </div>
+        </div>
+        
+        <div class="form-control">
+          <label for="confirmPassword">Confirmer le mot de passe</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" required>
+        </div>
+        
+        <div class="terms-checkbox">
+          <input type="checkbox" id="terms" name="terms" required>
+          <label for="terms">
+            J'accepte les <a href="#" onclick="showTerms()">conditions d'utilisation</a> 
+            et la <a href="#" onclick="showPrivacy()">politique de confidentialité</a>
+          </label>
+        </div>
+        
+        <button type="submit" class="primary" id="registerBtn">
+          <span class="loading-spinner"></span>
+          <span class="btn-text">Créer mon compte</span>
+        </button>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="login-link">
+          <p>Déjà un compte ? <a href="login.html">Se connecter</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script>
+    const registerForm = document.getElementById('registerForm');
+    const registerBtn = document.getElementById('registerBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const strengthFill = document.getElementById('strengthFill');
+    const strengthText = document.getElementById('strengthText');
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add('show');
+      setTimeout(() => {
+        errorMessage.classList.remove('show');
+      }, 5000);
+    }
+
+    function setLoading(loading) {
+      registerBtn.classList.toggle('loading', loading);
+      registerBtn.disabled = loading;
+      if (loading) {
+        registerBtn.querySelector('.btn-text').textContent = 'Création du compte...';
+      } else {
+        registerBtn.querySelector('.btn-text').textContent = 'Créer mon compte';
+      }
+    }
+
+    function checkPasswordStrength(password) {
+      let strength = 0;
+      let text = 'Très faible';
+      let className = 'strength-weak';
+
+      if (password.length >= 8) strength++;
+      if (/[a-z]/.test(password)) strength++;
+      if (/[A-Z]/.test(password)) strength++;
+      if (/[0-9]/.test(password)) strength++;
+      if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+      switch (strength) {
+        case 0:
+        case 1:
+          text = 'Très faible';
+          className = 'strength-weak';
+          break;
+        case 2:
+          text = 'Faible';
+          className = 'strength-fair';
+          break;
+        case 3:
+          text = 'Moyen';
+          className = 'strength-good';
+          break;
+        case 4:
+        case 5:
+          text = 'Fort';
+          className = 'strength-strong';
+          break;
+      }
+
+      strengthFill.className = `strength-fill ${className}`;
+      strengthText.textContent = text;
+      
+      return strength >= 3;
+    }
+
+    function validateForm() {
+      const formData = new FormData(registerForm);
+      const data = Object.fromEntries(formData);
+
+      if (!data.firstName || !data.lastName || !data.email || !data.username || !data.password || !data.department) {
+        throw new Error('Tous les champs sont obligatoires');
+      }
+
+      if (data.password !== data.confirmPassword) {
+        throw new Error('Les mots de passe ne correspondent pas');
+      }
+
+      if (!checkPasswordStrength(data.password)) {
+        throw new Error('Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres');
+      }
+
+      if (!data.terms) {
+        throw new Error('Vous devez accepter les conditions d\'utilisation');
+      }
+
+      // Check if username already exists
+      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+      if (users.some(user => user.username === data.username)) {
+        throw new Error('Ce nom d\'utilisateur est déjà pris');
+      }
+
+      if (users.some(user => user.email === data.email)) {
+        throw new Error('Cette adresse email est déjà utilisée');
+      }
+
+      return data;
+    }
+
+    passwordInput.addEventListener('input', (e) => {
+      checkPasswordStrength(e.target.value);
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      try {
+        const userData = validateForm();
+        setLoading(true);
+
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Get existing users
+        const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+        
+        // Create new user
+        const newUser = {
+          username: userData.username,
+          password: userData.password,
+          email: userData.email,
+          name: `${userData.firstName} ${userData.lastName}`,
+          role: 'user', // New users start as regular users
+          dept: userData.department,
+          createdAt: new Date().toISOString()
+        };
+
+        users.push(newUser);
+        localStorage.setItem('appUsers', JSON.stringify(users));
+
+        // Success animation
+        registerBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        registerBtn.querySelector('.btn-text').textContent = 'Compte créé avec succès !';
+
+        setTimeout(() => {
+          window.location.href = 'login.html?registered=true';
+        }, 1500);
+
+      } catch (error) {
+        showError(error.message);
+        setLoading(false);
+      }
+    });
+
+    function showTerms() {
+      alert('Conditions d\'utilisation:\n\n1. Utilisez cette application de manière responsable\n2. Respectez la confidentialité des données\n3. Signalez tout problème technique\n4. Ne partagez pas vos identifiants');
+    }
+
+    function showPrivacy() {
+      alert('Politique de confidentialité:\n\n- Vos données sont stockées localement dans votre navigateur\n- Aucune donnée n\'est transmise à des serveurs externes\n- Vous pouvez supprimer vos données à tout moment\n- Cette application est à des fins de démonstration');
+    }
+
+    // Clear error on input
+    registerForm.addEventListener('input', () => {
+      errorMessage.classList.remove('show');
+    });
+  </script>
+</body>
+</html>

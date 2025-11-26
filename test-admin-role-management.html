@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Gestion des Rôles Admin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    .container {
+      background: #1f2937;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .test-result {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    .success {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #10b981;
+    }
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+    .warning {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+    }
+    .user-card {
+      background: #374151;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #4b5563;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .primary {
+      background: #10b981;
+    }
+    .primary:hover {
+      background: #059669;
+    }
+    pre {
+      background: #111827;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Test Gestion des Rôles Admin</h1>
+    
+    <p>Ce test vérifie que l'admin peut voir et utiliser les options de modification de rôles.</p>
+    
+    <button onclick="simulateAdminLogin()">Simuler connexion Admin</button>
+    <button onclick="createTestUsers()" class="primary">Créer utilisateurs de test</button>
+    <button onclick="testRoleManagement()">Tester gestion des rôles</button>
+    <button onclick="clearTestData()">Nettoyer données de test</button>
+    
+    <div id="results"></div>
+  </div>
+
+  <script>
+    function addResult(title, content, type = 'success') {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+      div.innerHTML = `<h3>${title}</h3><div>${content}</div>`;
+      results.appendChild(div);
+    }
+
+    function simulateAdminLogin() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        localStorage.setItem('appUser', 'admin');
+        localStorage.setItem('appUserName', 'Jean-Baptiste Mukendi');
+        localStorage.setItem('appRole', 'admin');
+        localStorage.setItem('appLoginTime', Date.now().toString());
+        
+        addResult('✅ Connexion Admin', 'Connexion admin simulée avec succès');
+        
+      } catch (error) {
+        addResult('❌ Erreur', `Erreur lors de la simulation: ${error.message}`, 'error');
+      }
+    }
+
+    function createTestUsers() {
+      try {
+        const testUsers = [
+          {
+            username: 'test_pending',
+            name: 'Utilisateur En Attente',
+            email: 'pending@test.com',
+            password: 'test123',
+            role: null,
+            status: 'pending',
+            birthDate: '1990-01-01',
+            address: 'Test Address 1',
+            createdBy: 'admin',
+            createdAt: new Date().toISOString()
+          },
+          {
+            username: 'test_active',
+            name: 'Utilisateur Actif',
+            email: 'active@test.com',
+            password: 'test123',
+            role: 'user',
+            status: 'active',
+            birthDate: '1985-05-15',
+            address: 'Test Address 2',
+            createdBy: 'secretariat',
+            createdAt: new Date().toISOString()
+          },
+          {
+            username: 'test_responsable',
+            name: 'Responsable Test',
+            email: 'responsable@test.com',
+            password: 'test123',
+            role: 'responsable',
+            dept: 'DLB',
+            status: 'active',
+            birthDate: '1980-12-25',
+            address: 'Test Address 3',
+            createdBy: 'admin',
+            createdAt: new Date().toISOString()
+          }
+        ];
+
+        // Récupérer les utilisateurs existants
+        const existingUsers = JSON.parse(localStorage.getItem('appUsers') || '[]');
+        
+        // Ajouter les utilisateurs de test (en évitant les doublons)
+        testUsers.forEach(testUser => {
+          const exists = existingUsers.find(u => u.username === testUser.username);
+          if (!exists) {
+            existingUsers.push(testUser);
+          }
+        });
+
+        localStorage.setItem('appUsers', JSON.stringify(existingUsers));
+        
+        addResult('✅ Utilisateurs de test créés', `${testUsers.length} utilisateurs de test ajoutés`);
+        
+        // Afficher les utilisateurs créés
+        let usersList = '<div>';
+        testUsers.forEach(user => {
+          usersList += `
+            <div class="user-card">
+              <strong>${user.name}</strong> (@${user.username})<br>
+              Rôle: ${user.role || 'Non attribué'} | Statut: ${user.status}
+            </div>
+          `;
+        });
+        usersList += '</div>';
+        
+        addResult('👥 Utilisateurs créés', usersList);
+        
+      } catch (error) {
+        addResult('❌ Erreur', `Erreur lors de la création: ${error.message}`, 'error');
+      }
+    }
+
+    function testRoleManagement() {
+      try {
+        const currentRole = localStorage.getItem('appRole');
+        
+        if (currentRole !== 'admin') {
+          addResult('⚠️ Attention', 'Vous devez être connecté en tant qu\'admin pour ce test', 'warning');
+          return;
+        }
+
+        const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+        const testUsers = users.filter(u => u.username.startsWith('test_'));
+        
+        if (testUsers.length === 0) {
+          addResult('⚠️ Attention', 'Aucun utilisateur de test trouvé. Créez d\'abord des utilisateurs de test.', 'warning');
+          return;
+        }
+
+        addResult('🔍 Test des permissions', `Rôle actuel: ${currentRole}`);
+        
+        let testResults = '<div>';
+        
+        testUsers.forEach(user => {
+          // Simuler la logique de users.js
+          const canAssignRole = currentRole === 'admin' && (user.status === 'pending' || user.status === 'active');
+          const canEdit = currentRole === 'admin';
+          
+          const buttonText = user.status === 'pending' ? '⚙️ Attribuer un rôle' : '🔄 Modifier le rôle';
+          
+          testResults += `
+            <div class="user-card">
+              <strong>${user.name}</strong> (@${user.username})<br>
+              Statut: ${user.status} | Rôle: ${user.role || 'Non attribué'}<br>
+              <strong>Peut attribuer rôle:</strong> ${canAssignRole ? '✅ OUI' : '❌ NON'}<br>
+              <strong>Peut éditer:</strong> ${canEdit ? '✅ OUI' : '❌ NON'}<br>
+              <strong>Bouton affiché:</strong> ${canAssignRole ? buttonText : 'Aucun bouton'}
+            </div>
+          `;
+        });
+        
+        testResults += '</div>';
+        
+        addResult('📊 Résultats des tests', testResults);
+        
+        // Vérifier si au moins un bouton est disponible
+        const hasRoleButtons = testUsers.some(user => 
+          currentRole === 'admin' && (user.status === 'pending' || user.status === 'active')
+        );
+        
+        if (hasRoleButtons) {
+          addResult('✅ SUCCÈS', 'L\'admin peut voir les options de gestion des rôles', 'success');
+        } else {
+          addResult('❌ PROBLÈME', 'L\'admin ne peut pas voir les options de gestion des rôles', 'error');
+        }
+        
+      } catch (error) {
+        addResult('❌ Erreur', `Erreur lors du test: ${error.message}`, 'error');
+      }
+    }
+
+    function clearTestData() {
+      try {
+        const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
+        const filteredUsers = users.filter(u => !u.username.startsWith('test_'));
+        
+        localStorage.setItem('appUsers', JSON.stringify(filteredUsers));
+        
+        addResult('🧹 Nettoyage', 'Utilisateurs de test supprimés');
+        
+      } catch (error) {
+        addResult('❌ Erreur', `Erreur lors du nettoyage: ${error.message}`, 'error');
+      }
+    }
+
+    // Test automatique au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      addResult('📋 Page de test chargée', 'Prêt pour les tests de gestion des rôles');
+    });
+  </script>
+</body>
+</html>

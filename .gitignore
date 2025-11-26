@@ -1,0 +1,33 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (si utilisé plus tard)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Fichiers temporaires
+*.tmp
+*.temp
+.cache/
+
+# Fichiers de configuration locaux
+.env.local
+.env.*.local
+
+# Fichiers de build (si utilisé plus tard)
+dist/
+build/
+
+# Dossiers de test temporaires
+test-temp/
+temp/

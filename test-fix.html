@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test de la correction</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    .container {
+      background: #1f2937;
+      padding: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .test-result {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    .success {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #10b981;
+    }
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Test de la correction JSON</h1>
+    
+    <p>Ce test vérifie que l'erreur "Unexpected token 's', "secretariat" is not valid JSON" a été corrigée.</p>
+    
+    <button onclick="testLocalStorageValues()">Tester les valeurs localStorage</button>
+    <button onclick="testJSONParsing()">Tester le parsing JSON</button>
+    <button onclick="simulateLogin()">Simuler une connexion secrétariat</button>
+    
+    <div id="results"></div>
+  </div>
+
+  <script>
+    function addResult(message, isSuccess = true) {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+      div.innerHTML = `${isSuccess ? '✅' : '❌'} ${message}`;
+      results.appendChild(div);
+    }
+
+    function testLocalStorageValues() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        const appUser = localStorage.getItem('appUser');
+        const appUserName = localStorage.getItem('appUserName');
+        const appRole = localStorage.getItem('appRole');
+        
+        addResult(`appUser: "${appUser}" (type: ${typeof appUser})`);
+        addResult(`appUserName: "${appUserName}" (type: ${typeof appUserName})`);
+        addResult(`appRole: "${appRole}" (type: ${typeof appRole})`);
+        
+        // Test si appUser est une chaîne simple
+        if (typeof appUser === 'string' && appUser !== null) {
+          addResult('appUser est bien une chaîne simple ✓');
+        } else {
+          addResult('appUser n\'est pas une chaîne simple', false);
+        }
+        
+      } catch (error) {
+        addResult(`Erreur lors du test: ${error.message}`, false);
+      }
+    }
+
+    function testJSONParsing() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        // Test de l'ancienne méthode (qui causait l'erreur)
+        const appUser = localStorage.getItem('appUser') || '{}';
+        addResult(`Tentative de parser appUser: "${appUser}"`);
+        
+        if (appUser === '{}') {
+          addResult('appUser est vide, pas de problème');
+        } else {
+          // Ceci causerait l'erreur si appUser contient "secretariat"
+          try {
+            const parsed = JSON.parse(appUser);
+            addResult('JSON.parse(appUser) a réussi (ne devrait pas arriver)', false);
+          } catch (jsonError) {
+            addResult(`JSON.parse(appUser) a échoué comme attendu: ${jsonError.message}`);
+          }
+        }
+        
+        // Test de la nouvelle méthode (correcte)
+        const appUserName = localStorage.getItem('appUserName') || 'Utilisateur';
+        addResult(`Nouvelle méthode - appUserName: "${appUserName}" ✓`);
+        
+      } catch (error) {
+        addResult(`Erreur lors du test JSON: ${error.message}`, false);
+      }
+    }
+
+    function simulateLogin() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        // Simuler une connexion secrétariat
+        localStorage.setItem('appUser', 'secretariat');
+        localStorage.setItem('appUserName', 'Marie Kabongo');
+        localStorage.setItem('appRole', 'secretariat');
+        
+        addResult('Simulation de connexion secrétariat effectuée');
+        
+        // Tester la nouvelle méthode
+        const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+        const role = localStorage.getItem('appRole');
+        
+        const roleLabels = {
+          'admin': 'Administrateur',
+          'secretariat': 'Secrétariat', 
+          'responsable': 'Responsable',
+          'user': 'Utilisateur'
+        };
+        
+        const message = `Bienvenue ${userName} ! Vous êtes connecté en tant que ${roleLabels[role] || role}.`;
+        addResult(`Message de bienvenue généré: "${message}" ✓`);
+        
+        // Test que l'ancienne méthode échouerait
+        try {
+          const user = JSON.parse(localStorage.getItem('appUser') || '{}');
+          addResult('L\'ancienne méthode a fonctionné (problème!)', false);
+        } catch (error) {
+          addResult(`L'ancienne méthode échoue comme attendu: ${error.message}`);
+        }
+        
+      } catch (error) {
+        addResult(`Erreur lors de la simulation: ${error.message}`, false);
+      }
+    }
+
+    // Test automatique au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      addResult('Page de test chargée avec succès');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Présences</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header>
+        <h1>Présences</h1>
+        <div class="login-panel">
+          <div class="user-info">
+            <span class="welcome-message">Bienvenue</span>
+            <span class="user-role">Accès aux présences</span>
+          </div>
+          <button class="secondary logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+      </header>
+      <nav class="nav">
+        <a href="index.html" data-section="dashboard">📊 Tableau de bord</a>
+        <a href="members.html" data-section="members">👥 Membres</a>
+        <a href="departments.html" data-section="departments">🏛️ Départements</a>
+        <a href="events.html" data-section="events">🗓️ Événements</a>
+        <a href="attendances.html" data-section="attendances" class="active">📝 Présences</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+      <div id="notifications" class="notifications"></div>
+      
+      <!-- Section Export PDF (Admin et Secrétariat uniquement) -->
+      <section class="card pdf-export-section" id="pdfExportSection" style="margin-bottom: 2rem; display: none;">
+        <h3>📊 Exporter les Rapports PDF</h3>
+        <p style="color: var(--muted); margin-bottom: 1rem;">
+          <strong>🔒 Réservé à l'Administrateur et au Secrétariat</strong>
+        </p>
+        <p style="color: var(--muted); margin-bottom: 1.5rem;">
+          Générez des rapports professionnels de présences au format PDF avec mise en page élégante.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="primary" onclick="window.location.href='reports.html'">
+            📄 Centre de Rapports
+          </button>
+          <button class="secondary" onclick="quickExportCurrentEvent()">
+            ⚡ Export Rapide
+          </button>
+        </div>
+      </section>
+      
+      <section>
+        <div class="card admin-only" id="attendanceFormCard">
+          <h3>Enregistrer une présence</h3>
+          <form id="attendanceForm">
+            <div class="form-control">
+              <label for="attendanceMemberSelect">Membre</label>
+              <select id="attendanceMemberSelect" required></select>
+            </div>
+            <div class="form-control">
+              <label for="attendanceEventSelect">Événement</label>
+              <select id="attendanceEventSelect" required></select>
+              <div class="form-help" id="eventStatusHelp" style="display: none;">
+                <span class="help-text"></span>
+              </div>
+            </div>
+            <div class="form-control">
+              <label for="attendanceStatus">Statut</label>
+              <select id="attendanceStatus" required>
+                <option value="P">Présent (P)</option>
+                <option value="A">Absent (A)</option>
+                <option value="AJ">Ajourné (AJ)</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary" id="attendanceSubmit">Enregistrer</button>
+              <button type="button" class="secondary" id="attendanceCancel" style="display:none;">Annuler</button>
+            </div>
+          </form>
+          <div class="legend" style="margin-top:1rem;">
+            <span><span class="dot dot-green"></span>P = Présent</span>
+            <span><span class="dot dot-red"></span>A = Absent</span>
+            <span><span class="dot dot-orange"></span>AJ = Ajourné</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <h3>Historique</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Membre</th>
+                <th>Département</th>
+                <th>Événement</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendancesTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/attendances.js" defer></script>
+  <script>
+    function logout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        localStorage.removeItem('appRole');
+        localStorage.removeItem('appUser');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appLoginTime');
+        localStorage.removeItem('appDept');
+        window.location.href = 'login.html';
+      }
+    }
+    
+    // Check if user is logged in and apply role-based visibility
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentRole = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      
+      if (!currentRole || !loginTime) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Check session timeout
+      const sessionTimeout = 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(loginTime) > sessionTimeout) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        logout();
+        return;
+      }
+      
+      // Update welcome message
+      const userName = localStorage.getItem('appUserName') || 'Utilisateur';
+      const welcomeEl = document.querySelector('.welcome-message');
+      if (welcomeEl) {
+        welcomeEl.textContent = `Bienvenue, ${userName}`;
+      }
+      
+      // Contrôler l'affichage de la section PDF (Admin et Secrétariat uniquement)
+      const pdfExportSection = document.getElementById('pdfExportSection');
+      if (['admin', 'secretariat'].includes(currentRole)) {
+        if (pdfExportSection) {
+          pdfExportSection.style.display = 'block';
+        }
+      } else {
+        if (pdfExportSection) {
+          pdfExportSection.style.display = 'none';
+        }
+      }
+      
+      // Hide forms for users (attendances are admin/secretariat/responsable only)
+      if (currentRole === 'user') {
+        const formCard = document.getElementById('attendanceFormCard');
+        if (formCard) {
+          formCard.style.display = 'none';
+        }
+        
+        // Hide action buttons in table for users
+        const style = document.createElement('style');
+        style.textContent = '.actions { display: none !important; }';
+        document.head.appendChild(style);
+      }
+    });
+  </script>
+</body>
+</html>
+

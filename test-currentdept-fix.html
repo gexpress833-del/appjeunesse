@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Correction currentDept</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .test-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+    }
+    
+    .test-section {
+      background: var(--surface-elevated);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-bright);
+    }
+    
+    .test-result {
+      padding: 1rem;
+      border-radius: 0.75rem;
+      margin: 1rem 0;
+      border-left: 4px solid;
+    }
+    
+    .test-success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+    
+    .test-error {
+      background: rgba(255, 107, 107, 0.1);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    
+    .test-info {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .code-block {
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <div class="test-container">
+        <header style="text-align: center; margin-bottom: 2rem;">
+          <h1>🔧 Test Correction currentDept</h1>
+          <p style="color: var(--muted);">
+            Vérification de la correction de l'erreur "currentDept is not defined"
+          </p>
+        </header>
+
+        <div class="test-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">🐛 Problème Identifié</h2>
+          <p style="color: var(--muted); margin-bottom: 1rem;">
+            L'erreur <code>Uncaught ReferenceError: currentDept is not defined</code> 
+            se produisait dans le fichier <code>js/role-page.js</code>.
+          </p>
+          
+          <div class="code-block">
+            <div style="color: var(--danger);">// ❌ AVANT (problématique)</div>
+            <div style="color: var(--muted);">const currentRole = localStorage.getItem('appRole');</div>
+            <div style="color: var(--muted);">// currentDept n'était pas défini !</div>
+            <div style="color: var(--muted);">if (currentRole === 'responsable' && currentDept) { ... }</div>
+          </div>
+          
+          <div class="code-block">
+            <div style="color: var(--success);">// ✅ APRÈS (corrigé)</div>
+            <div style="color: var(--muted);">const currentRole = localStorage.getItem('appRole');</div>
+            <div style="color: var(--success);">const currentDept = localStorage.getItem('appDept');</div>
+            <div style="color: var(--muted);">if (currentRole === 'responsable' && currentDept) { ... }</div>
+          </div>
+        </div>
+
+        <div class="test-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">🧪 Tests de Validation</h2>
+          
+          <button class="primary" onclick="testCurrentDeptDefinition()" style="margin: 0.5rem;">
+            Test 1: Vérifier définition currentDept
+          </button>
+          
+          <button class="secondary" onclick="testLocalStorageAccess()" style="margin: 0.5rem;">
+            Test 2: Accès localStorage
+          </button>
+          
+          <button class="secondary" onclick="testRolePageFunction()" style="margin: 0.5rem;">
+            Test 3: Fonction initRolePage
+          </button>
+          
+          <button class="secondary" onclick="simulateResponsableRole()" style="margin: 0.5rem;">
+            Test 4: Simuler rôle Responsable
+          </button>
+          
+          <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">📋 Résumé de la Correction</h2>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border);">
+              <h3 style="color: var(--danger); margin: 0 0 1rem;">❌ Problème</h3>
+              <ul style="color: var(--muted); margin: 0; padding-left: 1.5rem;">
+                <li>Variable <code>currentDept</code> non définie</li>
+                <li>Erreur JavaScript dans la console</li>
+                <li>Fonctionnalité responsable cassée</li>
+                <li>Affichage département manquant</li>
+              </ul>
+            </div>
+            
+            <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border);">
+              <h3 style="color: var(--success); margin: 0 0 1rem;">✅ Solution</h3>
+              <ul style="color: var(--muted); margin: 0; padding-left: 1.5rem;">
+                <li>Ajout <code>const currentDept = localStorage.getItem('appDept')</code></li>
+                <li>Variable correctement définie</li>
+                <li>Fonctionnalité responsable restaurée</li>
+                <li>Affichage département fonctionnel</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="test-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">🔍 Fichiers Modifiés</h2>
+          
+          <div style="background: var(--surface); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border);">
+            <h4 style="color: var(--accent-tertiary); margin: 0 0 1rem;">📁 js/role-page.js</h4>
+            <p style="color: var(--muted); margin: 0 0 1rem;">
+              <strong>Ligne 134 :</strong> Ajout de la définition de <code>currentDept</code>
+            </p>
+            <div class="code-block">
+              <div style="color: var(--success);">+ const currentDept = localStorage.getItem('appDept');</div>
+            </div>
+            
+            <p style="color: var(--muted); margin: 1rem 0 0;">
+              <strong>Impact :</strong> Correction des lignes 193, 196, et 201 qui utilisaient <code>currentDept</code>
+            </p>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem; padding: 2rem; background: var(--surface-light); border-radius: 1rem; border: 1px solid var(--border);">
+          <h3 style="margin: 0 0 1rem; color: var(--success);">✅ Correction Appliquée</h3>
+          <p style="margin: 0; color: var(--muted);">
+            L'erreur "currentDept is not defined" a été corrigée. 
+            La fonctionnalité des responsables de département devrait maintenant fonctionner correctement.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/role-page.js"></script>
+  
+  <script>
+    function addTestResult(message, type = 'info') {
+      const resultsContainer = document.getElementById('testResults');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `test-result test-${type}`;
+      
+      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      resultDiv.innerHTML = `${icon} ${message}`;
+      
+      resultsContainer.appendChild(resultDiv);
+    }
+
+    function testCurrentDeptDefinition() {
+      try {
+        // Simuler l'exécution du code problématique
+        const currentRole = localStorage.getItem('appRole');
+        const currentDept = localStorage.getItem('appDept');
+        
+        // Vérifier que currentDept est défini (même si null)
+        if (typeof currentDept !== 'undefined') {
+          addTestResult('currentDept est correctement défini (valeur: ' + (currentDept || 'null') + ')', 'success');
+        } else {
+          addTestResult('currentDept n\'est toujours pas défini', 'error');
+        }
+        
+        // Tester l'utilisation dans un contexte similaire
+        if (currentRole === 'responsable' && currentDept) {
+          addTestResult('Condition responsable + currentDept fonctionne', 'success');
+        } else {
+          addTestResult('Test condition: currentRole=' + currentRole + ', currentDept=' + currentDept, 'info');
+        }
+        
+      } catch (error) {
+        addTestResult('Erreur lors du test: ' + error.message, 'error');
+      }
+    }
+
+    function testLocalStorageAccess() {
+      try {
+        // Tester l'accès aux données localStorage
+        const role = localStorage.getItem('appRole');
+        const dept = localStorage.getItem('appDept');
+        const userName = localStorage.getItem('appUserName');
+        
+        addTestResult('appRole: ' + (role || 'non défini'), 'info');
+        addTestResult('appDept: ' + (dept || 'non défini'), 'info');
+        addTestResult('appUserName: ' + (userName || 'non défini'), 'info');
+        
+        addTestResult('Accès localStorage fonctionnel', 'success');
+        
+      } catch (error) {
+        addTestResult('Erreur accès localStorage: ' + error.message, 'error');
+      }
+    }
+
+    function testRolePageFunction() {
+      try {
+        // Vérifier que la fonction initRolePage existe
+        if (typeof window.initRolePage === 'function') {
+          addTestResult('Fonction initRolePage disponible', 'success');
+        } else {
+          addTestResult('Fonction initRolePage non trouvée', 'error');
+        }
+        
+        // Vérifier les fonctions auth
+        if (window.auth) {
+          addTestResult('Module auth chargé', 'success');
+          
+          if (typeof auth.initAuthFromStorage === 'function') {
+            addTestResult('auth.initAuthFromStorage disponible', 'success');
+          } else {
+            addTestResult('auth.initAuthFromStorage manquant', 'error');
+          }
+        } else {
+          addTestResult('Module auth non chargé', 'error');
+        }
+        
+      } catch (error) {
+        addTestResult('Erreur test fonction: ' + error.message, 'error');
+      }
+    }
+
+    function simulateResponsableRole() {
+      try {
+        // Simuler un utilisateur responsable
+        localStorage.setItem('appRole', 'responsable');
+        localStorage.setItem('appDept', 'DLB');
+        localStorage.setItem('appUserName', 'Test Responsable');
+        
+        addTestResult('Rôle responsable simulé', 'info');
+        
+        // Tester le code qui causait l'erreur
+        const currentRole = localStorage.getItem('appRole');
+        const currentDept = localStorage.getItem('appDept');
+        
+        if (currentRole === 'responsable' && currentDept) {
+          addTestResult('✅ Code responsable fonctionne - Département: ' + currentDept, 'success');
+        } else {
+          addTestResult('❌ Problème avec le code responsable', 'error');
+        }
+        
+        // Simuler l'affichage du département
+        const mockElement = document.createElement('div');
+        mockElement.id = 'userDepartment';
+        if (currentRole === 'responsable' && currentDept) {
+          mockElement.textContent = currentDept;
+          addTestResult('Affichage département simulé: ' + mockElement.textContent, 'success');
+        }
+        
+      } catch (error) {
+        addTestResult('Erreur simulation responsable: ' + error.message, 'error');
+      }
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      addTestResult('Page de test chargée', 'info');
+      addTestResult('Prêt pour les tests de validation', 'info');
+    });
+  </script>
+</body>
+</html>

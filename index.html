@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestion d'équipe - Redirection</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .redirect-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+    }
+    
+    .redirect-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(59, 130, 246, 0.2);
+      border-top: 4px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 2rem 0;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .redirect-message {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .redirect-info {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <div class="redirect-container">
+        <h1>🔄 Redirection en cours...</h1>
+        <div class="redirect-spinner"></div>
+        <p class="redirect-message">Vérification de votre session...</p>
+        <p class="redirect-info">Vous allez être redirigé automatiquement</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script>
+    // Auto-redirect logic - this page should not be accessible after login
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentRole = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      
+      // Small delay for better UX
+      setTimeout(() => {
+        // If user is logged in, redirect to their role page
+        if (currentRole && loginTime) {
+          const sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
+          
+          // Check if session is still valid
+          if (Date.now() - parseInt(loginTime) <= sessionTimeout) {
+            const rolePages = {
+              admin: 'admin.html',
+              secretariat: 'secretariat.html',
+              responsable: 'responsable.html',
+              user: 'user.html'
+            };
+            
+            // Redirect to appropriate role page
+            window.location.href = rolePages[currentRole] || 'login.html';
+            return;
+          } else {
+            // Session expired, clear data
+            localStorage.removeItem('appRole');
+            localStorage.removeItem('appUser');
+            localStorage.removeItem('appUserName');
+            localStorage.removeItem('appLoginTime');
+            localStorage.removeItem('appDept');
+          }
+        }
+        
+        // If no valid session, redirect to login
+        window.location.href = 'login.html';
+      }, 1000); // 1 second delay for smooth UX
+    });
+  </script>
+</body>
+</html>

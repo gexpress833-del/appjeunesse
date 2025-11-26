@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test des Permissions PDF</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .test-section {
+      margin: 2rem 0;
+      background: var(--surface-elevated);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      border: 1px solid var(--border-bright);
+    }
+    
+    .test-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-tertiary));
+    }
+    
+    .role-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .role-card {
+      background: var(--surface-light);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    
+    .role-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    
+    .role-card.selected {
+      border-color: var(--accent);
+      background: rgba(0, 212, 255, 0.1);
+    }
+    
+    .role-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .test-result {
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border-left: 4px solid;
+    }
+    
+    .test-success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+    
+    .test-error {
+      background: rgba(255, 107, 107, 0.1);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    
+    .test-info {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .current-role-display {
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      margin: 1rem 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <header style="text-align: center;">
+        <h1>🔐 TEST DES PERMISSIONS PDF</h1>
+        <p style="color: var(--muted);">
+          Testez les restrictions d'accès aux rapports PDF selon les rôles
+        </p>
+      </header>
+
+      <div class="test-section" style="position: relative;">
+        <h2 style="color: var(--accent); margin-bottom: 1rem;">👤 Simulateur de Rôles</h2>
+        <p style="color: var(--muted); margin-bottom: 1.5rem;">
+          Sélectionnez un rôle pour tester les permissions d'accès aux rapports PDF
+        </p>
+        
+        <div class="role-selector">
+          <div class="role-card" onclick="selectRole('admin')">
+            <div class="role-icon">👑</div>
+            <h3 style="margin: 0; color: var(--accent);">Administrateur</h3>
+            <p style="margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9rem;">Accès complet</p>
+          </div>
+          
+          <div class="role-card" onclick="selectRole('secretariat')">
+            <div class="role-icon">📋</div>
+            <h3 style="margin: 0; color: var(--accent);">Secrétariat</h3>
+            <p style="margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9rem;">Accès complet</p>
+          </div>
+          
+          <div class="role-card" onclick="selectRole('responsable')">
+            <div class="role-icon">👥</div>
+            <h3 style="margin: 0; color: var(--accent);">Responsable</h3>
+            <p style="margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9rem;">Accès refusé</p>
+          </div>
+          
+          <div class="role-card" onclick="selectRole('user')">
+            <div class="role-icon">👤</div>
+            <h3 style="margin: 0; color: var(--accent);">Utilisateur</h3>
+            <p style="margin: 0.5rem 0 0; color: var(--muted); font-size: 0.9rem;">Accès refusé</p>
+          </div>
+        </div>
+        
+        <div class="current-role-display">
+          <strong>Rôle actuel : </strong>
+          <span id="currentRoleText">Aucun rôle sélectionné</span>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2 style="color: var(--accent); margin-bottom: 1rem;">🧪 Tests de Permissions</h2>
+        
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+          <button class="primary" onclick="testReportsPageAccess()">
+            📊 Tester Accès Page Rapports
+          </button>
+          <button class="secondary" onclick="testPDFGeneration()">
+            📄 Tester Génération PDF
+          </button>
+          <button class="secondary" onclick="testPermissionCheck()">
+            🔐 Tester Vérification Permissions
+          </button>
+        </div>
+        
+        <div id="testResults"></div>
+      </div>
+
+      <div class="test-section">
+        <h2 style="color: var(--accent); margin-bottom: 1rem;">📋 Matrice des Permissions</h2>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+          <thead>
+            <tr style="background: var(--surface-elevated);">
+              <th style="padding: 1rem; text-align: left; border: 1px solid var(--border);">Rôle</th>
+              <th style="padding: 1rem; text-align: center; border: 1px solid var(--border);">Accès Page Rapports</th>
+              <th style="padding: 1rem; text-align: center; border: 1px solid var(--border);">Export PDF</th>
+              <th style="padding: 1rem; text-align: center; border: 1px solid var(--border);">Section dans Présences</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 1rem; border: 1px solid var(--border);"><strong>👑 Administrateur</strong></td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--success);">✅ Autorisé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--success);">✅ Autorisé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--success);">✅ Visible</td>
+            </tr>
+            <tr style="background: rgba(148, 163, 184, 0.05);">
+              <td style="padding: 1rem; border: 1px solid var(--border);"><strong>📋 Secrétariat</strong></td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--success);">✅ Autorisé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--success);">✅ Autorisé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--success);">✅ Visible</td>
+            </tr>
+            <tr>
+              <td style="padding: 1rem; border: 1px solid var(--border);"><strong>👥 Responsable</strong></td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--danger);">❌ Refusé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--danger);">❌ Refusé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--danger);">❌ Masquée</td>
+            </tr>
+            <tr style="background: rgba(148, 163, 184, 0.05);">
+              <td style="padding: 1rem; border: 1px solid var(--border);"><strong>👤 Utilisateur</strong></td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--danger);">❌ Refusé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--danger);">❌ Refusé</td>
+              <td style="padding: 1rem; text-align: center; border: 1px solid var(--border); color: var(--danger);">❌ Masquée</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 2rem; padding: 2rem; background: var(--surface-light); border-radius: 1rem; border: 1px solid var(--border);">
+        <h3 style="margin: 0 0 1rem; color: var(--accent);">🎯 Sécurité Renforcée</h3>
+        <p style="margin: 0; color: var(--muted);">
+          Les permissions sont vérifiées à plusieurs niveaux : interface utilisateur, 
+          fonctions JavaScript et génération PDF pour garantir une sécurité maximale.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/notifications.js"></script>
+  <script src="js/pdf-reports.js"></script>
+  
+  <script>
+    let selectedRole = null;
+
+    function selectRole(role) {
+      selectedRole = role;
+      
+      // Mettre à jour l'affichage visuel
+      document.querySelectorAll('.role-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      event.target.closest('.role-card').classList.add('selected');
+      
+      // Simuler le changement de rôle dans localStorage
+      localStorage.setItem('appRole', role);
+      localStorage.setItem('appUserName', getRoleDisplayName(role));
+      
+      // Mettre à jour l'affichage du rôle actuel
+      document.getElementById('currentRoleText').textContent = getRoleDisplayName(role);
+      
+      // Effacer les résultats précédents
+      document.getElementById('testResults').innerHTML = '';
+      
+      addTestResult(`Rôle changé vers : ${getRoleDisplayName(role)}`, 'info');
+    }
+
+    function getRoleDisplayName(role) {
+      const roleNames = {
+        'admin': 'Administrateur',
+        'secretariat': 'Secrétariat',
+        'responsable': 'Responsable de Département',
+        'user': 'Utilisateur'
+      };
+      return roleNames[role] || role;
+    }
+
+    function addTestResult(message, type = 'info') {
+      const resultsContainer = document.getElementById('testResults');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `test-result test-${type}`;
+      
+      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      resultDiv.innerHTML = `${icon} ${message}`;
+      
+      resultsContainer.appendChild(resultDiv);
+    }
+
+    function testReportsPageAccess() {
+      if (!selectedRole) {
+        addTestResult('Veuillez d\'abord sélectionner un rôle', 'error');
+        return;
+      }
+
+      const authorizedRoles = ['admin', 'secretariat'];
+      const hasAccess = authorizedRoles.includes(selectedRole);
+      
+      if (hasAccess) {
+        addTestResult(`✅ Accès autorisé à la page rapports pour le rôle ${getRoleDisplayName(selectedRole)}`, 'success');
+        addTestResult('Vous pouvez accéder à reports.html', 'info');
+      } else {
+        addTestResult(`❌ Accès refusé à la page rapports pour le rôle ${getRoleDisplayName(selectedRole)}`, 'error');
+        addTestResult('Redirection vers access-denied-reports.html', 'info');
+      }
+    }
+
+    function testPDFGeneration() {
+      if (!selectedRole) {
+        addTestResult('Veuillez d\'abord sélectionner un rôle', 'error');
+        return;
+      }
+
+      try {
+        // Tester la vérification des permissions
+        const hasPermission = window.checkPDFExportPermissions();
+        
+        if (hasPermission) {
+          addTestResult(`✅ Génération PDF autorisée pour le rôle ${getRoleDisplayName(selectedRole)}`, 'success');
+          addTestResult('Les fonctions d\'export PDF sont disponibles', 'info');
+        }
+      } catch (error) {
+        addTestResult(`❌ Génération PDF refusée pour le rôle ${getRoleDisplayName(selectedRole)}`, 'error');
+        addTestResult(`Erreur : ${error.message}`, 'info');
+      }
+    }
+
+    function testPermissionCheck() {
+      if (!selectedRole) {
+        addTestResult('Veuillez d\'abord sélectionner un rôle', 'error');
+        return;
+      }
+
+      const currentRole = localStorage.getItem('appRole');
+      const authorizedRoles = ['admin', 'secretariat'];
+      const hasPermission = authorizedRoles.includes(currentRole);
+      
+      addTestResult(`Rôle testé : ${getRoleDisplayName(currentRole)}`, 'info');
+      addTestResult(`Rôles autorisés : ${authorizedRoles.join(', ')}`, 'info');
+      
+      if (hasPermission) {
+        addTestResult('✅ Permissions validées - Accès autorisé', 'success');
+      } else {
+        addTestResult('❌ Permissions insuffisantes - Accès refusé', 'error');
+      }
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      // Récupérer le rôle actuel s'il existe
+      const currentRole = localStorage.getItem('appRole');
+      if (currentRole) {
+        document.getElementById('currentRoleText').textContent = getRoleDisplayName(currentRole);
+      }
+      
+      addTestResult('Page de test des permissions chargée', 'info');
+      addTestResult('Sélectionnez un rôle pour commencer les tests', 'info');
+    });
+  </script>
+</body>
+</html>

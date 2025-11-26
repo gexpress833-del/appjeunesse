@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des utilisateurs - La Parole Eternelle</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page-role="users">
+  <div class="app">
+    <div class="panel">
+      <header class="header">
+        <div class="header-left">
+          <img src="images/logo.jpg" alt="Logo" class="app-logo">
+          <div class="app-title">
+            <span class="app-name">La Parole Eternelle</span>
+            <span class="app-subtitle">Gestion des utilisateurs</span>
+          </div>
+        </div>
+        <div class="header-center">
+          <div class="profile-avatar" id="headerProfilePhoto">
+            <span id="headerInitials">U</span>
+          </div>
+          <div class="header-info">
+            <h1 class="header-title">Gestion des utilisateurs</h1>
+            <span class="welcome-message">Gestion des comptes et rôles</span>
+          </div>
+        </div>
+        <div class="login-panel">
+          <div class="notification-bell" onclick="openNotificationCenter()">
+            🔔
+            <span class="notification-badge" id="notificationBadge">0</span>
+          </div>
+          <div class="user-info">
+            <span class="user-role" id="currentUserRole">Rôle : <strong>Admin</strong></span>
+            <span class="user-status">● En ligne</span>
+          </div>
+          <button class="secondary logout-btn" id="logoutBtn" type="button">Déconnexion</button>
+        </div>
+      </header>
+
+      <nav class="nav role-nav">
+        <a href="index.html">Accueil</a>
+        <a href="members.html">Membres</a>
+        <a href="departments.html">Départements</a>
+        <a href="events.html">Événements</a>
+        <a href="attendances.html">Présences</a>
+        <a href="users.html" class="active">👥 Utilisateurs</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+
+      <div id="notifications" class="notifications"></div>
+
+      <!-- Formulaire de création d'utilisateur (SEUL le Secrétaire) -->
+      <section class="secretariat-only" id="userCreationSection">
+        <div class="card">
+          <h3>👤 Créer un nouvel utilisateur</h3>
+          <div class="creation-info">
+            <p><strong>🔒 Réservé au secrétaire uniquement</strong></p>
+            <p>Seul le secrétaire peut créer de nouveaux comptes utilisateurs. L'administrateur se contente d'attribuer les rôles.</p>
+          </div>
+          <form id="userCreationForm">
+            <div class="form-row">
+              <div class="form-control">
+                <label for="newUsername">Nom d'utilisateur</label>
+                <input type="text" id="newUsername" required placeholder="ex: jean.dupont">
+              </div>
+              <div class="form-control">
+                <label for="newUserFullName">Nom complet</label>
+                <input type="text" id="newUserFullName" required placeholder="ex: Jean Dupont">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-control">
+                <label for="newUserEmail">Email</label>
+                <input type="email" id="newUserEmail" required placeholder="ex: jean.dupont@email.com">
+              </div>
+              <div class="form-control">
+                <label for="newUserBirthDate">Date de naissance</label>
+                <input type="date" id="newUserBirthDate" required>
+              </div>
+            </div>
+            <div class="form-control">
+              <label for="newUserAddress">Adresse physique de résidence</label>
+              <textarea id="newUserAddress" required placeholder="ex: 123 Avenue de la Paix, Quartier Makomeno, Kolwezi" rows="2"></textarea>
+            </div>
+            <div class="form-control">
+              <label for="newUserPassword">Mot de passe temporaire</label>
+              <input type="password" id="newUserPassword" required placeholder="Minimum 6 caractères">
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary">👤 Créer l'utilisateur</button>
+              <button type="button" class="secondary" id="cancelUserCreation">Annuler</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Gestion des rôles (SEUL l'Admin) -->
+      <section class="admin-only" id="roleManagementSection">
+        <div class="card">
+          <h3>⚙️ Attribution des rôles</h3>
+          <div class="role-assignment-info">
+            <p><strong>🔒 Réservé à l'administrateur uniquement</strong></p>
+            <p>Seul l'administrateur peut attribuer des rôles aux comptes créés par le secrétaire.</p>
+            <p><em>L'administrateur ne peut pas créer de comptes, seulement gérer les rôles.</em></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Liste des utilisateurs -->
+      <section>
+        <div class="card">
+          <div class="users-header">
+            <h3>📋 Liste des utilisateurs</h3>
+            <div class="users-filter">
+              <select id="usersStatusFilter">
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente de rôle</option>
+                <option value="active">Actifs</option>
+                <option value="inactive">Inactifs</option>
+              </select>
+            </div>
+          </div>
+          <div class="users-grid" id="usersGrid">
+            <!-- Users will be populated here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Modal d'attribution de rôle -->
+      <div class="modal-overlay" id="roleAssignmentModal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>⚙️ Attribuer un rôle</h3>
+            <button class="modal-close" onclick="closeRoleAssignmentModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="user-info-modal">
+              <div class="user-avatar-modal" id="modalUserAvatar">U</div>
+              <div class="user-details-modal">
+                <h4 id="modalUserName">Nom de l'utilisateur</h4>
+                <p id="modalUserEmail">email@example.com</p>
+                <p id="modalUserBirthDate" style="display: none;"></p>
+                <p id="modalUserAddress" style="display: none;"></p>
+                <p id="modalUserStatus" class="user-status-badge">En attente</p>
+              </div>
+            </div>
+            
+            <div class="user-personal-info" id="modalUserPersonalInfo" style="display: none;">
+              <h5>📋 Informations personnelles</h5>
+              <div class="personal-info-grid">
+                <div class="info-item">
+                  <span class="info-label">Date de naissance :</span>
+                  <span class="info-value" id="modalUserBirthDateDisplay">-</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Âge :</span>
+                  <span class="info-value" id="modalUserAge">-</span>
+                </div>
+                <div class="info-item full-width">
+                  <span class="info-label">Adresse :</span>
+                  <span class="info-value" id="modalUserAddressDisplay">-</span>
+                </div>
+              </div>
+            </div>
+            
+            <form id="roleAssignmentForm">
+              <div class="form-control">
+                <label for="assignRole">Rôle à attribuer</label>
+                <select id="assignRole" required>
+                  <option value="">Sélectionner un rôle</option>
+                  <option value="admin">Administrateur</option>
+                  <option value="secretariat">Secrétariat</option>
+                  <option value="responsable">Responsable de département</option>
+                  <option value="user">Utilisateur</option>
+                </select>
+              </div>
+              
+              <div class="form-control" id="departmentSelection" style="display: none;">
+                <label for="assignDepartment">Département</label>
+                <select id="assignDepartment">
+                  <option value="">Sélectionner un département</option>
+                </select>
+              </div>
+              
+              <div class="form-control">
+                <label for="userNotes">Notes (optionnel)</label>
+                <textarea id="userNotes" rows="3" placeholder="Notes sur l'utilisateur..."></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="secondary" onclick="closeRoleAssignmentModal()">Annuler</button>
+            <button class="primary" id="confirmRoleAssignment">Attribuer le rôle</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/data.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/notifications.js" defer></script>
+  <script src="js/users.js" defer></script>
+  <script src="js/role-page.js" defer></script>
+</body>
+</html>

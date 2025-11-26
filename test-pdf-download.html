@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Téléchargement PDF</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .download-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+    }
+    
+    .download-section {
+      background: var(--surface-elevated);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-bright);
+    }
+    
+    .test-button {
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .test-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+    }
+    
+    .test-button.fast {
+      background: linear-gradient(135deg, var(--success), #059669);
+    }
+    
+    .test-button.fast:hover {
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    .test-result {
+      margin: 1rem 0;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border-left: 4px solid;
+    }
+    
+    .test-success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+    
+    .test-error {
+      background: rgba(255, 107, 107, 0.1);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    
+    .test-info {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .download-status {
+      background: var(--surface);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      margin: 1rem 0;
+    }
+    
+    .file-list {
+      background: var(--surface-light);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      margin: 1rem 0;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.9rem;
+    }
+    
+    .download-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+    
+    .download-success {
+      background: var(--success);
+    }
+    
+    .download-pending {
+      background: var(--warning);
+    }
+    
+    .download-error {
+      background: var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <div class="download-container">
+        <header style="text-align: center; margin-bottom: 2rem;">
+          <h1>📥 Test Téléchargement PDF</h1>
+          <p style="color: var(--muted);">
+            Vérification que les rapports PDF sont réellement téléchargés
+          </p>
+        </header>
+
+        <div class="download-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">🧪 Tests de Téléchargement</h2>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
+            <button class="test-button" onclick="testEventDownload()">
+              📄 Test Rapport Événement
+            </button>
+            
+            <button class="test-button fast" onclick="testFastEventDownload()">
+              ⚡ Test Rapport Rapide
+            </button>
+            
+            <button class="test-button" onclick="testGlobalDownload()">
+              📈 Test Rapport Global
+            </button>
+            
+            <button class="test-button fast" onclick="testFastGlobalDownload()">
+              ⚡ Test Global Rapide
+            </button>
+          </div>
+          
+          <div class="download-status">
+            <h3 style="color: var(--accent-tertiary); margin: 0 0 1rem;">📊 Statut des Téléchargements</h3>
+            <div id="downloadStatus">
+              <p style="color: var(--muted); margin: 0;">Aucun test effectué</p>
+            </div>
+          </div>
+          
+          <div id="testResults"></div>
+        </div>
+
+        <div class="download-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">🔧 Préparation des Données</h2>
+          
+          <button class="test-button" onclick="createTestData()" style="background: linear-gradient(135deg, var(--accent-tertiary), #10b981);">
+            🛠️ Créer Données de Test
+          </button>
+          
+          <button class="test-button" onclick="checkLibraries()" style="background: linear-gradient(135deg, var(--accent-secondary), #7c3aed);">
+            📚 Vérifier Bibliothèques
+          </button>
+          
+          <div class="file-list" id="dataStatus">
+            <strong>Statut des données :</strong><br>
+            <span id="dataInfo">Vérification en cours...</span>
+          </div>
+        </div>
+
+        <div class="download-section">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">📋 Instructions</h2>
+          
+          <div style="background: var(--surface-light); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border);">
+            <h3 style="color: var(--accent-tertiary); margin: 0 0 1rem;">✅ Vérifications à Effectuer</h3>
+            <ol style="color: var(--muted); margin: 0; padding-left: 1.5rem;">
+              <li><strong>Créer les données de test</strong> - Cliquez sur "Créer Données de Test"</li>
+              <li><strong>Vérifier les bibliothèques</strong> - Cliquez sur "Vérifier Bibliothèques"</li>
+              <li><strong>Tester les téléchargements</strong> - Utilisez les boutons de test</li>
+              <li><strong>Vérifier le dossier Téléchargements</strong> - Les PDF doivent apparaître</li>
+              <li><strong>Ouvrir les PDF</strong> - Vérifier que le contenu est correct</li>
+            </ol>
+          </div>
+          
+          <div style="background: rgba(0, 212, 255, 0.1); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--accent); margin-top: 1rem;">
+            <h3 style="color: var(--accent); margin: 0 0 1rem;">💡 Résolution des Problèmes</h3>
+            <ul style="color: var(--muted); margin: 0; padding-left: 1.5rem;">
+              <li><strong>PDF ne se télécharge pas :</strong> Vérifiez que les pop-ups ne sont pas bloqués</li>
+              <li><strong>Erreur de bibliothèque :</strong> Rafraîchissez la page (F5)</li>
+              <li><strong>Données manquantes :</strong> Cliquez sur "Créer Données de Test"</li>
+              <li><strong>Permissions refusées :</strong> Connectez-vous en tant qu'admin ou secrétariat</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem; padding: 2rem; background: var(--surface-light); border-radius: 1rem; border: 1px solid var(--border);">
+          <h3 style="margin: 0 0 1rem; color: var(--success);">🎯 Objectif du Test</h3>
+          <p style="margin: 0; color: var(--muted);">
+            Confirmer que les rapports PDF sont réellement générés et téléchargés sur votre ordinateur, 
+            et non pas seulement simulés dans le navigateur.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="js/notifications.js"></script>
+  <script src="js/pdf-performance-optimizer.js"></script>
+  <script src="js/pdf-reports.js"></script>
+  <script src="js/pdf-fast-generator.js"></script>
+  
+  <script>
+    let downloadTests = {
+      eventNormal: { status: 'pending', fileName: null, time: null },
+      eventFast: { status: 'pending', fileName: null, time: null },
+      globalNormal: { status: 'pending', fileName: null, time: null },
+      globalFast: { status: 'pending', fileName: null, time: null }
+    };
+
+    function addTestResult(message, type = 'info') {
+      const resultsContainer = document.getElementById('testResults');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `test-result test-${type}`;
+      
+      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      resultDiv.innerHTML = `${icon} ${message}`;
+      
+      resultsContainer.appendChild(resultDiv);
+      
+      // Auto-scroll vers le bas
+      resultDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateDownloadStatus() {
+      const statusContainer = document.getElementById('downloadStatus');
+      let html = '';
+      
+      Object.entries(downloadTests).forEach(([key, test]) => {
+        const indicator = test.status === 'success' ? 'download-success' : 
+                         test.status === 'error' ? 'download-error' : 'download-pending';
+        
+        const label = {
+          'eventNormal': 'Rapport Événement Normal',
+          'eventFast': 'Rapport Événement Rapide',
+          'globalNormal': 'Rapport Global Normal',
+          'globalFast': 'Rapport Global Rapide'
+        }[key];
+        
+        html += `
+          <div style="display: flex; align-items: center; margin: 0.5rem 0;">
+            <span class="download-indicator ${indicator}"></span>
+            <span>${label}</span>
+            ${test.fileName ? `<span style="margin-left: auto; font-size: 0.8rem; color: var(--muted);">${test.fileName}</span>` : ''}
+          </div>
+        `;
+      });
+      
+      statusContainer.innerHTML = html;
+    }
+
+    async function testEventDownload() {
+      try {
+        addTestResult('🧪 Test téléchargement rapport événement normal...', 'info');
+        
+        // Créer des données de test si nécessaire
+        createTestData();
+        
+        const events = JSON.parse(localStorage.getItem('events') || '[]');
+        if (events.length === 0) {
+          throw new Error('Aucun événement disponible');
+        }
+        
+        const startTime = Date.now();
+        const result = await window.pdfReports.generateEventAttendanceReport(events[0].id);
+        const duration = Date.now() - startTime;
+        
+        if (result.success && result.downloaded) {
+          downloadTests.eventNormal = { status: 'success', fileName: result.fileName, time: duration };
+          addTestResult(`✅ Rapport événement téléchargé: ${result.fileName} (${duration}ms)`, 'success');
+        } else {
+          throw new Error(result.error || 'Échec du téléchargement');
+        }
+        
+      } catch (error) {
+        downloadTests.eventNormal = { status: 'error', fileName: null, time: null };
+        addTestResult(`❌ Erreur rapport événement: ${error.message}`, 'error');
+      }
+      
+      updateDownloadStatus();
+    }
+
+    async function testFastEventDownload() {
+      try {
+        addTestResult('⚡ Test téléchargement rapport événement rapide...', 'info');
+        
+        createTestData();
+        
+        const events = JSON.parse(localStorage.getItem('events') || '[]');
+        if (events.length === 0) {
+          throw new Error('Aucun événement disponible');
+        }
+        
+        const startTime = Date.now();
+        const result = await window.fastPDFGenerator.generateEventReportFast(events[0].id);
+        const duration = Date.now() - startTime;
+        
+        if (result.success && result.downloaded) {
+          downloadTests.eventFast = { status: 'success', fileName: result.fileName, time: duration };
+          addTestResult(`✅ Rapport événement rapide téléchargé: ${result.fileName} (${duration}ms)`, 'success');
+        } else {
+          throw new Error(result.error || 'Échec du téléchargement');
+        }
+        
+      } catch (error) {
+        downloadTests.eventFast = { status: 'error', fileName: null, time: null };
+        addTestResult(`❌ Erreur rapport événement rapide: ${error.message}`, 'error');
+      }
+      
+      updateDownloadStatus();
+    }
+
+    async function testGlobalDownload() {
+      try {
+        addTestResult('📈 Test téléchargement rapport global normal...', 'info');
+        
+        createTestData();
+        
+        const startDate = '2024-01-01';
+        const endDate = '2024-12-31';
+        
+        const startTime = Date.now();
+        const result = await window.pdfReports.generateGlobalAttendanceReport(startDate, endDate);
+        const duration = Date.now() - startTime;
+        
+        if (result.success && result.downloaded) {
+          downloadTests.globalNormal = { status: 'success', fileName: result.fileName, time: duration };
+          addTestResult(`✅ Rapport global téléchargé: ${result.fileName} (${duration}ms)`, 'success');
+        } else {
+          throw new Error(result.error || 'Échec du téléchargement');
+        }
+        
+      } catch (error) {
+        downloadTests.globalNormal = { status: 'error', fileName: null, time: null };
+        addTestResult(`❌ Erreur rapport global: ${error.message}`, 'error');
+      }
+      
+      updateDownloadStatus();
+    }
+
+    async function testFastGlobalDownload() {
+      try {
+        addTestResult('⚡ Test téléchargement rapport global rapide...', 'info');
+        
+        createTestData();
+        
+        const startDate = '2024-01-01';
+        const endDate = '2024-12-31';
+        
+        const startTime = Date.now();
+        const result = await window.fastPDFGenerator.generateGlobalReportFast(startDate, endDate);
+        const duration = Date.now() - startTime;
+        
+        if (result.success && result.downloaded) {
+          downloadTests.globalFast = { status: 'success', fileName: result.fileName, time: duration };
+          addTestResult(`✅ Rapport global rapide téléchargé: ${result.fileName} (${duration}ms)`, 'success');
+        } else {
+          throw new Error(result.error || 'Échec du téléchargement');
+        }
+        
+      } catch (error) {
+        downloadTests.globalFast = { status: 'error', fileName: null, time: null };
+        addTestResult(`❌ Erreur rapport global rapide: ${error.message}`, 'error');
+      }
+      
+      updateDownloadStatus();
+    }
+
+    function createTestData() {
+      // Simuler un utilisateur admin pour les tests
+      localStorage.setItem('appRole', 'admin');
+      localStorage.setItem('appUserName', 'Test Admin');
+      localStorage.setItem('appLoginTime', Date.now().toString());
+      
+      // Créer des données de test
+      const testEvents = [
+        { id: 1, name: 'Test Event Download', date: '2024-01-15' },
+        { id: 2, name: 'Test Event 2', date: '2024-02-20' }
+      ];
+      
+      const testMembers = [
+        { id: 1, name: 'Test Member 1', dept: 'Test Dept' },
+        { id: 2, name: 'Test Member 2', dept: 'Test Dept' },
+        { id: 3, name: 'Test Member 3', dept: 'DLB' }
+      ];
+      
+      const testAttendances = [
+        { id: 1, memberId: 1, eventId: 1, status: 'P' },
+        { id: 2, memberId: 2, eventId: 1, status: 'A' },
+        { id: 3, memberId: 3, eventId: 1, status: 'P' },
+        { id: 4, memberId: 1, eventId: 2, status: 'AJ' }
+      ];
+      
+      const testDepartments = ['Test Dept', 'DLB', 'DCC'];
+      
+      localStorage.setItem('events', JSON.stringify(testEvents));
+      localStorage.setItem('members', JSON.stringify(testMembers));
+      localStorage.setItem('attendances', JSON.stringify(testAttendances));
+      localStorage.setItem('departments', JSON.stringify(testDepartments));
+      
+      updateDataStatus();
+      addTestResult('✅ Données de test créées avec succès', 'success');
+    }
+
+    function checkLibraries() {
+      addTestResult('🔍 Vérification des bibliothèques PDF...', 'info');
+      
+      if (typeof window.jsPDF === 'undefined') {
+        addTestResult('❌ jsPDF non chargé - Tentative de chargement...', 'error');
+        
+        // Forcer le rechargement
+        if (window.pdfOptimizer) {
+          window.pdfOptimizer.preloadLibraries().then(() => {
+            addTestResult('✅ Bibliothèques rechargées avec succès', 'success');
+          }).catch(error => {
+            addTestResult(`❌ Erreur rechargement: ${error.message}`, 'error');
+          });
+        }
+      } else {
+        addTestResult('✅ jsPDF chargé correctement', 'success');
+        
+        if (window.jsPDF.jsPDF) {
+          addTestResult('✅ jsPDF.jsPDF disponible', 'success');
+        } else {
+          addTestResult('❌ jsPDF.jsPDF non disponible', 'error');
+        }
+        
+        if (typeof window.jsPDF.jsPDF().autoTable === 'function') {
+          addTestResult('✅ autoTable plugin chargé', 'success');
+        } else {
+          addTestResult('❌ autoTable plugin manquant', 'error');
+        }
+      }
+    }
+
+    function updateDataStatus() {
+      const events = JSON.parse(localStorage.getItem('events') || '[]');
+      const members = JSON.parse(localStorage.getItem('members') || '[]');
+      const attendances = JSON.parse(localStorage.getItem('attendances') || '[]');
+      const role = localStorage.getItem('appRole');
+      
+      document.getElementById('dataInfo').innerHTML = `
+        Événements: ${events.length}<br>
+        Membres: ${members.length}<br>
+        Présences: ${attendances.length}<br>
+        Rôle actuel: ${role || 'Non défini'}
+      `;
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDataStatus();
+      updateDownloadStatus();
+      addTestResult('🚀 Page de test de téléchargement initialisée', 'info');
+      addTestResult('📋 Suivez les instructions pour tester les téléchargements PDF', 'info');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Utilisateurs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    .container {
+      background: #1f2937;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .user-info {
+      background: #374151;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+    .error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .success {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    pre {
+      background: #111827;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .fix-btn {
+      background: #10b981;
+    }
+    .fix-btn:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Debug des Utilisateurs</h1>
+    
+    <button onclick="analyzeUsers()">Analyser les utilisateurs</button>
+    <button onclick="fixUsers()" class="fix-btn">Corriger les utilisateurs</button>
+    <button onclick="clearAll()">Tout effacer</button>
+    
+    <div id="results"></div>
+  </div>
+
+  <script>
+    function addResult(title, content, type = 'info') {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `user-info ${type}`;
+      div.innerHTML = `<h3>${title}</h3><div>${content}</div>`;
+      results.appendChild(div);
+    }
+
+    function analyzeUsers() {
+      document.getElementById('results').innerHTML = '';
+      
+      try {
+        // Vérifier les données brutes
+        const rawUsers = localStorage.getItem('appUsers');
+        addResult('📦 Données brutes appUsers', `<pre>${rawUsers || 'null'}</pre>`);
+        
+        // Parser les utilisateurs
+        const users = JSON.parse(rawUsers || '[]');
+        addResult('👥 Nombre d\'utilisateurs', users.length.toString());
+        
+        if (users.length === 0) {
+          addResult('⚠️ Problème', 'Aucun utilisateur trouvé dans localStorage', 'error');
+          return;
+        }
+        
+        // Analyser chaque utilisateur
+        users.forEach((user, index) => {
+          const issues = [];
+          
+          if (!user.name) issues.push('❌ Nom manquant');
+          if (!user.username) issues.push('❌ Username manquant');
+          if (!user.email) issues.push('❌ Email manquant');
+          if (!user.role) issues.push('❌ Rôle manquant');
+          if (!user.status) issues.push('❌ Statut manquant');
+          
+          const status = issues.length === 0 ? 'success' : 'error';
+          const issueText = issues.length === 0 ? '✅ Utilisateur OK' : issues.join('<br>');
+          
+          addResult(
+            `👤 Utilisateur ${index + 1}: ${user.username || 'undefined'}`,
+            `
+              <strong>Nom:</strong> ${user.name || 'undefined'}<br>
+              <strong>Email:</strong> ${user.email || 'undefined'}<br>
+              <strong>Rôle:</strong> ${user.role || 'undefined'}<br>
+              <strong>Statut:</strong> ${user.status || 'undefined'}<br>
+              <hr>
+              ${issueText}
+            `,
+            status
+          );
+        });
+        
+        // Vérifier la session actuelle
+        const currentUser = localStorage.getItem('appUser');
+        const currentRole = localStorage.getItem('appRole');
+        const currentUserName = localStorage.getItem('appUserName');
+        
+        addResult('🔐 Session actuelle', `
+          <strong>appUser:</strong> ${currentUser || 'undefined'}<br>
+          <strong>appRole:</strong> ${currentRole || 'undefined'}<br>
+          <strong>appUserName:</strong> ${currentUserName || 'undefined'}
+        `);
+        
+      } catch (error) {
+        addResult('💥 Erreur', `Erreur lors de l'analyse: ${error.message}`, 'error');
+      }
+    }
+
+    function fixUsers() {
+      try {
+        const correctUsers = [
+          { 
+            username: 'admin', 
+            password: 'admin123', 
+            role: 'admin', 
+            name: 'Jean-Baptiste Mukendi',
+            status: 'active',
+            email: 'admin@laparole.cd',
+            birthDate: '1985-03-15',
+            address: '123 Avenue de la Liberté, Quartier Golf, Kolwezi',
+            createdAt: new Date().toISOString()
+          },
+          { 
+            username: 'secretariat', 
+            password: 'secret123', 
+            role: 'secretariat', 
+            name: 'Marie Kabongo',
+            status: 'active',
+            email: 'secretariat@laparole.cd',
+            birthDate: '1990-07-22',
+            address: '456 Rue de la Paix, Quartier Makomeno, Kolwezi',
+            createdAt: new Date().toISOString()
+          },
+          { 
+            username: 'responsable', 
+            password: 'resp123', 
+            role: 'responsable', 
+            dept: 'DLB', 
+            name: 'Paul Mwanza',
+            status: 'active',
+            email: 'responsable@laparole.cd',
+            birthDate: '1988-11-10',
+            address: '789 Boulevard Lumumba, Quartier Dilala, Kolwezi',
+            createdAt: new Date().toISOString()
+          },
+          { 
+            username: 'user', 
+            password: 'user123', 
+            role: 'user', 
+            name: 'Grace Kasongo',
+            status: 'active',
+            email: 'user@laparole.cd',
+            birthDate: '1995-05-08',
+            address: '321 Avenue Mobutu, Quartier Kapata, Kolwezi',
+            createdAt: new Date().toISOString()
+          }
+        ];
+
+        localStorage.setItem('appUsers', JSON.stringify(correctUsers));
+        
+        addResult('✅ Correction effectuée', 'Les utilisateurs ont été corrigés avec succès', 'success');
+        
+        // Re-analyser
+        setTimeout(analyzeUsers, 500);
+        
+      } catch (error) {
+        addResult('💥 Erreur de correction', `Erreur: ${error.message}`, 'error');
+      }
+    }
+
+    function clearAll() {
+      if (confirm('Êtes-vous sûr de vouloir tout effacer ?')) {
+        localStorage.removeItem('appUsers');
+        localStorage.removeItem('appRole');
+        localStorage.removeItem('appUser');
+        localStorage.removeItem('appUserName');
+        localStorage.removeItem('appLoginTime');
+        localStorage.removeItem('appDept');
+        localStorage.removeItem('userProfiles');
+        
+        addResult('🧹 Nettoyage effectué', 'Toutes les données ont été supprimées', 'success');
+      }
+    }
+
+    // Analyse automatique au chargement
+    document.addEventListener('DOMContentLoaded', analyzeUsers);
+  </script>
+</body>
+</html>

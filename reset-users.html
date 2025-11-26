@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réinitialisation des utilisateurs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    .container {
+      background: #1f2937;
+      padding: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    h1 {
+      color: #3b82f6;
+      text-align: center;
+    }
+    .user-info {
+      background: #374151;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border-left: 4px solid #10b981;
+    }
+    .user-info h3 {
+      margin: 0 0 10px 0;
+      color: #10b981;
+    }
+    .user-info p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    button {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px;
+    }
+    button:hover {
+      background: #dc2626;
+    }
+    .success {
+      background: #10b981;
+    }
+    .success:hover {
+      background: #059669;
+    }
+    .current-users {
+      background: #374151;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Réinitialisation des utilisateurs</h1>
+    
+    <div class="warning">
+      <strong>⚠️ Attention :</strong> Cette opération va supprimer tous les utilisateurs existants et les remplacer par les utilisateurs par défaut corrects.
+    </div>
+
+    <div class="current-users">
+      <h2>👥 Utilisateurs actuels dans localStorage :</h2>
+      <div id="currentUsers">Chargement...</div>
+    </div>
+
+    <h2>✅ Utilisateurs par défaut corrects :</h2>
+    
+    <div class="user-info">
+      <h3>👑 Administrateur</h3>
+      <p><strong>Nom d'utilisateur :</strong> admin</p>
+      <p><strong>Mot de passe :</strong> admin123</p>
+      <p><strong>Rôle :</strong> admin</p>
+      <p><strong>Nom :</strong> Jean-Baptiste Mukendi</p>
+    </div>
+
+    <div class="user-info">
+      <h3>📝 Secrétariat</h3>
+      <p><strong>Nom d'utilisateur :</strong> secretariat</p>
+      <p><strong>Mot de passe :</strong> secret123</p>
+      <p><strong>Rôle :</strong> secretariat</p>
+      <p><strong>Nom :</strong> Marie Kabongo</p>
+    </div>
+
+    <div class="user-info">
+      <h3>👨‍💼 Responsable</h3>
+      <p><strong>Nom d'utilisateur :</strong> responsable</p>
+      <p><strong>Mot de passe :</strong> resp123</p>
+      <p><strong>Rôle :</strong> responsable</p>
+      <p><strong>Département :</strong> DLB</p>
+      <p><strong>Nom :</strong> Paul Mwanza</p>
+    </div>
+
+    <div class="user-info">
+      <h3>👤 Utilisateur</h3>
+      <p><strong>Nom d'utilisateur :</strong> user</p>
+      <p><strong>Mot de passe :</strong> user123</p>
+      <p><strong>Rôle :</strong> user</p>
+      <p><strong>Nom :</strong> Grace Kasongo</p>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <button onclick="resetUsers()" id="resetBtn">🔄 Réinitialiser les utilisateurs</button>
+      <button onclick="window.location.href='login.html'" class="success">🏠 Retour à la connexion</button>
+    </div>
+
+    <div id="result" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    function displayCurrentUsers() {
+      const currentUsers = JSON.parse(localStorage.getItem('appUsers') || '[]');
+      const container = document.getElementById('currentUsers');
+      
+      if (currentUsers.length === 0) {
+        container.innerHTML = '<p style="color: #94a3b8;">Aucun utilisateur trouvé dans localStorage</p>';
+        return;
+      }
+
+      let html = '';
+      currentUsers.forEach(user => {
+        html += `
+          <div style="background: #4b5563; padding: 10px; margin: 5px 0; border-radius: 5px;">
+            <strong>${user.username}</strong> → Rôle: <span style="color: ${user.role === 'admin' ? '#ef4444' : user.role === 'secretariat' ? '#10b981' : '#3b82f6'}">${user.role}</span>
+            <br><small>Nom: ${user.name || 'Non défini'}</small>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function resetUsers() {
+      if (!confirm('Êtes-vous sûr de vouloir réinitialiser tous les utilisateurs ? Cette action est irréversible.')) {
+        return;
+      }
+
+      const correctUsers = [
+        { 
+          username: 'admin', 
+          password: 'admin123', 
+          role: 'admin', 
+          name: 'Jean-Baptiste Mukendi',
+          status: 'active',
+          email: 'admin@laparole.cd',
+          birthDate: '1985-03-15',
+          address: '123 Avenue de la Liberté, Quartier Golf, Kolwezi',
+          createdAt: new Date().toISOString()
+        },
+        { 
+          username: 'secretariat', 
+          password: 'secret123', 
+          role: 'secretariat', 
+          name: 'Marie Kabongo',
+          status: 'active',
+          email: 'secretariat@laparole.cd',
+          birthDate: '1990-07-22',
+          address: '456 Rue de la Paix, Quartier Makomeno, Kolwezi',
+          createdAt: new Date().toISOString()
+        },
+        { 
+          username: 'responsable', 
+          password: 'resp123', 
+          role: 'responsable', 
+          dept: 'DLB', 
+          name: 'Paul Mwanza',
+          status: 'active',
+          email: 'responsable@laparole.cd',
+          birthDate: '1988-11-10',
+          address: '789 Boulevard Lumumba, Quartier Dilala, Kolwezi',
+          createdAt: new Date().toISOString()
+        },
+        { 
+          username: 'user', 
+          password: 'user123', 
+          role: 'user', 
+          name: 'Grace Kasongo',
+          status: 'active',
+          email: 'user@laparole.cd',
+          birthDate: '1995-05-08',
+          address: '321 Avenue Mobutu, Quartier Kapata, Kolwezi',
+          createdAt: new Date().toISOString()
+        }
+      ];
+
+      // Supprimer les anciennes données
+      localStorage.removeItem('appUsers');
+      localStorage.removeItem('userProfiles');
+      
+      // Ajouter les nouvelles données correctes
+      localStorage.setItem('appUsers', JSON.stringify(correctUsers));
+
+      // Déconnecter l'utilisateur actuel
+      localStorage.removeItem('appRole');
+      localStorage.removeItem('appUser');
+      localStorage.removeItem('appUserName');
+      localStorage.removeItem('appLoginTime');
+      localStorage.removeItem('appDept');
+
+      document.getElementById('result').innerHTML = `
+        <div style="background: #10b981; color: white; padding: 15px; border-radius: 8px; text-align: center;">
+          <strong>✅ Réinitialisation réussie !</strong><br>
+          Les utilisateurs ont été correctement réinitialisés.<br>
+          <small>Vous pouvez maintenant vous reconnecter avec les bons identifiants.</small>
+        </div>
+      `;
+
+      // Actualiser l'affichage
+      displayCurrentUsers();
+      
+      // Désactiver le bouton
+      document.getElementById('resetBtn').disabled = true;
+      document.getElementById('resetBtn').textContent = '✅ Réinitialisé';
+    }
+
+    // Afficher les utilisateurs actuels au chargement
+    document.addEventListener('DOMContentLoaded', displayCurrentUsers);
+  </script>
+</body>
+</html>
