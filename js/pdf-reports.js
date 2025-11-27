@@ -247,53 +247,40 @@ class PDFReportGenerator {
     doc.setFillColor(0, 150, 200); // Bleu plus foncé pour meilleur contraste
     doc.rect(0, 0, pageWidth, headerHeight, 'F');
     
-    // Ajouter le logo si disponible
+    // Ajouter le logo si disponible (sans canvas pour éviter les problèmes CORS/tainted)
     let logoLoaded = false;
     try {
       const logoImg = new Image();
       // Chemin RELATIF simple – le même que celui utilisé dans les pages HTML
       logoImg.src = 'images/logo.jpg';
-      
+
       await new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          console.warn('Timeout lors du chargement du logo');
+          console.warn('Timeout lors du chargement du logo (pdf-reports)');
           resolve();
         }, 2000);
-        
+
         logoImg.onload = () => {
           clearTimeout(timeout);
           try {
-            // Créer un canvas pour redimensionner et convertir l'image
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
             const logoSize = 35;
-            canvas.width = logoSize;
-            canvas.height = logoSize;
-            
-            // Dessiner l'image redimensionnée sur le canvas
-            ctx.drawImage(logoImg, 0, 0, logoSize, logoSize);
-            
-            // Convertir le canvas en data URL
-            const logoDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            
-            // Ajouter l'image au PDF
-            doc.addImage(logoDataUrl, 'JPEG', 15, 15, logoSize, logoSize);
+            // jsPDF accepte directement un élément <img> comme source
+            doc.addImage(logoImg, 'JPEG', 15, 15, logoSize, logoSize);
             logoLoaded = true;
-            resolve();
           } catch (e) {
-            console.warn('Erreur lors de l\'ajout du logo:', e);
-            resolve();
+            console.warn('Erreur lors de l\'ajout du logo dans le PDF:', e);
           }
+          resolve();
         };
-        
+
         logoImg.onerror = () => {
           clearTimeout(timeout);
-          console.warn('Logo non trouvé à l\'emplacement "images/logo.jpg"');
+          console.warn('Logo non trouvé à l\'emplacement "images/logo.jpg" (pdf-reports)');
           resolve();
         };
       });
     } catch (e) {
-      console.warn('Erreur lors du chargement du logo:', e);
+      console.warn('Erreur inattendue lors du chargement du logo pour le PDF:', e);
     }
     
     // Zone de texte (à droite du logo ou depuis le début)

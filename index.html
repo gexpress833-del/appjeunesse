@@ -3,72 +3,700 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestion d'équipe - Redirection</title>
+  <title>Jeunesse - La Parole Eternelle Kolwezi</title>
   <link rel="stylesheet" href="css/styles.css" />
   <style>
-    .redirect-container {
+    .home-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+      gap: 2.5rem;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .home-hero-left h1 {
+      margin: 0 0 1rem;
+      font-size: 2.4rem;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .home-hero-left p.lead {
+      margin: 0 0 1.5rem;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .home-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      color: var(--text-bright);
+      border-radius: 0.9rem;
+      padding: 0.9rem 1.6rem;
+      border: 1px solid var(--border-bright);
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 12px 40px rgba(0, 212, 255, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 50px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent-tertiary);
+      border-radius: 0.9rem;
+      padding: 0.9rem 1.4rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .home-hero-right {
+      border-radius: 1.2rem;
+      background: radial-gradient(circle at 0 0, rgba(0, 212, 255, 0.3), transparent 55%),
+                  radial-gradient(circle at 100% 100%, rgba(124, 58, 237, 0.35), transparent 55%),
+                  var(--surface-elevated);
+      padding: 1.6rem 1.6rem 1.4rem;
+      border: 1px solid var(--border-bright);
+      box-shadow: var(--shadow-strong);
       display: flex;
       flex-direction: column;
+      gap: 1rem;
+    }
+
+    .home-hero-right-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .home-logo-wrapper {
+      width: 72px;
+      height: 72px;
+      border-radius: 1.4rem;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.8);
+      background: #020617;
+      display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 60vh;
-      text-align: center;
     }
-    
-    .redirect-spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(59, 130, 246, 0.2);
-      border-top: 4px solid #3b82f6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 2rem 0;
+
+    .home-logo-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+
+    .home-highlight {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
     }
-    
-    .redirect-message {
-      color: #94a3b8;
-      font-size: 1.1rem;
-      margin-bottom: 1rem;
+
+    .home-section {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
     }
-    
-    .redirect-info {
-      color: #64748b;
+
+    .home-section h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.4rem;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .home-section p {
+      margin: 0 0 1.25rem;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.6;
+    }
+
+    .departments-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .dept-card {
+      border-radius: 0.9rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 0.9rem 1rem;
       font-size: 0.9rem;
+      color: var(--text-bright);
+    }
+
+    .dept-card span {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    .events-grid {
+      margin-top: 1rem;
+    }
+
+    .events-carousel {
+      position: relative;
+      margin-top: 1rem;
+    }
+
+    .events-viewport {
+      overflow: hidden;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface-elevated);
+      min-height: 200px;
+    }
+
+    .events-track {
+      display: flex;
+      transition: transform 0.6s ease;
+      will-change: transform;
+    }
+
+    .home-events .event-card {
+      min-width: 100%;
+      flex-shrink: 0;
+      border-radius: 0;
+      border: none;
+    }
+
+    .carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+      z-index: 10;
+    }
+
+    .carousel-arrow:hover {
+      background: rgba(15, 23, 42, 1);
+      border-color: var(--accent);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .carousel-arrow.prev {
+      left: 0.75rem;
+    }
+
+    .carousel-arrow.next {
+      right: 0.75rem;
+    }
+
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 0.9rem;
+    }
+
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(148, 163, 184, 0.5);
+      padding: 0;
+      cursor: pointer;
+      transition: background 0.2s ease, width 0.2s ease;
+    }
+
+    .carousel-dot.active {
+      width: 18px;
+      background: var(--accent);
+    }
+
+    /* Mise en valeur des images d'événements sur la page d'accueil uniquement */
+    .home-events .event-card-image {
+      height: auto;          /* laisser l'image décider de la hauteur */
+      min-height: 0;         /* annule la hauteur fixe globale */
+    }
+
+    .home-events .event-card-image img {
+      width: 100%;
+      height: auto;          /* respecter le ratio de l'affiche */
+      object-fit: contain;   /* afficher l'image entière sans couper */
+      object-position: center top;
+    }
+
+    .event-card {
+      border-radius: 0.9rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 0.95rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .event-title {
+      font-weight: 600;
+      color: var(--text-bright);
+      font-size: 0.98rem;
+    }
+
+    .event-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .event-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      border-radius: 999px;
+      padding: 0.15rem 0.55rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .event-status.upcoming {
+      background: rgba(56, 189, 248, 0.15);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .event-status.current {
+      background: rgba(34, 197, 94, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .event-empty {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .important-banner {
+      border-radius: 0.9rem;
+      padding: 0.9rem 1rem;
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(56, 189, 248, 0.1));
+      border: 1px solid rgba(249, 115, 22, 0.5);
+      font-size: 0.9rem;
+      margin-top: 0.8rem;
+    }
+
+    .important-banner strong {
+      color: #fed7aa;
+    }
+
+    @media (max-width: 900px) {
+      .home-hero {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="panel">
-      <div class="redirect-container">
-        <h1>🔄 Redirection en cours...</h1>
-        <div class="redirect-spinner"></div>
-        <p class="redirect-message">Vérification de votre session...</p>
-        <p class="redirect-info">Vous allez être redirigé automatiquement</p>
+      <header>
+        <div class="header-left">
+          <img src="images/logo.jpg" alt="Logo" class="app-logo">
+          <div class="app-title">
+            <span class="app-name">La Parole Eternelle</span>
+            <span class="app-subtitle">Jeunesse - Kolwezi</span>
+          </div>
+        </div>
+        <div class="header-center">
+          <h1 class="header-title">Espace Jeunesse</h1>
+          <span class="welcome-message">Une génération qui sert Dieu avec excellence</span>
+        </div>
+        <div class="login-panel">
+          <a href="login.html" class="btn-primary" id="homeAccessBtn">🔑 Se connecter</a>
+        </div>
+      </header>
+
+      <nav class="nav">
+        <a href="#presentation">Présentation</a>
+        <a href="#fonctionnement">Fonctionnement</a>
+        <a href="#evenements">Événements</a>
+      </nav>
+
+      <section class="home-hero" id="presentation">
+        <div class="home-hero-left">
+          <h1>La Jeunesse de <br>La Parole Eternelle</h1>
+          <p class="lead">
+            Une équipe de jeunes passionnés qui servent dans l'excellence, organisent des rencontres,
+            accompagnent les nouveaux et portent la vision de l'église à Kolwezi.
+          </p>
+          <div class="home-actions">
+            <a href="login.html" class="btn-primary">
+              🔐 Accéder à l'espace interne
+            </a>
+            <a href="#evenements" class="btn-ghost">
+              📅 Voir les événements à venir
+            </a>
+          </div>
+          <p class="home-highlight">
+            L'application de gestion permet de suivre les membres, les départements, les présences
+            et les rapports PDF afin de conduire la jeunesse avec clarté et intelligence.
+          </p>
+        </div>
+
+        <aside class="home-hero-right">
+          <div class="home-hero-right-header">
+            <div class="home-logo-wrapper">
+              <img src="images/logo.jpg" alt="Logo Jeunesse">
+            </div>
+            <div>
+              <div style="font-size:0.85rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">
+                Annonce importante
+              </div>
+              <div style="font-weight:600; color:var(--text-bright);">
+                Prochain événement ou rencontre en cours
+              </div>
+            </div>
+          </div>
+          <div id="importantAnnouncement" class="important-banner">
+            <span>Aucun événement n'est encore planifié. Les prochaines annonces s'afficheront ici dès qu'un
+            programme sera créé dans le module <strong>Événements</strong>.</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="home-section" id="fonctionnement">
+        <h2>Comment fonctionne la jeunesse&nbsp;?</h2>
+        <p>
+          La jeunesse est structurée en plusieurs départements complémentaires. Chaque jeune est encouragé
+          à servir dans un domaine précis, avec un responsable clairement identifié et un suivi régulier
+          des présences et de l'engagement.
+        </p>
+        <div class="departments-grid">
+          <div class="dept-card">
+            Chorale
+            <span>Conduit la louange et l'adoration lors des cultes et événements.</span>
+          </div>
+          <div class="dept-card">
+            Intercession
+            <span>Porte l'église et la jeunesse dans la prière et les veilles.</span>
+          </div>
+          <div class="dept-card">
+            Accueil
+            <span>Assure l'accueil des nouveaux, l'orientation et le suivi.</span>
+          </div>
+          <div class="dept-card">
+            Médias
+            <span>Gère la communication, la projection et les supports visuels.</span>
+          </div>
+          <div class="dept-card">
+            DLB / DCC / DFF
+            <span>Cellules de formation et de discipolat pour encadrer la jeunesse.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section home-events" id="evenements">
+        <h2>Événements à venir &amp; en cours</h2>
+        <p>
+          Voici les prochains programmes de la jeunesse. Seuls les événements <strong>planifiés</strong>
+          et ceux qui sont <strong>en cours aujourd'hui</strong> sont présentés ici. Les événements déjà
+          passés restent consultables dans l'espace interne.
+        </p>
+        <div class="events-carousel">
+          <button type="button" class="carousel-arrow prev" aria-label="Événement précédent">❮</button>
+          <div class="events-viewport">
+            <div id="eventsContainer" class="events-track"></div>
+          </div>
+          <button type="button" class="carousel-arrow next" aria-label="Événement suivant">❯</button>
+          <div id="eventsDots" class="carousel-dots"></div>
+        </div>
+        <div id="eventsEmpty" class="event-empty" style="display:none;">
+          Aucun événement à venir n'est enregistré pour le moment. Planifiez un programme dans le module
+          <strong>Événements</strong> pour l'afficher automatiquement ici.
       </div>
+      </section>
     </div>
   </div>
 
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+
+  <!-- Chargement des données globales (appState) -->
   <script src="js/data.js"></script>
+
   <script>
-    // Auto-redirect logic - this page should not be accessible after login
-    document.addEventListener('DOMContentLoaded', () => {
-      const currentRole = localStorage.getItem('appRole');
+    // Slides visibles sur la page d'accueil
+    let homeEventsSlides = [];
+    let currentHomeSlide = 0;
+    let homeAutoTimer = null;
+
+    // Déterminer le statut d'un événement par rapport à la date du jour
+    function getEventStatus(eventDate) {
+      if (!eventDate) return 'past';
+      const today = new Date();
+      const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      const eventDateObj = new Date(eventDate);
+      const eventUTC = new Date(Date.UTC(
+        eventDateObj.getFullYear(),
+        eventDateObj.getMonth(),
+        eventDateObj.getDate()
+      ));
+      const todayTime = todayUTC.getTime();
+      const eventTime = eventUTC.getTime();
+      if (eventTime === todayTime) return 'current';
+      if (eventTime > todayTime) return 'upcoming';
+      return 'past';
+    }
+
+    function renderHomeEvents() {
+      const container = document.getElementById('eventsContainer');
+      const emptyState = document.getElementById('eventsEmpty');
+      const importantBox = document.getElementById('importantAnnouncement');
+
+      if (!window.appState || !container || !importantBox) return;
+
+      const events = window.appState.events || [];
+      if (!events.length) {
+        container.innerHTML = '';
+        emptyState.style.display = 'block';
+        importantBox.innerHTML = '<span>Aucun événement n\'est encore planifié. ' +
+          'Dès qu\'un programme sera créé dans le module <strong>Événements</strong>, ' +
+          'il s\'affichera automatiquement ici.</span>';
+            return;
+      }
+
+      // Filtrer uniquement les événements à venir ou en cours
+      const enhanced = events.map(evt => ({
+        ...evt,
+        status: getEventStatus(evt.date)
+      }));
+
+      const visibleEvents = enhanced
+        .filter(evt => evt.status === 'upcoming' || evt.status === 'current')
+        .sort((a, b) => {
+          const order = { current: 0, upcoming: 1 };
+          if (order[a.status] !== order[b.status]) {
+            return order[a.status] - order[b.status];
+          }
+          return new Date(a.date) - new Date(b.date);
+        });
+
+      container.innerHTML = '';
+
+      if (!visibleEvents.length) {
+        emptyState.style.display = 'block';
+        importantBox.innerHTML = '<span>Aucun événement à venir n\'est actuellement renseigné. ' +
+          'Les programmes planifiés apparaîtront ici dès leur création.</span>';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      visibleEvents.forEach(evt => {
+        const card = document.createElement('article');
+        card.className = 'event-card';
+
+        const dateLabel = new Date(evt.date).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        const statusLabel = evt.status === 'current' ? 'Aujourd\'hui' : 'À venir';
+        const photo = evt.photo || evt.photoUrl;
+
+        card.innerHTML = `
+          <div class="event-card-image">
+            ${photo ? `<img src="${photo}" alt="Photo de ${evt.name}">` : '📅'}
+          </div>
+          <div class="event-card-content">
+            <div class="event-title">${evt.name}</div>
+            <div class="event-meta">📅 ${dateLabel}</div>
+            ${evt.description ? `<div class="event-meta">${evt.description}</div>` : ''}
+            <div style="margin-top:0.4rem;">
+              <span class="event-status ${evt.status}">${statusLabel}</span>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+
+      // Garder les événements visibles pour le carrousel
+      homeEventsSlides = visibleEvents;
+      initEventsCarousel();
+
+      // Mettre en avant le premier événement comme annonce importante
+      const highlighted = visibleEvents[0];
+      if (highlighted) {
+        const dateLabel = new Date(highlighted.date).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        const prefix = highlighted.status === 'current'
+          ? 'Événement en cours aujourd\'hui : '
+          : 'Prochain événement planifié : ';
+
+        importantBox.innerHTML = `
+          <strong>${prefix}</strong>${highlighted.name} — <span>${dateLabel}</span>
+          ${highlighted.description ? `<br><span>${highlighted.description}</span>` : ''}
+        `;
+      }
+    }
+
+    function initEventsCarousel() {
+      const track = document.getElementById('eventsContainer');
+      const dotsContainer = document.getElementById('eventsDots');
+      const prevBtn = document.querySelector('.events-carousel .carousel-arrow.prev');
+      const nextBtn = document.querySelector('.events-carousel .carousel-arrow.next');
+      const viewport = document.querySelector('.events-viewport');
+
+      if (!track || !dotsContainer || !prevBtn || !nextBtn || !viewport) return;
+
+      const total = homeEventsSlides.length;
+
+      // Si aucun ou un seul événement, pas de carrousel
+      if (total <= 1) {
+        track.style.transform = 'translateX(0)';
+        dotsContainer.innerHTML = '';
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+        if (homeAutoTimer) {
+          clearInterval(homeAutoTimer);
+          homeAutoTimer = null;
+        }
+        return;
+      }
+
+      prevBtn.style.display = 'flex';
+      nextBtn.style.display = 'flex';
+
+      // Créer les points
+      dotsContainer.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+        dot.addEventListener('click', () => goToHomeSlide(i, true));
+        dotsContainer.appendChild(dot);
+      }
+
+      function updateDots() {
+        const dots = dotsContainer.querySelectorAll('.carousel-dot');
+        dots.forEach((dot, index) => {
+          dot.classList.toggle('active', index === currentHomeSlide);
+        });
+      }
+
+      function goToHomeSlide(index, stopAuto) {
+        const totalSlides = homeEventsSlides.length;
+        if (!totalSlides) return;
+        currentHomeSlide = ((index % totalSlides) + totalSlides) % totalSlides;
+        track.style.transform = `translateX(-${currentHomeSlide * 100}%)`;
+        updateDots();
+
+        if (stopAuto) {
+          restartAutoSlide();
+        }
+      }
+
+      function nextSlide() {
+        goToHomeSlide(currentHomeSlide + 1);
+      }
+
+      function prevSlide() {
+        goToHomeSlide(currentHomeSlide - 1);
+      }
+
+      prevBtn.onclick = prevSlide;
+      nextBtn.onclick = nextSlide;
+
+      function restartAutoSlide() {
+        if (homeAutoTimer) {
+          clearInterval(homeAutoTimer);
+        }
+        // Transition automatique toutes les 5 secondes
+        homeAutoTimer = setInterval(() => {
+          if (document.visibilityState === 'visible') {
+            nextSlide();
+          }
+        }, 5000);
+      }
+
+      // Auto-slide
+      restartAutoSlide();
+
+      // Pause au survol
+      viewport.addEventListener('mouseenter', () => {
+        if (homeAutoTimer) {
+          clearInterval(homeAutoTimer);
+          homeAutoTimer = null;
+        }
+      });
+
+      viewport.addEventListener('mouseleave', () => {
+        if (!homeAutoTimer) {
+          restartAutoSlide();
+        }
+      });
+    }
+
+    // Adapter le bouton d'accès en fonction de la session
+    function initHomeAccessButton() {
+      const btn = document.getElementById('homeAccessBtn');
+      const welcome = document.querySelector('.welcome-message');
+      if (!btn) return;
+
+      try {
+        const role = localStorage.getItem('appRole');
       const loginTime = localStorage.getItem('appLoginTime');
-      
-      // Small delay for better UX
-      setTimeout(() => {
-        // If user is logged in, redirect to their role page
-        if (currentRole && loginTime) {
-          const sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
-          
-          // Check if session is still valid
-          if (Date.now() - parseInt(loginTime) <= sessionTimeout) {
+        if (!role || !loginTime) {
+          btn.href = 'login.html';
+          btn.textContent = '🔑 Se connecter';
+          return;
+        }
+
+        const sessionTimeout = 7 * 24 * 60 * 60 * 1000; // 7 jours
+        if (Date.now() - parseInt(loginTime, 10) > sessionTimeout) {
+          btn.href = 'login.html';
+          btn.textContent = '🔑 Se connecter';
+          return;
+        }
+
             const rolePages = {
               admin: 'admin.html',
               secretariat: 'secretariat.html',
@@ -76,23 +704,38 @@
               user: 'user.html'
             };
             
-            // Redirect to appropriate role page
-            window.location.href = rolePages[currentRole] || 'login.html';
-            return;
-          } else {
-            // Session expired, clear data
-            localStorage.removeItem('appRole');
-            localStorage.removeItem('appUser');
-            localStorage.removeItem('appUserName');
-            localStorage.removeItem('appLoginTime');
-            localStorage.removeItem('appDept');
+        const target = rolePages[role];
+        if (target) {
+          btn.href = target;
+          btn.textContent = '🚀 Accéder à mon espace';
+          if (welcome) {
+            const name = localStorage.getItem('appUserName') || '';
+            welcome.textContent = name
+              ? `Connecté en tant que ${name}`
+              : 'Connecté à l’espace interne';
           }
+        } else {
+          btn.href = 'login.html';
+          btn.textContent = '🔑 Se connecter';
         }
-        
-        // If no valid session, redirect to login
-        window.location.href = 'login.html';
-      }, 1000); // 1 second delay for smooth UX
-    });
+      } catch (e) {
+        console.warn('Erreur lors de l\'initialisation du bouton d\'accès:', e);
+        btn.href = 'login.html';
+        btn.textContent = '🔑 Se connecter';
+      }
+    }
+
+    // Appelé automatiquement après le chargement des données depuis Supabase (voir data.js)
+    window.onDataReloaded = function () {
+      try {
+        renderHomeEvents();
+      } catch (e) {
+        console.warn('Erreur lors du rendu de la page d\'accueil:', e);
+      }
+    };
+
+    // Initialiser le bouton d'accès dès le chargement de la page
+    document.addEventListener('DOMContentLoaded', initHomeAccessButton);
   </script>
 </body>
 </html>

@@ -251,6 +251,34 @@
   <script src="js/data.js"></script>
   <script src="js/notifications.js"></script>
   <script>
+    // Rediriger automatiquement si une session valide existe déjà
+    (function autoRedirectIfLoggedIn() {
+      try {
+        const role = localStorage.getItem('appRole');
+        const loginTime = localStorage.getItem('appLoginTime');
+        if (!role || !loginTime) return;
+
+        const sessionTimeout = 7 * 24 * 60 * 60 * 1000; // 7 jours de session
+        if (Date.now() - parseInt(loginTime, 10) > sessionTimeout) {
+          return;
+        }
+
+        const rolePages = {
+          admin: 'admin.html',
+          secretariat: 'secretariat.html',
+          responsable: 'responsable.html',
+          user: 'user.html'
+        };
+
+        const target = rolePages[role];
+        if (target) {
+          window.location.href = target;
+        }
+      } catch (e) {
+        console.warn('Impossible de vérifier la session existante sur la page de connexion:', e);
+      }
+    })();
+
     // Enhanced login functionality
     const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');

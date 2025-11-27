@@ -101,7 +101,7 @@ function checkSessionValidity() {
   }
   
   // Check session timeout (24 hours)
-  const sessionTimeout = 24 * 60 * 60 * 1000;
+  const sessionTimeout = 7 * 24 * 60 * 60 * 1000; // 7 jours
   if (Date.now() - parseInt(loginTime) > sessionTimeout) {
     clearSession();
     return false;

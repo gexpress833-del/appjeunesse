@@ -5,6 +5,9 @@ class FastPDFGenerator {
   constructor() {
     this.optimizer = window.pdfOptimizer;
     this.templates = this.initializeTemplates();
+    // Cache du logo pour l'utiliser dans tous les rapports sans le recharger
+    this.logoDataUrl = null;
+    this.logoPromise = null;
   }
 
   // Initialiser les templates pré-compilés
@@ -23,6 +26,54 @@ class FastPDFGenerator {
         sections: ['header', 'memberInfo', 'attendanceHistory', 'footer']
       }
     };
+  }
+
+  // Précharger et convertir le logo en DataURL une seule fois
+  async preloadLogo() {
+    // Si déjà en cours ou déjà chargé, réutiliser la même promesse
+    if (this.logoPromise) {
+      return this.logoPromise;
+    }
+
+    this.logoPromise = new Promise((resolve) => {
+      try {
+        const img = new Image();
+        // Même chemin que dans les pages HTML et les autres modules
+        img.src = 'images/logo.jpg';
+
+        const timeout = setTimeout(() => {
+          console.warn('Timeout lors du préchargement du logo pour les PDF rapides');
+          resolve();
+        }, 2000);
+
+        img.onload = () => {
+          clearTimeout(timeout);
+          try {
+            const size = 22; // taille plus petite que dans les rapports complets
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+            ctx.drawImage(img, 0, 0, size, size);
+            this.logoDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          } catch (e) {
+            console.warn('Erreur lors de la conversion du logo pour les PDF rapides:', e);
+          }
+          resolve();
+        };
+
+        img.onerror = () => {
+          clearTimeout(timeout);
+          console.warn('Logo non trouvé pour les PDF rapides à l\'emplacement "images/logo.jpg"');
+          resolve();
+        };
+      } catch (e) {
+        console.warn('Erreur inattendue lors du préchargement du logo pour les PDF rapides:', e);
+        resolve();
+      }
+    });
+
+    return this.logoPromise;
   }
 
   // Génération ultra-rapide de rapport d'événement
@@ -48,12 +99,15 @@ class FastPDFGenerator {
       const { jsPDF } = window.jsPDF;
       const doc = new jsPDF();
 
-      // Étape 2: Données en cache (10ms)
+      // Étape 2: Données en cache + logo (10-20ms)
       this.showFastProgress('Données...', 30);
       const data = this.optimizer.getCachedData();
       const event = data.events.find(e => e.id == eventId);
       
       if (!event) throw new Error('Événement non trouvé');
+
+      // Précharger le logo en parallèle pour l'en-tête
+      await this.preloadLogo();
 
       // Étape 3: Traitement optimisé (20ms)
       this.showFastProgress('Traitement...', 50);
@@ -113,22 +167,35 @@ class FastPDFGenerator {
   // En-tête rapide et minimaliste
   addFastHeader(doc, title, subtitle) {
     const pageWidth = doc.internal.pageSize.width;
-    
+    const headerHeight = 35;
+
     // Fond simple
     doc.setFillColor(0, 212, 255);
-    doc.rect(0, 0, pageWidth, 35, 'F');
-    
-    // Titre
+    doc.rect(0, 0, pageWidth, headerHeight, 'F');
+
+    // Logo à gauche si disponible
+    const logoMarginLeft = 15;
+    const logoY = 8;
+    const logoSize = 18;
+    if (this.logoDataUrl) {
+      try {
+        doc.addImage(this.logoDataUrl, 'JPEG', logoMarginLeft, logoY, logoSize, logoSize);
+      } catch (e) {
+        console.warn('Impossible d\'ajouter le logo dans l\'en-tête rapide:', e);
+      }
+    }
+
+    // Titre (centré)
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text(title, pageWidth / 2, 15, { align: 'center' });
-    
+
     // Sous-titre
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(subtitle, pageWidth / 2, 25, { align: 'center' });
-    
+
     return 45;
   }
 
@@ -226,6 +293,9 @@ class FastPDFGenerator {
 
       this.showFastProgress('Chargement...', 30);
       const data = this.optimizer.getCachedData();
+
+      // Précharger le logo pour l'en-tête
+      await this.preloadLogo();
       
       // Filtrer les événements rapidement
       const filteredEvents = data.events.filter(event => {
@@ -309,6 +379,9 @@ class FastPDFGenerator {
       const member = data.members.find(m => m.id == memberId);
       
       if (!member) throw new Error('Membre non trouvé');
+
+      // Précharger le logo pour l'en-tête
+      await this.preloadLogo();
 
       const memberAttendances = data.attendances.filter(a => a.memberId == memberId);
 
