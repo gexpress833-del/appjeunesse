@@ -276,15 +276,33 @@
 
       .home-events .event-card-image img {
         width: 100%;
-        max-width: 260px;          /* limite davantage la largeur de l'affiche sur mobile */
+        max-width: 280px;          /* un peu plus grande mais toujours contenue */
         height: auto;
-        max-height: 45vh;           /* ne pas prendre tout l'écran */
+        max-height: 50vh;           /* ne pas prendre tout l'écran */
         object-fit: contain;        /* garder l'affiche entière, sans coupe */
         margin: 0 auto;
       }
 
       .home-events .event-card-content {
-        padding: 1rem 1rem 1.25rem;
+        padding: 1rem 1rem 1.3rem;
+        max-width: 320px;            /* aligner le texte avec la largeur de l'affiche */
+        margin: 0.4rem auto 0.8rem;  /* espacement au-dessus et au-dessous */
+        text-align: center;
+      }
+
+      .home-events .event-title {
+        font-size: 1.12rem;
+        margin-bottom: 0.3rem;
+      }
+
+      .home-events .event-meta {
+        font-size: 0.9rem;
+        line-height: 1.45;
+        margin-bottom: 0.35rem;
+      }
+
+      .home-events .event-status {
+        font-size: 0.8rem;
       }
     }
 
