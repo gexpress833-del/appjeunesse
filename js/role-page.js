@@ -1,22 +1,84 @@
 // Enhanced role page with session management
-function updateRoleStats() {
+async function updateRoleStats() {
   const membersCountEl = document.getElementById("roleStatMembers");
   const departmentsCountEl = document.getElementById("roleStatDepts");
   const eventsCountEl = document.getElementById("roleStatEvents");
   const attendanceCountEl = document.getElementById("roleStatAttendance");
 
+  if (!window.appState) return;
+
   const { members, departments, events, attendances } = window.appState;
-  if (membersCountEl) membersCountEl.textContent = members.length;
-  if (departmentsCountEl) departmentsCountEl.textContent = departments.length;
-  if (eventsCountEl) eventsCountEl.textContent = events.length;
+  const currentRole = localStorage.getItem('appRole');
+  const currentDept = localStorage.getItem('appDept');
+  
+  // Helper pour calculer un taux simple (présents / total)
+  const computeRate = (list, total) => {
+    if (!list.length || !total) return 0;
+    const presentCount = list.filter((record) => record.status === "P").length;
+    return Math.round((presentCount / total) * 100);
+  };
+  
+  // --- Comptes de base ---
+  if (currentRole === 'responsable' && currentDept) {
+    const deptMembers = members.filter(m => m.dept === currentDept);
+    if (membersCountEl) membersCountEl.textContent = deptMembers.length;
+    if (departmentsCountEl) departmentsCountEl.textContent = "1";
+    if (eventsCountEl) eventsCountEl.textContent = events.length;
+  } else {
+    if (membersCountEl) membersCountEl.textContent = members.length;
+    if (departmentsCountEl) departmentsCountEl && (departmentsCountEl.textContent = departments.length);
+    if (eventsCountEl) eventsCountEl.textContent = events.length;
+  }
+  
+  // --- Taux de présence ---
   if (attendanceCountEl) {
-    if (!attendances.length) {
-      attendanceCountEl.textContent = "0 %";
+    let relevantAttendances = attendances;
+    let totalBase = attendances.length;
+    
+    if (currentRole === 'user') {
+      // Taux personnel : seulement les présences de l'utilisateur
+      try {
+        const currentUsername = localStorage.getItem('appUser');
+        if (currentUsername && window.supabaseDB && window.supabaseDB.getClient()) {
+          const currentUser = await window.supabaseDB.getUserByUsername(currentUsername);
+          if (currentUser) {
+            const member = members.find(m => 
+              m.name === currentUser.name || 
+              m.email === currentUser.email ||
+              m.name.toLowerCase().includes(currentUser.name.toLowerCase())
+            );
+            
+            if (member) {
+              const memberId = typeof member.id === 'string' ? parseInt(member.id) : member.id;
+              relevantAttendances = attendances.filter(a => {
+                const attMemberId = typeof a.memberId === 'string' ? parseInt(a.memberId) : a.memberId;
+                return attMemberId === memberId;
+              });
+              totalBase = relevantAttendances.length;
+            } else {
+              relevantAttendances = [];
+              totalBase = 0;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Erreur lors du calcul du taux de présence utilisateur:', error);
+      }
+    } else if (currentRole === 'responsable' && currentDept) {
+      // Taux pour le responsable : uniquement les présences des membres de son département
+      const deptMemberIds = members
+        .filter(m => m.dept === currentDept)
+        .map(m => m.id);
+      relevantAttendances = attendances.filter(a => deptMemberIds.includes(a.memberId));
+      totalBase = relevantAttendances.length;
     } else {
-      const rate =
-        (attendances.filter((record) => record.status === "P").length / attendances.length) * 100;
-      attendanceCountEl.textContent = `${Math.round(rate)} %`;
+      // Admin / Secrétariat : taux global sur toutes les présences
+      relevantAttendances = attendances;
+      totalBase = attendances.length;
     }
+    
+    const rate = computeRate(relevantAttendances, totalBase);
+    attendanceCountEl.textContent = `${rate} %`;
   }
 }
 
@@ -88,19 +150,26 @@ function updateWelcomeMessage() {
   }
 }
 
-function updateHeaderProfilePhoto(username, userName) {
+async function updateHeaderProfilePhoto(username, userName) {
   const headerPhoto = document.getElementById('headerProfilePhoto');
   const headerInitials = document.getElementById('headerInitials');
   
   if (!headerPhoto || !headerInitials) return;
   
-  // Get user profile photo
-  const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
-  const userProfile = profiles[username] || {};
+  // Get user profile photo depuis Supabase
+  let photoUrl = null;
   
-  if (userProfile.photo) {
+  if (window.supabaseDB && window.supabaseDB.getClient() && window.storageManager) {
+    try {
+      photoUrl = await window.storageManager.getUserProfilePhotoUrl(username);
+    } catch (error) {
+      console.warn('Erreur lors de la récupération de la photo de profil:', error);
+    }
+  }
+  
+  if (photoUrl) {
     // Show photo
-    headerPhoto.innerHTML = `<img src="${userProfile.photo}" alt="Photo de profil">`;
+    headerPhoto.innerHTML = `<img src="${photoUrl}" alt="Photo de profil">`;
   } else {
     // Show initials
     const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
@@ -171,7 +240,7 @@ function initRolePage(expectedRole) {
   
   // Update UI
   updateWelcomeMessage();
-  updateRoleStats();
+  updateRoleStats().catch(err => console.error('Erreur lors de la mise à jour des statistiques:', err));
   setupLogoutButton();
   
   // Show welcome notification
@@ -211,7 +280,7 @@ function initRolePage(expectedRole) {
   auth.applyNavPermissions();
   
   auth.registerRoleListener(() => {
-    updateRoleStats();
+    updateRoleStats().catch(err => console.error('Erreur lors de la mise à jour des statistiques:', err));
     const newRole = auth.getRoleContext().currentRole;
     if (descriptionEl) {
       descriptionEl.textContent = describeRole(newRole);
@@ -223,6 +292,19 @@ function initRolePage(expectedRole) {
 document.addEventListener("DOMContentLoaded", () => {
   const bodyRole = document.body.dataset.pageRole || "user";
   initRolePage(bodyRole);
+  
+  // Mettre à jour les statistiques lorsque les données sont (re)chargées depuis Supabase
+  if (window.onDataReloaded) {
+    const originalReload = window.onDataReloaded;
+    window.onDataReloaded = () => {
+      try { originalReload(); } catch (e) { console.warn('Erreur onDataReloaded existant:', e); }
+      updateRoleStats().catch(err => console.error('Erreur lors de la mise à jour des statistiques (reload):', err));
+    };
+  } else {
+    window.onDataReloaded = () => {
+      updateRoleStats().catch(err => console.error('Erreur lors de la mise à jour des statistiques (reload):', err));
+    };
+  }
   
   // Periodic session check (every 5 minutes)
   setInterval(() => {

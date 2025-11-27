@@ -1,36 +1,60 @@
-const attendanceForm = document.getElementById("attendanceForm");
-const attendanceMemberSelect = document.getElementById("attendanceMemberSelect");
-const attendanceEventSelect = document.getElementById("attendanceEventSelect");
-const attendanceStatus = document.getElementById("attendanceStatus");
-const attendanceSubmit = document.getElementById("attendanceSubmit");
-const attendanceCancel = document.getElementById("attendanceCancel");
-const attendancesTable = document.getElementById("attendancesTable");
+let attendanceForm = null;
+let attendanceMemberSelect = null;
+let attendanceEventSelect = null;
+let attendanceStatus = null;
+let attendanceSubmit = null;
+let attendanceCancel = null;
+let attendancesTable = null;
 
 function resetAttendanceEditor() {
+  if (!attendanceForm) return;
   attendanceForm.reset();
   delete attendanceForm.dataset.editing;
-  attendanceSubmit.textContent = "Enregistrer";
-  attendanceCancel.style.display = "none";
+  if (attendanceSubmit) attendanceSubmit.textContent = "Enregistrer";
+  if (attendanceCancel) attendanceCancel.style.display = "none";
 }
 
 function getEventStatus(eventDate) {
-  const today = new Date();
-  const event = new Date(eventDate);
+  if (!eventDate) return 'past';
   
-  // Reset time to compare only dates
-  today.setHours(0, 0, 0, 0);
-  event.setHours(0, 0, 0, 0);
-  
-  if (event.getTime() === today.getTime()) {
-    return 'current';
-  } else if (event > today) {
-    return 'upcoming';
-  } else {
+  try {
+    // Obtenir la date d'aujourd'hui au format YYYY-MM-DD
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // Normaliser la date de l'événement au format YYYY-MM-DD
+    let eventDateStr;
+    if (typeof eventDate === 'string') {
+      // Si c'est déjà au format YYYY-MM-DD
+      if (eventDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+        eventDateStr = eventDate.split('T')[0]; // Prendre seulement la partie date si c'est un datetime
+      } else {
+        // Parser la date et la reformater
+        const dateObj = new Date(eventDate);
+        eventDateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      }
+    } else {
+      // Si c'est un objet Date
+      const dateObj = new Date(eventDate);
+      eventDateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    }
+    
+    // Comparer les chaînes de dates (plus simple et fiable)
+    if (eventDateStr === todayStr) {
+      return 'current';
+    } else if (eventDateStr > todayStr) {
+      return 'upcoming';
+    } else {
+      return 'past';
+    }
+  } catch (error) {
+    console.error('Erreur lors de la comparaison de dates:', error, eventDate);
     return 'past';
   }
 }
 
 function buildAttendanceOptions() {
+  if (!attendanceMemberSelect || !attendanceEventSelect) return;
   attendanceMemberSelect.innerHTML = "";
   attendanceEventSelect.innerHTML = "";
   
@@ -47,10 +71,22 @@ function buildAttendanceOptions() {
   });
   
   // Filter events: only show current (today) and past events for attendance recording
+  console.log('📅 Événements disponibles:', window.appState.events.length); // Debug
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  console.log('📅 Date d\'aujourd\'hui:', todayStr); // Debug
+  
   const availableEvents = window.appState.events.filter((evt) => {
+    if (!evt || !evt.date) {
+      console.warn('⚠️ Événement sans date:', evt);
+      return false;
+    }
     const status = getEventStatus(evt.date);
+    console.log(`📅 Événement "${evt.name}" (${evt.date}): ${status}`); // Debug
     return status === 'current' || status === 'past';
   });
+  
+  console.log(`✅ Événements disponibles pour présences: ${availableEvents.length}`); // Debug
   
   if (availableEvents.length === 0) {
     const option = document.createElement("option");
@@ -92,8 +128,10 @@ function buildAttendanceOptions() {
 }
 
 function updateEventStatusHelp() {
+  if (!attendanceEventSelect) return;
+  
   const eventStatusHelp = document.getElementById("eventStatusHelp");
-  const helpText = eventStatusHelp.querySelector(".help-text");
+  const helpText = eventStatusHelp ? eventStatusHelp.querySelector(".help-text") : null;
   
   if (!eventStatusHelp || !helpText) return;
   
@@ -178,12 +216,12 @@ function renderAttendanceTable() {
         auth.showNotification("error", "Permission refusée.");
         return;
       }
-      attendanceMemberSelect.value = attendance.memberId;
-      attendanceEventSelect.value = attendance.eventId;
-      attendanceStatus.value = attendance.status;
-      attendanceForm.dataset.editing = attendance.id;
-      attendanceSubmit.textContent = "Mettre à jour";
-      attendanceCancel.style.display = "inline-flex";
+      if (attendanceMemberSelect) attendanceMemberSelect.value = attendance.memberId;
+      if (attendanceEventSelect) attendanceEventSelect.value = attendance.eventId;
+      if (attendanceStatus) attendanceStatus.value = attendance.status;
+      if (attendanceForm) attendanceForm.dataset.editing = attendance.id;
+      if (attendanceSubmit) attendanceSubmit.textContent = "Mettre à jour";
+      if (attendanceCancel) attendanceCancel.style.display = "inline-flex";
     });
 
     const canDelete = auth.checkPermission("attendances", "delete", member.dept);
@@ -191,17 +229,26 @@ function renderAttendanceTable() {
     deleteButton.className = "secondary";
     deleteButton.textContent = "Supprimer";
     deleteButton.disabled = !canDelete;
-    deleteButton.addEventListener("click", () => {
+    deleteButton.addEventListener("click", async () => {
       if (!canDelete) {
         auth.showNotification("error", "Permission refusée.");
         return;
       }
-      window.appState.attendances = window.appState.attendances.filter(
-        (record) => record.id !== attendance.id
-      );
-      saveData();
-      renderAttendanceTable();
-      auth.showNotification("success", "Présence supprimée.");
+      // Supprimer dans Supabase
+      if (window.supabaseDB && window.supabaseDB.getClient()) {
+        try {
+          await window.supabaseDB.deleteAttendance(attendance.id);
+          // Recharger les données depuis Supabase
+          await window.reloadData();
+          renderAttendanceTable();
+          auth.showNotification("success", "Présence supprimée.");
+        } catch (error) {
+          console.error('Erreur lors de la suppression de la présence:', error);
+          auth.showNotification("error", "Erreur lors de la suppression de la présence.");
+        }
+      } else {
+        auth.showNotification("error", "Supabase n'est pas configuré.");
+      }
     });
 
     actionGroup.appendChild(editButton);
@@ -217,14 +264,57 @@ function renderAttendanceTable() {
   });
 }
 
-attendanceForm.addEventListener("submit", (event) => {
+// Initialiser les éléments du formulaire et ajouter les event listeners
+function initAttendanceForm() {
+  attendanceForm = document.getElementById("attendanceForm");
+  attendanceMemberSelect = document.getElementById("attendanceMemberSelect");
+  attendanceEventSelect = document.getElementById("attendanceEventSelect");
+  attendanceStatus = document.getElementById("attendanceStatus");
+  attendanceSubmit = document.getElementById("attendanceSubmit");
+  attendanceCancel = document.getElementById("attendanceCancel");
+  attendancesTable = document.getElementById("attendancesTable");
+  
+  if (!attendanceForm) {
+    console.warn('Formulaire de présence non trouvé (peut être masqué selon le rôle)');
+    return;
+  }
+  
+  // Ajouter l'event listener pour le submit
+  attendanceForm.addEventListener("submit", handleAttendanceSubmit);
+  
+  // Ajouter l'event listener pour l'annulation
+  if (attendanceCancel) {
+    attendanceCancel.addEventListener("click", () => {
+      resetAttendanceEditor();
+    });
+  }
+  
+  // Ajouter l'event listener pour le changement d'événement
+  if (attendanceEventSelect) {
+    attendanceEventSelect.addEventListener('change', updateEventStatusHelp);
+  }
+}
+
+async function handleAttendanceSubmit(event) {
   event.preventDefault();
+  
+  if (!attendanceMemberSelect || !attendanceEventSelect || !attendanceStatus) {
+    auth.showNotification("error", "Formulaire de présence non initialisé.");
+    return;
+  }
+  
   const memberId = parseInt(attendanceMemberSelect.value, 10);
   const eventId = parseInt(attendanceEventSelect.value, 10);
   const status = attendanceStatus.value;
   
   if (!memberId || !eventId || !status) {
     auth.showNotification("error", "Tous les champs sont requis.");
+    return;
+  }
+  
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    auth.showNotification("error", "Supabase n'est pas configuré.");
     return;
   }
   
@@ -253,74 +343,107 @@ attendanceForm.addEventListener("submit", (event) => {
     return;
   }
   
-  const editingId = attendanceForm.dataset.editing;
-  if (editingId) {
-    const record = window.appState.attendances.find(
-      (entry) => entry.id === parseInt(editingId, 10)
-    );
-    if (!record) {
-      auth.showNotification("error", "Présence introuvable.");
-      return;
+  const editingId = attendanceForm ? attendanceForm.dataset.editing : null;
+  
+  try {
+    if (editingId) {
+      if (!auth.checkPermission("attendances", "update", member.dept)) {
+        auth.showNotification("error", "Pas la permission.");
+        return;
+      }
+      
+      // Mettre à jour dans Supabase
+      await window.supabaseDB.updateAttendance(parseInt(editingId, 10), {
+        status: status
+      });
+      
+      // Recharger les données depuis Supabase
+      await window.reloadData();
+      
+      const statusMessage = eventStatus === 'current' ? 
+        "Présence mise à jour pour l'événement d'aujourd'hui." : 
+        "Présence mise à jour pour l'événement passé.";
+      auth.showNotification("success", statusMessage);
+    } else {
+      // Vérifier les doublons
+      const attendances = await window.supabaseDB.getAttendances();
+      const duplicate = attendances.some(
+        (entry) => entry.member_id === memberId && entry.event_id === eventId
+      );
+      if (duplicate) {
+        auth.showNotification("error", "Cette présence existe déjà.");
+        return;
+      }
+      
+      // Créer dans Supabase
+      await window.supabaseDB.createAttendance({
+        memberId: memberId,
+        eventId: eventId,
+        status: status
+      });
+      
+      // Recharger les données depuis Supabase
+      await window.reloadData();
+      
+      const statusMessage = eventStatus === 'current' ? 
+        "Présence enregistrée pour l'événement d'aujourd'hui." : 
+        "Présence enregistrée pour l'événement passé.";
+      auth.showNotification("success", statusMessage);
     }
-    if (!auth.checkPermission("attendances", "update", member.dept)) {
-      auth.showNotification("error", "Pas la permission.");
-      return;
-    }
-    record.memberId = memberId;
-    record.eventId = eventId;
-    record.status = status;
     
-    const statusMessage = eventStatus === 'current' ? 
-      "Présence mise à jour pour l'événement d'aujourd'hui." : 
-      "Présence mise à jour pour l'événement passé.";
-    auth.showNotification("success", statusMessage);
-  } else {
-    const duplicate = window.appState.attendances.some(
-      (entry) => entry.memberId === memberId && entry.eventId === eventId
-    );
-    if (duplicate) {
-      auth.showNotification("error", "Cette présence existe déjà.");
-      return;
-    }
-    window.appState.attendances.push({
-      id: generateId(window.appState.attendances),
-      memberId,
-      eventId,
-      status
-    });
+    resetAttendanceEditor();
+    buildAttendanceOptions();
+    renderAttendanceTable();
     
-    const statusMessage = eventStatus === 'current' ? 
-      "Présence enregistrée pour l'événement d'aujourd'hui." : 
-      "Présence enregistrée pour l'événement passé.";
-    auth.showNotification("success", statusMessage);
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la présence:', error);
+    auth.showNotification("error", "Erreur lors de la sauvegarde de la présence.");
   }
-  saveData();
-  resetAttendanceEditor();
-  buildAttendanceOptions();
-  renderAttendanceTable();
-});
-
-attendanceCancel.addEventListener("click", () => {
-  resetAttendanceEditor();
-});
+}
 
 function refreshAttendancePage() {
+  // Vérifier que les données sont chargées
+  if (!window.appState || !window.appState.events || window.appState.events.length === 0) {
+    // Attendre que les données soient chargées
+    const maxAttempts = 50; // 10 secondes max
+    let attempts = 0;
+    const checkData = () => {
+      attempts++;
+      if (window.appState && window.appState.events && window.appState.events.length > 0) {
+        buildAttendanceOptions();
+        renderAttendanceTable();
+        const allowed = auth.checkPermission("attendances", "create", auth.getRoleContext().currentDepartmentScope);
+        if (attendanceMemberSelect) attendanceMemberSelect.disabled = !allowed;
+        if (attendanceEventSelect) attendanceEventSelect.disabled = !allowed;
+        if (attendanceStatus) attendanceStatus.disabled = !allowed;
+        if (attendanceSubmit) attendanceSubmit.disabled = !allowed;
+        if (attendanceCancel) attendanceCancel.disabled = !allowed;
+      } else if (attempts < maxAttempts) {
+        setTimeout(checkData, 200);
+      } else {
+        console.error('Les données n\'ont pas pu être chargées après 10 secondes');
+        buildAttendanceOptions(); // Essayer quand même
+        renderAttendanceTable();
+      }
+    };
+    checkData();
+    return;
+  }
+  
   buildAttendanceOptions();
   renderAttendanceTable();
   const allowed = auth.checkPermission("attendances", "create", auth.getRoleContext().currentDepartmentScope);
-  attendanceMemberSelect.disabled = !allowed;
-  attendanceEventSelect.disabled = !allowed;
-  attendanceStatus.disabled = !allowed;
-  attendanceSubmit.disabled = !allowed;
-  attendanceCancel.disabled = !allowed;
-}
-
-// Add event listener for event selection change
-if (attendanceEventSelect) {
-  attendanceEventSelect.addEventListener('change', updateEventStatusHelp);
+  if (attendanceMemberSelect) attendanceMemberSelect.disabled = !allowed;
+  if (attendanceEventSelect) attendanceEventSelect.disabled = !allowed;
+  if (attendanceStatus) attendanceStatus.disabled = !allowed;
+  if (attendanceSubmit) attendanceSubmit.disabled = !allowed;
+  if (attendanceCancel) attendanceCancel.disabled = !allowed;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialiser le formulaire
+  initAttendanceForm();
+  
   auth.initRoleControls({
     roleSelectId: "roleSelect",
     deptSelectId: "responsableDeptSelect",
@@ -328,7 +451,23 @@ document.addEventListener("DOMContentLoaded", () => {
     navSelector: ".nav a",
     notificationId: "notifications"
   });
+  
+  // Attendre que les données soient chargées avant de rafraîchir la page
   refreshAttendancePage();
+  
+  // Écouter les changements de données
+  if (window.onDataReloaded) {
+    const originalReload = window.onDataReloaded;
+    window.onDataReloaded = () => {
+      originalReload();
+      refreshAttendancePage();
+    };
+  } else {
+    window.onDataReloaded = () => {
+      refreshAttendancePage();
+    };
+  }
+  
   auth.registerRoleListener(() => refreshAttendancePage());
 });
 

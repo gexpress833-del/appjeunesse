@@ -2,7 +2,7 @@ const sectionAccess = {
   dashboard: ["admin", "secretariat", "responsable", "user"],
   members: ["admin", "secretariat", "responsable", "user"],
   departments: ["admin"],
-  events: ["admin", "secretariat"],
+  events: ["admin", "secretariat", "responsable", "user"], // Tous peuvent voir les événements
   attendances: ["admin", "secretariat", "responsable", "user"],
   users: ["admin", "secretariat"], // Admin pour attribution rôles, Secrétaire pour création comptes
   userCreation: ["secretariat"], // SEUL le secrétaire peut créer des comptes
@@ -106,7 +106,8 @@ function checkPermission(resource, action, targetDept) {
     return currentRole === "admin";
   }
   if (resource === "events") {
-    if (action === "view") return ["admin", "secretariat"].includes(currentRole);
+    if (action === "view") return ["admin", "secretariat", "responsable", "user"].includes(currentRole);
+    // Seuls admin et secretariat peuvent créer/modifier/supprimer
     return ["admin", "secretariat"].includes(currentRole);
   }
   if (resource === "attendances") {
@@ -177,16 +178,44 @@ function departmentSelect(id) {
 }
 
 function ensureDepartmentOptions(select) {
-  if (!select || !window.appState) return;
+  if (!select) return;
+  
+  // Attendre que appState soit chargé
+  if (!window.appState || !window.appState.departments) {
+    // Si les départements ne sont pas encore chargés, attendre un peu
+    setTimeout(() => ensureDepartmentOptions(select), 100);
+    return;
+  }
+  
   const currentOptions = Array.from(select.options).map((opt) => opt.value);
+  const currentValue = select.value;
   select.innerHTML = "";
-  window.appState.departments.forEach((dept) => {
+  
+  // Ajouter une option par défaut si nécessaire
+  if (select.id === 'memberDeptSelect' || select.id === 'newUserDept') {
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Choisir un département...";
+    select.appendChild(defaultOption);
+  }
+  
+  // Ajouter les départements
+  const departments = Array.isArray(window.appState.departments) 
+    ? window.appState.departments 
+    : [];
+  
+  departments.forEach((dept) => {
+    const deptName = typeof dept === 'string' ? dept : (dept.name || dept);
     const option = document.createElement("option");
-    option.value = dept;
-    option.textContent = dept;
+    option.value = deptName;
+    option.textContent = deptName;
     select.appendChild(option);
   });
-  if (currentDepartmentScope && window.appState.departments.includes(currentDepartmentScope)) {
+  
+  // Restaurer la valeur précédente si elle existe toujours
+  if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
+    select.value = currentValue;
+  } else if (currentDepartmentScope && departments.includes(currentDepartmentScope)) {
     select.value = currentDepartmentScope;
   }
 }

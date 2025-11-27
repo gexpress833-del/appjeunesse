@@ -1,7 +1,7 @@
 function initMembersModule() {
   const memberForm = document.getElementById("memberForm");
   if (!memberForm) return;
-  const memberNameInput = document.getElementById("memberName");
+  const memberUserSelect = document.getElementById("memberUserSelect");
   const memberDeptSelect = document.getElementById("memberDeptSelect");
   const memberSubmit = document.getElementById("memberSubmit");
   const memberCancel = document.getElementById("memberCancel");
@@ -39,19 +39,44 @@ function initMembersModule() {
     if (memberRoleSelect) {
       memberRoleSelect.value = "user";
     }
+    if (memberUserSelect) {
+      memberUserSelect.value = "";
+    }
     delete memberForm.dataset.editing;
     memberSubmit.textContent = "Ajouter";
     memberCancel.style.display = "none";
+    
+    // Recharger les options utilisateurs (au cas où un nouveau utilisateur a été créé)
+    loadUserOptions();
+    
+    // Réinitialiser l'affichage du champ rôle selon le rôle de l'utilisateur
+    setMemberFormState();
   }
 
   function setMemberFormState() {
     const { currentRole, currentDepartmentScope } = auth.getRoleContext();
     const createAllowed = auth.checkPermission("members", "create", currentDepartmentScope);
+    const isAdmin = currentRole === "admin";
+    
+    // Activer les champs de base pour le secrétaire et l'admin
     const inputs = [memberNameInput, memberDeptSelect, memberSubmit];
     inputs.forEach((input) => {
       input.disabled = !createAllowed;
     });
     memberCancel.disabled = !createAllowed;
+    
+    // Le champ "rôle" n'est visible et modifiable que par l'admin
+    const memberRoleControl = document.getElementById('memberRoleControl');
+    if (memberRoleControl) {
+      memberRoleControl.style.display = isAdmin ? 'block' : 'none';
+    }
+    if (memberRoleSelect) {
+      memberRoleSelect.disabled = !isAdmin;
+      // Si ce n'est pas l'admin, définir le rôle sur "user" par défaut
+      if (!isAdmin && !memberForm.dataset.editing) {
+        memberRoleSelect.value = "user";
+      }
+    }
     if (memberRoleSelect) {
       memberRoleSelect.disabled = currentRole !== "admin";
     }
@@ -69,7 +94,7 @@ function initMembersModule() {
     return members;
   }
 
-  function renderMembersGrid() {
+  async function renderMembersGrid() {
     const members = getVisibleMembers();
     const membersGrid = document.getElementById("membersGrid");
     
@@ -78,20 +103,44 @@ function initMembersModule() {
     membersGrid.innerHTML = "";
     
     if (!members.length) {
-      membersGrid.innerHTML = "<p style='text-align: center; color: #94a3b8; grid-column: 1 / -1;'>Aucun membre trouvé</p>";
+      const { currentRole } = auth.getRoleContext();
+      const canCreate = auth.checkPermission("members", "create");
+      
+      let message = "Aucun membre trouvé";
+      if (canCreate) {
+        message += "<br><small style='color: var(--muted); margin-top: 0.5rem; display: block;'>Utilisez le formulaire ci-dessus pour ajouter un membre</small>";
+      }
+      
+      membersGrid.innerHTML = `<p style='text-align: center; color: #94a3b8; grid-column: 1 / -1; padding: 2rem;'>${message}</p>`;
       return;
     }
     
-    members.forEach((member) => {
+    // Charger toutes les photos de profil en parallèle
+    const membersWithPhotos = await Promise.all(members.map(async (member) => {
+      let photoUrl = null;
+      
+      // Chercher l'utilisateur correspondant au membre
+      if (window.supabaseDB && window.supabaseDB.getClient()) {
+        try {
+          const users = await window.supabaseDB.getUsers();
+          const user = users.find(u => u.name === member.name);
+          if (user && window.storageManager) {
+            photoUrl = await window.storageManager.getUserProfilePhotoUrl(user.username);
+          }
+        } catch (error) {
+          console.warn('Erreur lors de la récupération de la photo:', error);
+        }
+      }
+      
+      // Photo non trouvée dans Supabase, on garde null
+      
+      return { ...member, photoUrl };
+    }));
+    
+    membersWithPhotos.forEach((member) => {
       const memberCard = document.createElement("div");
       memberCard.className = "member-card";
       memberCard.onclick = () => showMemberDetails(member);
-      
-      // Get member profile photo
-      const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
-      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-      const user = users.find(u => u.name === member.name);
-      const userProfile = user ? profiles[user.username] : null;
       
       // Generate initials
       const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
@@ -109,7 +158,7 @@ function initMembersModule() {
       memberCard.innerHTML = `
         <div class="member-card-header">
           <div class="member-avatar">
-            ${userProfile?.photo ? `<img src="${userProfile.photo}" alt="Photo de ${member.name}">` : `<span>${initials}</span>`}
+            ${member.photoUrl ? `<img src="${member.photoUrl}" alt="Photo de ${member.name}" onerror="this.parentElement.innerHTML='<span>${initials}</span>'">` : `<span>${initials}</span>`}
           </div>
           <div class="member-info">
             <h4>${member.name}</h4>
@@ -147,18 +196,30 @@ function initMembersModule() {
     const member = window.appState.members.find(m => m.id === memberId);
     if (!member) return;
     
+    const { currentRole } = auth.getRoleContext();
+    const isAdmin = currentRole === "admin";
+    
     if (memberNameInput) memberNameInput.value = member.name;
     if (memberDeptSelect) memberDeptSelect.value = member.dept;
-    if (memberRoleSelect) memberRoleSelect.value = member.role || 'user';
+    if (memberRoleSelect) {
+      memberRoleSelect.value = member.role || 'user';
+      memberRoleSelect.disabled = !isAdmin;
+    }
     if (memberForm) memberForm.dataset.editing = member.id;
     if (memberSubmit) memberSubmit.textContent = "Mettre à jour";
     if (memberCancel) memberCancel.style.display = "inline-flex";
+    
+    // Afficher le champ rôle si c'est l'admin, sinon le masquer
+    const memberRoleControl = document.getElementById('memberRoleControl');
+    if (memberRoleControl) {
+      memberRoleControl.style.display = isAdmin ? 'block' : 'none';
+    }
     
     // Scroll to form
     memberForm?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  window.deleteMember = function(memberId) {
+  window.deleteMember = async function(memberId) {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return;
     
     const member = window.appState.members.find(m => m.id === memberId);
@@ -170,17 +231,25 @@ function initMembersModule() {
       return;
     }
     
-    window.appState.members = window.appState.members.filter((m) => m.id !== memberId);
-    window.appState.attendances = window.appState.attendances.filter(
-      (att) => att.memberId !== memberId
-    );
-    saveData();
-    renderMembersGrid();
-    buildMemberFilterOptions();
-    auth.showNotification("success", "Membre supprimé.");
+    // Supprimer dans Supabase
+    if (window.supabaseDB && window.supabaseDB.getClient()) {
+      try {
+        await window.supabaseDB.deleteMember(memberId);
+        // Recharger les données depuis Supabase
+        await window.reloadData();
+        await renderMembersGrid();
+        buildMemberFilterOptions();
+        auth.showNotification("success", "Membre supprimé.");
+      } catch (error) {
+        console.error('Erreur lors de la suppression du membre:', error);
+        auth.showNotification("error", "Erreur lors de la suppression du membre.");
+      }
+    } else {
+      auth.showNotification("error", "Supabase n'est pas configuré.");
+    }
   };
 
-  window.showMemberDetails = function(member) {
+  window.showMemberDetails = async function(member) {
     const modal = document.getElementById('memberModal');
     const modalPhoto = document.getElementById('modalMemberPhoto');
     const modalName = document.getElementById('modalMemberName');
@@ -192,18 +261,42 @@ function initMembersModule() {
     const modalContact = document.getElementById('modalMemberContact');
     const modalEditBtn = document.getElementById('modalEditBtn');
     
-    // Get member profile data
-    const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
-    const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-    const user = users.find(u => u.name === member.name);
-    const userProfile = user ? profiles[user.username] : null;
+    // Get member profile photo depuis Supabase
+    let photoUrl = null;
+    let user = null;
+    let userProfile = null;
+    
+    if (window.supabaseDB && window.supabaseDB.getClient()) {
+      try {
+        const users = await window.supabaseDB.getUsers();
+        user = users.find(u => u.name === member.name);
+        if (user) {
+          // Construire userProfile depuis les données Supabase
+          userProfile = {
+            email: user.email || null,
+            phone: user.phone || null
+          };
+          
+          if (window.storageManager) {
+            photoUrl = await window.storageManager.getUserProfilePhotoUrl(user.username);
+          }
+        }
+      } catch (error) {
+        console.warn('Erreur lors de la récupération de la photo:', error);
+      }
+    }
+    
+    // S'assurer que userProfile est un objet même si vide
+    if (!userProfile) {
+      userProfile = { email: null, phone: null };
+    }
     
     // Generate initials
     const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
     
     // Update photo
-    if (userProfile?.photo) {
-      modalPhoto.innerHTML = `<img src="${userProfile.photo}" alt="Photo de ${member.name}">`;
+    if (photoUrl) {
+      modalPhoto.innerHTML = `<img src="${photoUrl}" alt="Photo de ${member.name}" onerror="this.innerHTML='<span id=\\'modalMemberInitials\\'>${initials}</span>'">`;
     } else {
       modalPhoto.innerHTML = `<span id="modalMemberInitials">${initials}</span>`;
     }
@@ -276,77 +369,225 @@ function initMembersModule() {
     closeMemberModal();
   };
 
-  memberForm.addEventListener("submit", (event) => {
+  memberForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const name = memberNameInput.value.trim();
+    const selectedUserId = memberUserSelect ? memberUserSelect.value : null;
     const dept = memberDeptSelect.value;
     const role = memberRoleSelect ? memberRoleSelect.value : 'user';
-    if (!name || !dept) {
+    
+    if (!selectedUserId || !dept) {
       auth.showNotification("error", "Tous les champs sont requis.");
       return;
     }
+    
+    // Vérifier que Supabase est disponible
+    if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+      auth.showNotification("error", "Supabase n'est pas configuré.");
+      return;
+    }
+    
+    // Récupérer les informations de l'utilisateur sélectionné
+    let selectedUser = null;
+    try {
+      const users = await window.supabaseDB.getUsers();
+      selectedUser = users.find(u => u.id.toString() === selectedUserId);
+      if (!selectedUser) {
+        auth.showNotification("error", "Utilisateur introuvable.");
+        return;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+      auth.showNotification("error", "Erreur lors de la récupération de l'utilisateur.");
+      return;
+    }
+    
+    const name = selectedUser.name;
     const editingId = memberForm.dataset.editing;
     const { currentRole } = auth.getRoleContext();
-    if (editingId) {
-      const targetMember = window.appState.members.find((member) => member.id === parseInt(editingId, 10));
-      if (!targetMember) {
-        auth.showNotification("error", "Membre introuvable.");
-        return;
+    
+    try {
+      if (editingId) {
+        if (!auth.checkPermission("members", "update", dept)) {
+          auth.showNotification("error", "Permission refusée.");
+          return;
+        }
+        
+        // Mettre à jour dans Supabase
+        // Seul l'admin peut modifier le rôle, le secrétaire peut modifier le nom et le département
+        const updateData = {
+          name: name,
+          dept: dept
+        };
+        
+        // Seul l'admin peut modifier le rôle
+        if (currentRole === "admin") {
+          updateData.role = role;
+        }
+        
+        await window.supabaseDB.updateMember(parseInt(editingId, 10), updateData);
+        
+        // Recharger les données depuis Supabase
+        await window.reloadData();
+        auth.showNotification("success", "Membre mis à jour.");
+      } else {
+        if (!auth.checkPermission("members", "create", dept)) {
+          auth.showNotification("error", "Permission refusée.");
+          return;
+        }
+        
+        // Vérifier les doublons
+        const members = await window.supabaseDB.getMembers();
+        const duplicate = members.some(
+          (member) => member.name.toLowerCase() === name.toLowerCase() && member.dept === dept
+        );
+        if (duplicate) {
+          auth.showNotification("error", "Ce membre existe déjà.");
+          return;
+        }
+        
+        // Créer dans Supabase
+        // Le secrétaire crée avec rôle "user" par défaut, l'admin peut choisir le rôle
+        const memberRole = currentRole === "admin" ? role : "user";
+        
+        const newMember = await window.supabaseDB.createMember({
+          name: name,
+          dept: dept,
+          role: memberRole
+        });
+        
+        if (!newMember) {
+          throw new Error('Erreur lors de la création du membre');
+        }
+        
+        // Recharger les données depuis Supabase
+        await window.reloadData();
+        
+        // Recharger les options utilisateurs (pour retirer celui qui vient d'être utilisé)
+        await loadUserOptions();
+        
+        // Re-rendre la liste des membres
+        await renderMembersGrid();
+        
+        // Réinitialiser le formulaire
+        resetMemberForm();
+        
+        auth.showNotification("success", "Membre ajouté.");
       }
-      if (!auth.checkPermission("members", "update", dept)) {
-        auth.showNotification("error", "Permission refusée.");
-        return;
-      }
-      targetMember.name = name;
-      targetMember.dept = dept;
-      if (currentRole === "admin") {
-        targetMember.role = role;
-      }
-      auth.showNotification("success", "Membre mis à jour.");
-    } else {
-      if (!auth.checkPermission("members", "create", dept)) {
-        auth.showNotification("error", "Permission refusée.");
-        return;
-      }
-      const duplicate = window.appState.members.some(
-        (member) => member.name.toLowerCase() === name.toLowerCase() && member.dept === dept
-      );
-      if (duplicate) {
-        auth.showNotification("error", "Ce membre existe déjà.");
-        return;
-      }
-      window.appState.members.push({
-        id: generateId(window.appState.members),
-        name,
-        dept,
-        role: currentRole === "admin" ? role : "user"
-      });
-      auth.showNotification("success", "Membre ajouté.");
+      
+      resetMemberForm();
+      buildMemberFilterOptions();
+      await renderMembersGrid();
+      
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du membre:', error);
+      auth.showNotification("error", "Erreur lors de la sauvegarde du membre.");
     }
-    saveData();
-    resetMemberForm();
-    buildMemberFilterOptions();
-    renderMembersGrid();
   });
 
   memberCancel.addEventListener("click", () => {
     resetMemberForm();
   });
 
-  memberFilter.addEventListener("change", (event) => {
+  memberFilter.addEventListener("change", async (event) => {
     memberFilterValue = event.target.value;
-    renderMembersGrid();
+    await renderMembersGrid();
   });
 
-  function refreshMembersPage() {
+  // Charger les utilisateurs dans le select
+  async function loadUserOptions() {
+    if (!memberUserSelect) return;
+    
+    // Vérifier que Supabase est disponible
+    if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+      memberUserSelect.innerHTML = '<option value="">Supabase n\'est pas configuré</option>';
+      return;
+    }
+    
+    try {
+      // Charger tous les utilisateurs depuis Supabase
+      const users = await window.supabaseDB.getUsers();
+      
+      // Charger les membres existants pour filtrer ceux qui ont déjà un membre
+      const members = window.appState?.members || [];
+      const memberNames = new Set(members.map(m => m.name.toLowerCase()));
+      
+      // Filtrer les utilisateurs : ne garder que ceux qui n'ont pas encore de membre
+      const availableUsers = users.filter(user => {
+        return !memberNames.has(user.name.toLowerCase());
+      });
+      
+      // Réinitialiser le select
+      memberUserSelect.innerHTML = '<option value="">Choisir un utilisateur...</option>';
+      
+      if (availableUsers.length === 0) {
+        memberUserSelect.innerHTML += '<option value="" disabled>Aucun utilisateur disponible</option>';
+        return;
+      }
+      
+      // Ajouter les utilisateurs au select
+      availableUsers.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.name}${user.email ? ` (${user.email})` : ''}`;
+        memberUserSelect.appendChild(option);
+      });
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+      memberUserSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+    }
+  }
+
+  async function refreshMembersPage() {
+    // Attendre que les données soient chargées depuis Supabase
+    if (!window.appState) {
+      setTimeout(refreshMembersPage, 200);
+      return;
+    }
+    
+    // Attendre que les départements soient chargés
+    if (!window.appState.departments || window.appState.departments.length === 0) {
+      // Attendre un peu et réessayer (max 5 secondes)
+      const maxAttempts = 25; // 5 secondes
+      let attempts = 0;
+      const checkDepartments = () => {
+        attempts++;
+        if (window.appState && window.appState.departments && window.appState.departments.length > 0) {
+          buildMemberFilterOptions();
+          auth.ensureDepartmentOptions(memberDeptSelect);
+          loadUserOptions();
+          setMemberFormState();
+          renderMembersGrid();
+        } else if (attempts < maxAttempts) {
+          setTimeout(checkDepartments, 200);
+        } else {
+          console.error('Les départements n\'ont pas pu être chargés');
+          auth.showNotification("error", "Erreur: Les départements n'ont pas pu être chargés. Veuillez recharger la page.");
+          // Afficher quand même la liste (vide) et le formulaire
+          buildMemberFilterOptions();
+          if (memberDeptSelect) {
+            memberDeptSelect.innerHTML = '<option value="">Choisir un département...</option>';
+          }
+          loadUserOptions();
+          setMemberFormState();
+          renderMembersGrid();
+        }
+      };
+      checkDepartments();
+      return;
+    }
+    
     buildMemberFilterOptions();
     auth.ensureDepartmentOptions(memberDeptSelect);
+    loadUserOptions();
     setMemberFormState();
-    renderMembersGrid();
+    await renderMembersGrid();
   }
 
   // Initialize
-  refreshMembersPage();
+  refreshMembersPage().catch(error => {
+    console.error('Erreur lors de l\'initialisation:', error);
+  });
 }
 
 if (document.readyState === "loading") {

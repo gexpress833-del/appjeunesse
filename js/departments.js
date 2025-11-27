@@ -14,20 +14,37 @@ function renderDepartmentsTable() {
     deleteButton.type = "button";
     deleteButton.textContent = "Supprimer";
     deleteButton.disabled = !auth.checkPermission("departments", "delete");
-    deleteButton.addEventListener("click", () => {
+      deleteButton.addEventListener("click", async () => {
       if (!auth.checkPermission("departments", "delete")) {
         auth.showNotification("error", "Réservé à l'admin.");
         return;
       }
+      
+      // Vérifier que Supabase est disponible
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+        auth.showNotification("error", "Supabase n'est pas configuré.");
+        return;
+      }
+      
       const hasMembers = window.appState.members.some((member) => member.dept === dept);
       if (hasMembers) {
         auth.showNotification("error", "Supprimez les membres de ce département d'abord.");
         return;
       }
-      window.appState.departments = window.appState.departments.filter((name) => name !== dept);
-      saveData();
-      renderDepartmentsTable();
-      auth.showNotification("success", "Département supprimé.");
+      
+      try {
+        // Supprimer dans Supabase
+        await window.supabaseDB.deleteDepartment(dept);
+        
+        // Recharger les données depuis Supabase
+        await window.reloadData();
+        
+        renderDepartmentsTable();
+        auth.showNotification("success", "Département supprimé.");
+      } catch (error) {
+        console.error('Erreur lors de la suppression du département:', error);
+        auth.showNotification("error", "Erreur lors de la suppression du département.");
+      }
     });
     actionCell.appendChild(deleteButton);
     row.appendChild(nameCell);
@@ -36,7 +53,7 @@ function renderDepartmentsTable() {
   });
 }
 
-departmentForm.addEventListener("submit", (event) => {
+departmentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = departmentNameInput.value.trim();
   if (!name) {
@@ -47,18 +64,37 @@ departmentForm.addEventListener("submit", (event) => {
     auth.showNotification("error", "Réservé à l'admin.");
     return;
   }
-  const duplicate = window.appState.departments.some(
-    (dept) => dept.toLowerCase() === name.toLowerCase()
-  );
-  if (duplicate) {
-    auth.showNotification("error", "Ce département existe déjà.");
+  
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    auth.showNotification("error", "Supabase n'est pas configuré.");
     return;
   }
-  window.appState.departments.push(name);
-  saveData();
-  departmentForm.reset();
-  renderDepartmentsTable();
-  auth.showNotification("success", "Département ajouté.");
+  
+  try {
+    // Vérifier les doublons
+    const departments = await window.supabaseDB.getDepartments();
+    const duplicate = departments.some(
+      (dept) => dept.toLowerCase() === name.toLowerCase()
+    );
+    if (duplicate) {
+      auth.showNotification("error", "Ce département existe déjà.");
+      return;
+    }
+    
+    // Créer dans Supabase
+    await window.supabaseDB.createDepartment(name);
+    
+    // Recharger les données depuis Supabase
+    await window.reloadData();
+    
+    departmentForm.reset();
+    renderDepartmentsTable();
+    auth.showNotification("success", "Département ajouté.");
+  } catch (error) {
+    console.error('Erreur lors de la création du département:', error);
+    auth.showNotification("error", "Erreur lors de la création du département.");
+  }
 });
 
 function refreshDepartmentPage() {

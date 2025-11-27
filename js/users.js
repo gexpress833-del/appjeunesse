@@ -42,7 +42,15 @@ function initUsersPage() {
   // Initialiser les événements
   setupEventListeners();
   loadDepartmentOptions();
-  renderUsersGrid();
+  
+  // Pour l'admin, afficher les utilisateurs en attente par défaut
+  const statusFilter = document.getElementById('usersStatusFilter');
+  if (statusFilter && currentRole === 'admin') {
+    statusFilter.value = 'pending';
+    renderUsersGrid('pending');
+  } else {
+    renderUsersGrid();
+  }
   
   // Mettre à jour le rôle affiché
   const roleDisplay = document.getElementById('currentUserRole');
@@ -105,7 +113,7 @@ function setupEventListeners() {
   }
 }
 
-function handleUserCreation(e) {
+async function handleUserCreation(e) {
   e.preventDefault();
   
   const currentRole = localStorage.getItem('appRole');
@@ -167,9 +175,27 @@ function handleUserCreation(e) {
     return;
   }
   
-  // Vérifier l'unicité du nom d'utilisateur
-  const existingUsers = JSON.parse(localStorage.getItem('appUsers') || '[]');
-  if (existingUsers.some(user => user.username === formData.username)) {
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
+    }
+    return;
+  }
+  
+  // Vérifier l'unicité du nom d'utilisateur dans Supabase
+  let existingUser = null;
+  try {
+    existingUser = await window.supabaseDB.getUserByUsername(formData.username);
+  } catch (error) {
+    console.error('Erreur lors de la vérification de l\'utilisateur:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la vérification de l\'utilisateur.');
+    }
+    return;
+  }
+  
+  if (existingUser) {
     if (window.notificationSystem) {
       window.notificationSystem.error('Ce nom d\'utilisateur existe déjà');
     }
@@ -191,8 +217,27 @@ function handleUserCreation(e) {
     dept: null
   };
   
-  existingUsers.push(newUser);
-  localStorage.setItem('appUsers', JSON.stringify(existingUsers));
+  // Créer dans Supabase
+  try {
+    await window.supabaseDB.createUser({
+      username: newUser.username,
+      name: newUser.name,
+      email: newUser.email,
+      birthDate: newUser.birthDate,
+      address: newUser.address,
+      password: newUser.password,
+      role: newUser.role,
+      status: newUser.status,
+      createdBy: newUser.createdBy,
+      dept: newUser.dept
+    });
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'utilisateur dans Supabase:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la création de l\'utilisateur');
+    }
+    return;
+  }
   
   // Notification de succès
   if (window.notificationSystem) {
@@ -230,20 +275,61 @@ function loadDepartmentOptions() {
   }
 }
 
-function renderUsersGrid(statusFilter = 'all') {
+async function renderUsersGrid(statusFilter = 'all') {
   const usersGrid = document.getElementById('usersGrid');
   if (!usersGrid) return;
   
-  const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-  const currentRole = localStorage.getItem('appRole');
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    usersGrid.innerHTML = '<div class="users-empty"><div class="empty-icon">⚠️</div><p>Supabase n\'est pas configuré</p></div>';
+    return;
+  }
   
-  console.log('Users loaded:', users); // Debug
-  console.log('Number of users:', users.length); // Debug
+  let users = [];
+  
+  // Charger depuis Supabase uniquement
+  try {
+    const supabaseUsers = await window.supabaseDB.getUsers();
+    users = supabaseUsers.map(user => ({
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      birthDate: user.birth_date,
+      address: user.address,
+      password: user.password,
+      role: user.role,
+      status: user.status,
+      dept: user.dept,
+      createdBy: user.created_by,
+      createdAt: user.created_at,
+      roleAssignedBy: user.role_assigned_by,
+      roleAssignedAt: user.role_assigned_at,
+      statusChangedBy: user.status_changed_by,
+      statusChangedAt: user.status_changed_at,
+      notes: user.notes
+    }));
+  } catch (error) {
+    console.error('Erreur lors du chargement des utilisateurs depuis Supabase:', error);
+    usersGrid.innerHTML = '<div class="users-empty"><div class="empty-icon">❌</div><p>Erreur lors du chargement des utilisateurs</p></div>';
+    return;
+  }
+  
+  const currentRole = localStorage.getItem('appRole');
   
   // Filtrer les utilisateurs
   let filteredUsers = users;
   if (statusFilter !== 'all') {
     filteredUsers = users.filter(user => user.status === statusFilter);
+  }
+  
+  // Pour l'admin, mettre en évidence les utilisateurs en attente
+  if (currentRole === 'admin' && statusFilter === 'all') {
+    // Trier pour mettre les utilisateurs en attente en premier
+    filteredUsers.sort((a, b) => {
+      if (a.status === USER_STATUS.PENDING && b.status !== USER_STATUS.PENDING) return -1;
+      if (a.status !== USER_STATUS.PENDING && b.status === USER_STATUS.PENDING) return 1;
+      return 0;
+    });
   }
   
   usersGrid.innerHTML = '';
@@ -334,6 +420,13 @@ function renderUsersGrid(statusFilter = 'all') {
             ${user.status === USER_STATUS.ACTIVE ? '🚫 Désactiver' : '✅ Activer'}
           </button>
         ` : ''}
+        ${canEdit ? `
+          <button class="secondary delete-user-btn" 
+                  style="background-color: #dc3545; color: white; border-color: #dc3545;"
+                  onclick="deleteUserAccount('${user.username}', '${user.name || user.username}')">
+            🗑️ Supprimer
+          </button>
+        ` : ''}
       </div>
     `;
     
@@ -391,7 +484,7 @@ function calculateAge(birthDateString) {
   return age;
 }
 
-function openRoleAssignmentModal(username) {
+async function openRoleAssignmentModal(username) {
   const currentRole = localStorage.getItem('appRole');
   if (currentRole !== 'admin') {
     if (window.notificationSystem) {
@@ -400,62 +493,98 @@ function openRoleAssignmentModal(username) {
     return;
   }
   
-  const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-  const user = users.find(u => u.username === username);
-  
-  if (!user) {
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
     if (window.notificationSystem) {
-      window.notificationSystem.error('Utilisateur introuvable');
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
     }
     return;
   }
   
-  currentEditingUser = user;
-  
-  // Remplir les informations de l'utilisateur dans la modal
-  document.getElementById('modalUserName').textContent = user.name || 'Nom non défini';
-  document.getElementById('modalUserEmail').textContent = user.email || 'Email non défini';
-  document.getElementById('modalUserStatus').textContent = getStatusLabel(user.status);
-  document.getElementById('modalUserAvatar').textContent = getUserInitials(user.name);
-  
-  // Afficher les informations personnelles si disponibles
-  const personalInfoSection = document.getElementById('modalUserPersonalInfo');
-  if (user.birthDate || user.address) {
-    personalInfoSection.style.display = 'block';
+  // Charger l'utilisateur depuis Supabase
+  let user = null;
+  try {
+    user = await window.supabaseDB.getUserByUsername(username);
     
-    if (user.birthDate) {
-      document.getElementById('modalUserBirthDateDisplay').textContent = formatDate(user.birthDate);
-      document.getElementById('modalUserAge').textContent = `${calculateAge(user.birthDate)} ans`;
-    } else {
-      document.getElementById('modalUserBirthDateDisplay').textContent = 'Non renseigné';
-      document.getElementById('modalUserAge').textContent = '-';
+    if (!user) {
+      if (window.notificationSystem) {
+        window.notificationSystem.error('Utilisateur introuvable');
+      }
+      return;
     }
     
-    if (user.address) {
-      document.getElementById('modalUserAddressDisplay').textContent = user.address;
+    // Convertir l'utilisateur Supabase au format attendu
+    const userFormatted = {
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      birthDate: user.birth_date,
+      address: user.address,
+      password: user.password,
+      role: user.role,
+      status: user.status,
+      dept: user.dept,
+      createdBy: user.created_by,
+      createdAt: user.created_at,
+      roleAssignedBy: user.role_assigned_by,
+      roleAssignedAt: user.role_assigned_at,
+      statusChangedBy: user.status_changed_by,
+      statusChangedAt: user.status_changed_at,
+      notes: user.notes
+    };
+    
+    currentEditingUser = userFormatted;
+  
+    // Remplir les informations de l'utilisateur dans la modal
+    document.getElementById('modalUserName').textContent = userFormatted.name || 'Nom non défini';
+    document.getElementById('modalUserEmail').textContent = userFormatted.email || 'Email non défini';
+    document.getElementById('modalUserStatus').textContent = getStatusLabel(userFormatted.status);
+    document.getElementById('modalUserAvatar').textContent = getUserInitials(userFormatted.name);
+    
+    // Afficher les informations personnelles si disponibles
+    const personalInfoSection = document.getElementById('modalUserPersonalInfo');
+    if (userFormatted.birthDate || userFormatted.address) {
+      personalInfoSection.style.display = 'block';
+      
+      if (userFormatted.birthDate) {
+        document.getElementById('modalUserBirthDateDisplay').textContent = formatDate(userFormatted.birthDate);
+        document.getElementById('modalUserAge').textContent = `${calculateAge(userFormatted.birthDate)} ans`;
+      } else {
+        document.getElementById('modalUserBirthDateDisplay').textContent = 'Non renseigné';
+        document.getElementById('modalUserAge').textContent = '-';
+      }
+      
+      if (userFormatted.address) {
+        document.getElementById('modalUserAddressDisplay').textContent = userFormatted.address;
+      } else {
+        document.getElementById('modalUserAddressDisplay').textContent = 'Non renseignée';
+      }
     } else {
-      document.getElementById('modalUserAddressDisplay').textContent = 'Non renseignée';
+      personalInfoSection.style.display = 'none';
     }
-  } else {
-    personalInfoSection.style.display = 'none';
+    
+    // Pré-remplir le formulaire avec les données actuelles de l'utilisateur
+    document.getElementById('assignRole').value = userFormatted.role || '';
+    document.getElementById('assignDepartment').value = userFormatted.dept || '';
+    document.getElementById('userNotes').value = '';
+    
+    // Afficher la sélection de département si nécessaire
+    if (userFormatted.role === 'responsable') {
+      document.getElementById('departmentSelection').style.display = 'block';
+      document.getElementById('assignDepartment').required = true;
+    } else {
+      document.getElementById('departmentSelection').style.display = 'none';
+      document.getElementById('assignDepartment').required = false;
+    }
+    
+    // Afficher la modal
+    document.getElementById('roleAssignmentModal').style.display = 'flex';
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'utilisateur:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors du chargement de l\'utilisateur');
+    }
   }
-  
-  // Pré-remplir le formulaire avec les données actuelles de l'utilisateur
-  document.getElementById('assignRole').value = user.role || '';
-  document.getElementById('assignDepartment').value = user.dept || '';
-  document.getElementById('userNotes').value = '';
-  
-  // Afficher la sélection de département si nécessaire
-  if (user.role === 'responsable') {
-    document.getElementById('departmentSelection').style.display = 'block';
-    document.getElementById('assignDepartment').required = true;
-  } else {
-    document.getElementById('departmentSelection').style.display = 'none';
-    document.getElementById('assignDepartment').required = false;
-  }
-  
-  // Afficher la modal
-  document.getElementById('roleAssignmentModal').style.display = 'flex';
 }
 
 function closeRoleAssignmentModal() {
@@ -476,7 +605,7 @@ function handleRoleSelection() {
   }
 }
 
-function handleRoleAssignment() {
+async function handleRoleAssignment() {
   if (!currentEditingUser) return;
   
   const selectedRole = document.getElementById('assignRole').value;
@@ -497,28 +626,30 @@ function handleRoleAssignment() {
     return;
   }
   
-  // Mettre à jour l'utilisateur
-  const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-  const userIndex = users.findIndex(u => u.username === currentEditingUser.username);
-  
-  if (userIndex === -1) {
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
     if (window.notificationSystem) {
-      window.notificationSystem.error('Utilisateur introuvable');
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
     }
     return;
   }
   
-  users[userIndex] = {
-    ...users[userIndex],
-    role: selectedRole,
-    dept: selectedRole === 'responsable' ? selectedDept : null,
-    status: USER_STATUS.ACTIVE,
-    roleAssignedBy: localStorage.getItem('appUser'),
-    roleAssignedAt: new Date().toISOString(),
-    notes: notes
-  };
-  
-  localStorage.setItem('appUsers', JSON.stringify(users));
+  // Mettre à jour dans Supabase
+  try {
+    await window.supabaseDB.updateUser(currentEditingUser.username, {
+      role: selectedRole,
+      dept: selectedRole === 'responsable' ? selectedDept : null,
+      status: USER_STATUS.ACTIVE,
+      roleAssignedBy: localStorage.getItem('appUser'),
+      notes: notes
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'utilisateur dans Supabase:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la mise à jour de l\'utilisateur');
+    }
+    return;
+  }
   
   // Notification de succès
   if (window.notificationSystem) {
@@ -533,7 +664,7 @@ function handleRoleAssignment() {
   renderUsersGrid();
 }
 
-function toggleUserStatus(username) {
+async function toggleUserStatus(username) {
   const currentRole = localStorage.getItem('appRole');
   if (currentRole !== 'admin') {
     if (window.notificationSystem) {
@@ -542,28 +673,52 @@ function toggleUserStatus(username) {
     return;
   }
   
-  const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-  const userIndex = users.findIndex(u => u.username === username);
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
+    }
+    return;
+  }
   
-  if (userIndex === -1) {
+  // Récupérer l'utilisateur depuis Supabase
+  let user = null;
+  try {
+    user = await window.supabaseDB.getUserByUsername(username);
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la récupération de l\'utilisateur');
+    }
+    return;
+  }
+  
+  if (!user) {
     if (window.notificationSystem) {
       window.notificationSystem.error('Utilisateur introuvable');
     }
     return;
   }
   
-  const user = users[userIndex];
   const newStatus = user.status === USER_STATUS.ACTIVE ? USER_STATUS.INACTIVE : USER_STATUS.ACTIVE;
   
   if (!confirm(`Êtes-vous sûr de vouloir ${newStatus === USER_STATUS.ACTIVE ? 'activer' : 'désactiver'} ${user.name} ?`)) {
     return;
   }
   
-  users[userIndex].status = newStatus;
-  users[userIndex].statusChangedBy = localStorage.getItem('appUser');
-  users[userIndex].statusChangedAt = new Date().toISOString();
-  
-  localStorage.setItem('appUsers', JSON.stringify(users));
+  // Mettre à jour dans Supabase
+  try {
+    await window.supabaseDB.updateUser(username, {
+      status: newStatus,
+      statusChangedBy: localStorage.getItem('appUser')
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du statut dans Supabase:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la mise à jour du statut');
+    }
+    return;
+  }
   
   if (window.notificationSystem) {
     window.notificationSystem.success(
@@ -586,8 +741,67 @@ document.addEventListener('DOMContentLoaded', () => {
   initUsersPage();
 });
 
+async function deleteUserAccount(username, userName) {
+  const currentRole = localStorage.getItem('appRole');
+  if (currentRole !== 'admin') {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Seul l\'administrateur peut supprimer des comptes utilisateurs');
+    }
+    return;
+  }
+  
+  // Vérifier que l'utilisateur ne supprime pas son propre compte
+  const currentUsername = localStorage.getItem('appUsername');
+  if (username === currentUsername) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Vous ne pouvez pas supprimer votre propre compte');
+    }
+    return;
+  }
+  
+  // Demander confirmation
+  const confirmMessage = `Êtes-vous sûr de vouloir supprimer définitivement le compte de "${userName}" (${username}) ?\n\nCette action est irréversible et supprimera toutes les données associées à cet utilisateur.`;
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+  
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
+    }
+    return;
+  }
+  
+  try {
+    // Supprimer l'utilisateur depuis Supabase
+    const success = await window.supabaseDB.deleteUser(username);
+    
+    if (success) {
+      if (window.notificationSystem) {
+        window.notificationSystem.success(`Le compte de "${userName}" a été supprimé avec succès`);
+      }
+      
+      // Recharger la liste des utilisateurs
+      const statusFilter = document.getElementById('usersStatusFilter');
+      const currentFilter = statusFilter ? statusFilter.value : 'all';
+      await renderUsersGrid(currentFilter);
+    } else {
+      if (window.notificationSystem) {
+        window.notificationSystem.error('Erreur lors de la suppression du compte');
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la suppression du compte');
+    }
+  }
+}
+
 // Fonctions globales pour les onclick
 window.openRoleAssignmentModal = openRoleAssignmentModal;
 window.closeRoleAssignmentModal = closeRoleAssignmentModal;
 window.toggleUserStatus = toggleUserStatus;
 window.editUser = editUser;
+window.deleteUserAccount = deleteUserAccount;

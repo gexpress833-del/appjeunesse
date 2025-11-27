@@ -50,21 +50,25 @@
           <h3>Ajouter ou modifier</h3>
           <form id="memberForm">
             <div class="form-control">
-              <label for="memberName">Nom complet</label>
-              <input type="text" id="memberName" placeholder="ex : Marie Dubois" required />
+              <label for="memberUserSelect">Sélectionner un utilisateur</label>
+              <select id="memberUserSelect" required>
+                <option value="">Choisir un utilisateur...</option>
+              </select>
+              <small style="color: var(--muted); display: block; margin-top: 0.5rem;">Sélectionnez un utilisateur créé par le secrétaire</small>
             </div>
             <div class="form-control">
               <label for="memberDeptSelect">Département</label>
               <select id="memberDeptSelect"></select>
             </div>
-            <div class="form-control">
-              <label for="memberRole">Rôle</label>
+            <div class="form-control admin-only" id="memberRoleControl" style="display: none;">
+              <label for="memberRole">Rôle (Admin uniquement)</label>
               <select id="memberRole">
                 <option value="user">Utilisateur</option>
                 <option value="responsable">Responsable</option>
                 <option value="secretariat">Secrétariat</option>
                 <option value="admin">Admin</option>
               </select>
+              <small style="color: var(--muted); display: block; margin-top: 0.5rem;">Seul l'administrateur peut attribuer les rôles</small>
             </div>
             <div class="form-actions">
               <button type="submit" class="primary" id="memberSubmit">Ajouter</button>
@@ -134,8 +138,18 @@
       </section>
     </div>
   </div>
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+  
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+  
   <script src="js/data.js" defer></script>
   <script src="js/auth.js" defer></script>
+  <script src="js/storage.js" defer></script>
   <script src="js/members.js" defer></script>
   <script>
     function logout() {

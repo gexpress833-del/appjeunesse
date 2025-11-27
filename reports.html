@@ -370,16 +370,31 @@
     </div>
   </div>
 
-  <!-- Préchargement des bibliothèques PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+  
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+  
+  <!-- Bibliothèques PDF (version simplifiée) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onload="
+    // Normaliser jsPDF : la version UMD l'expose sous window.jspdf (minuscule)
+    if (typeof window.jspdf !== 'undefined' && !window.jsPDF) {
+      window.jsPDF = window.jspdf;
+    }
+  "></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   
+  <!-- Scripts de base -->
   <script src="js/data.js" defer></script>
   <script src="js/auth.js" defer></script>
   <script src="js/notifications.js" defer></script>
-  <script src="js/pdf-performance-optimizer.js" defer></script>
+  
+  <!-- Générateur PDF principal (seulement celui-ci) -->
   <script src="js/pdf-reports.js" defer></script>
-  <script src="js/pdf-fast-generator.js" defer></script>
   
   <script>
     let currentData = {
@@ -424,9 +439,15 @@
       updateWelcomeMessage();
       setupLogoutButton();
 
-      loadData();
-      setupEventListeners();
-      populateSelects();
+      // Charger les données depuis Supabase de manière asynchrone
+      loadData().then(() => {
+        setupEventListeners();
+        populateSelects();
+      }).catch(error => {
+        console.error('Erreur lors de l\'initialisation:', error);
+        setupEventListeners();
+        populateSelects(); // Essayer quand même de peupler les selects
+      });
     }
 
     function updateWelcomeMessage() {
@@ -460,11 +481,75 @@
       }
     }
 
-    function loadData() {
-      currentData.events = JSON.parse(localStorage.getItem('events') || '[]');
-      currentData.members = JSON.parse(localStorage.getItem('members') || '[]');
-      currentData.attendances = JSON.parse(localStorage.getItem('attendances') || '[]');
-      currentData.departments = JSON.parse(localStorage.getItem('departments') || '[]');
+    async function loadData() {
+      // Charger depuis Supabase au lieu de localStorage
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+        console.error('❌ Supabase n\'est pas configuré');
+        currentData = { events: [], members: [], attendances: [], departments: [] };
+        return;
+      }
+      
+      try {
+        const [members, events, attendances, departments] = await Promise.all([
+          window.supabaseDB.getMembers(),
+          window.supabaseDB.getEvents(),
+          window.supabaseDB.getAttendances(),
+          window.supabaseDB.getDepartments()
+        ]);
+        
+        // Mapper les données au format attendu
+        currentData.members = (members || []).map(m => ({
+          id: m.id,
+          name: m.name,
+          dept: m.dept,
+          role: m.role || "user",
+          phone: m.phone,
+          email: m.email,
+          birthDate: m.birth_date,
+          address: m.address,
+          notes: m.notes
+        }));
+        
+        currentData.events = (events || []).map(e => ({
+          id: e.id,
+          name: e.name,
+          date: e.date,
+          description: e.description,
+          photoUrl: e.photo_url
+        }));
+        
+        // Mapper les statuts des présences depuis Supabase vers les codes d'affichage
+        const mapStatusToCode = (status) => {
+          const statusMap = {
+            'present': 'P',
+            'absent': 'A',
+            'excused': 'AJ',
+            'late': 'L'
+          };
+          return statusMap[status] || status;
+        };
+        
+        currentData.attendances = (attendances || []).map(a => ({
+          id: a.id,
+          memberId: a.member_id,
+          eventId: a.event_id,
+          status: mapStatusToCode(a.status),
+          notes: a.notes
+        }));
+        
+        // S'assurer que departments est un tableau de noms (chaînes)
+        currentData.departments = (departments || []).map(d => typeof d === 'string' ? d : d.name);
+        
+        console.log('✅ Données chargées depuis Supabase pour les rapports:', {
+          events: currentData.events.length,
+          members: currentData.members.length,
+          attendances: currentData.attendances.length,
+          departments: currentData.departments.length
+        });
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement des données depuis Supabase:', error);
+        currentData = { events: [], members: [], attendances: [], departments: [] };
+      }
     }
 
     function populateSelects() {
@@ -472,10 +557,44 @@
       const eventSelect = document.getElementById('eventSelect');
       eventSelect.innerHTML = '<option value="">Choisir un événement...</option>';
       
-      currentData.events.forEach(event => {
+      // Fonction pour déterminer le statut d'un événement
+      function getEventStatus(eventDate) {
+        if (!eventDate) return 'past';
+        const today = new Date();
+        const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+        const eventDateObj = new Date(eventDate);
+        const eventUTC = new Date(Date.UTC(
+          eventDateObj.getFullYear(),
+          eventDateObj.getMonth(),
+          eventDateObj.getDate()
+        ));
+        const todayTime = todayUTC.getTime();
+        const eventTime = eventUTC.getTime();
+        if (eventTime === todayTime) return 'current';
+        if (eventTime > todayTime) return 'upcoming';
+        return 'past';
+      }
+      
+      // Trier les événements : en cours d'abord, puis à venir, puis passés
+      const sortedEvents = [...currentData.events].sort((a, b) => {
+        const statusA = getEventStatus(a.date);
+        const statusB = getEventStatus(b.date);
+        const statusOrder = { 'current': 0, 'upcoming': 1, 'past': 2 };
+        if (statusOrder[statusA] !== statusOrder[statusB]) {
+          return statusOrder[statusA] - statusOrder[statusB];
+        }
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return statusA === 'past' ? dateB - dateA : dateA - dateB;
+      });
+      
+      sortedEvents.forEach(event => {
         const option = document.createElement('option');
         option.value = event.id;
-        option.textContent = `${event.name} - ${new Date(event.date).toLocaleDateString('fr-FR')}`;
+        const status = getEventStatus(event.date);
+        const statusLabel = status === 'current' ? ' (AUJOURD\'HUI)' : 
+                           status === 'upcoming' ? ' (À venir)' : '';
+        option.textContent = `${event.name} - ${new Date(event.date).toLocaleDateString('fr-FR')}${statusLabel}`;
         eventSelect.appendChild(option);
       });
 
@@ -730,26 +849,58 @@
       window.location.href = homePages[currentRole] || 'login.html';
     }
 
-    // Vérifier que les bibliothèques PDF sont chargées
+    // Vérifier que les bibliothèques PDF sont chargées (version simplifiée)
     function waitForPDFLibraries() {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 secondes maximum
+        
         const checkLibraries = () => {
-          if (typeof window.jsPDF !== 'undefined' && window.jsPDF.jsPDF) {
-            console.log('✅ Bibliothèques PDF chargées avec succès');
+          attempts++;
+          
+          // Normaliser jsPDF si nécessaire (la version UMD l'expose sous window.jspdf)
+          if (typeof window.jspdf !== 'undefined' && !window.jsPDF) {
+            window.jsPDF = window.jspdf;
+          }
+          
+          // Vérifier si jsPDF est disponible (format UMD standard)
+          const jsPDFAvailable = 
+            typeof window.jsPDF !== 'undefined' && 
+            window.jsPDF.jsPDF && 
+            typeof window.jsPDF.jsPDF === 'function';
+          
+          if (jsPDFAvailable) {
             resolve();
+          } else if (attempts >= maxAttempts) {
+            reject(new Error('Les bibliothèques PDF n\'ont pas pu être chargées. Vérifiez votre connexion internet.'));
           } else {
-            console.log('⏳ Attente des bibliothèques PDF...');
             setTimeout(checkLibraries, 100);
           }
         };
-        checkLibraries();
+        
+        // Attendre un peu avant de commencer la vérification
+        setTimeout(checkLibraries, 300);
       });
     }
 
     // Initialiser la page après chargement des bibliothèques
     document.addEventListener('DOMContentLoaded', async () => {
-      await waitForPDFLibraries();
-      initReportsPage();
+      try {
+        await waitForPDFLibraries();
+        initReportsPage();
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+        // Afficher un message à l'utilisateur
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 1rem; border-radius: 0.5rem; z-index: 10000; max-width: 400px;';
+        errorDiv.innerHTML = '<strong>Erreur de chargement</strong><br>Les bibliothèques PDF n\'ont pas pu être chargées. Vérifiez votre connexion internet et rechargez la page.';
+        document.body.appendChild(errorDiv);
+        
+        // Retirer le message après 10 secondes
+        setTimeout(() => {
+          errorDiv.remove();
+        }, 10000);
+      }
     });
   </script>
 </body>

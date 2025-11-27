@@ -136,8 +136,18 @@
       </section>
     </div>
   </div>
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+  
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+  
   <script src="js/data.js" defer></script>
   <script src="js/auth.js" defer></script>
+  <script src="js/storage.js" defer></script>
   <script src="js/events.js" defer></script>
   <script>
     function logout() {
@@ -176,18 +186,35 @@
         welcomeEl.textContent = `Bienvenue, ${userName}`;
       }
       
-      // Hide forms for users and responsables (events are admin/secretariat only)
+      // Hide forms for users and responsables (events creation/editing are admin/secretariat only)
+      // But users can VIEW all events including current ones
       if (currentRole === 'user' || currentRole === 'responsable') {
         const formCard = document.getElementById('eventFormCard');
         if (formCard) {
           formCard.style.display = 'none';
         }
         
-        // Hide action buttons for users and responsables
+        // Hide action buttons for users and responsables (they can only view)
         const style = document.createElement('style');
         style.textContent = '.event-actions { display: none !important; }';
         document.head.appendChild(style);
       }
+      
+      // Highlight current events for all users
+      setTimeout(() => {
+        const currentEvents = document.querySelectorAll('.event-card.status-current');
+        currentEvents.forEach(card => {
+          card.style.border = '2px solid #10b981';
+          card.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.3)';
+          const badge = card.querySelector('.event-status-badge.current');
+          if (badge) {
+            badge.style.background = '#10b981';
+            badge.style.color = 'white';
+            badge.style.fontWeight = 'bold';
+            badge.innerHTML = '🟢 EN COURS';
+          }
+        });
+      }, 1500);
     });
   </script>
 </body>

@@ -41,6 +41,7 @@
       <nav class="nav role-nav">
         <a href="index.html">Accueil</a>
         <a href="members.html" data-section="members">Consulter la liste</a>
+        <a href="events.html" data-section="events">Événements</a>
         <a href="attendances.html" data-section="attendances">Présences</a>
         <a href="profile.html">👤 Mon Profil</a>
       </nav>
@@ -58,15 +59,573 @@
         <h3>Consultation</h3>
         <div class="form-actions" style="margin-top:1rem;">
           <a class="primary" href="members.html">Voir les membres</a>
+          <a class="primary" href="events.html">Voir les événements</a>
           <a class="primary" href="attendances.html">Voir les présences</a>
+        </div>
+      </section>
+      
+      <!-- Section Événements en cours -->
+      <section class="card" style="margin-top:1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">🟢 Événements en cours</h3>
+          <span id="currentEventsBadge" style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">0</span>
+        </div>
+        <div id="currentEvents" style="margin-top:1rem;">
+          <p style="color: #94a3b8; text-align: center;">Chargement des événements...</p>
+        </div>
+        <div style="margin-top: 1rem; text-align: center;">
+          <button class="secondary" onclick="refreshCurrentEvents()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+            🔄 Actualiser
+          </button>
+        </div>
+      </section>
+      
+      <!-- Section Événements à venir -->
+      <section class="card" style="margin-top:1.5rem;">
+        <h3>📅 Événements à venir</h3>
+        <div id="upcomingEvents" style="margin-top:1rem;">
+          <p style="color: #94a3b8; text-align: center;">Chargement des événements...</p>
+        </div>
+      </section>
+      
+      <!-- Section Graphique d'évolution du taux de présence -->
+      <section class="card" style="margin-top:1.5rem;">
+        <h3>📈 Évolution de mon taux de présence</h3>
+        <div id="attendanceChartContainer" style="margin-top:1rem; min-height: 250px; position: relative;">
+          <canvas id="attendanceChart" style="width: 100%; height: 250px;"></canvas>
+          <div id="chartLoading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #94a3b8;">
+            Chargement des données...
+          </div>
+          <div id="chartNoData" style="display: none; text-align: center; padding: 2rem; color: #94a3b8;">
+            <p>Aucune donnée de présence disponible pour afficher l'évolution.</p>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Vos statistiques apparaîtront ici après votre première présence enregistrée.</p>
+          </div>
+        </div>
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #94a3b8;">
+          <span id="chartStats">Taux moyen: <strong id="averageRate">-</strong></span>
+          <span>Total événements: <strong id="totalEventsCount">0</strong></span>
+        </div>
+      </section>
+      
+      <!-- Section Historique des événements passés -->
+      <section class="card" style="margin-top:1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">📚 Historique des événements</h3>
+          <button class="secondary" onclick="toggleEventHistory()" style="font-size: 0.85rem; padding: 0.5rem 1rem;" id="toggleHistoryBtn">
+            Afficher
+          </button>
+        </div>
+        <div id="pastEvents" style="margin-top:1rem; display: none; max-height: 500px; overflow-y: auto;">
+          <p style="color: #94a3b8; text-align: center;">Chargement de l'historique...</p>
         </div>
       </section>
     </div>
   </div>
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+  
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+  
   <script src="js/data.js" defer></script>
   <script src="js/auth.js" defer></script>
   <script src="js/notifications.js" defer></script>
   <script src="js/role-page.js" defer></script>
+  <script src="js/events.js" defer></script>
+  
+  <script>
+    // Fonction utilitaire pour obtenir le statut d'un événement
+    function getEventStatus(eventDate) {
+      const today = new Date();
+      const event = new Date(eventDate);
+      today.setHours(0, 0, 0, 0);
+      event.setHours(0, 0, 0, 0);
+      
+      if (event.getTime() === today.getTime()) {
+        return 'current';
+      } else if (event > today) {
+        return 'upcoming';
+      } else {
+        return 'past';
+      }
+    }
+    
+    // Charger tous les événements depuis Supabase
+    async function loadAllEvents() {
+      try {
+        if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+          throw new Error('Supabase n\'est pas configuré');
+        }
+        
+        const events = await window.supabaseDB.getEvents();
+        return events.map(evt => ({
+          id: evt.id,
+          name: evt.name,
+          date: evt.date,
+          description: evt.description,
+          photoUrl: evt.photo_url
+        }));
+      } catch (error) {
+        console.error('Erreur lors du chargement des événements:', error);
+        return [];
+      }
+    }
+    
+    // Afficher les événements en cours
+    async function loadCurrentEvents() {
+      const currentEventsDiv = document.getElementById('currentEvents');
+      const badge = document.getElementById('currentEventsBadge');
+      if (!currentEventsDiv) return;
+      
+      try {
+        const events = await loadAllEvents();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const current = events.filter(evt => {
+          const eventDate = new Date(evt.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate.getTime() === today.getTime();
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (badge) {
+          badge.textContent = current.length;
+          badge.style.display = current.length > 0 ? 'inline-block' : 'none';
+        }
+        
+        if (current.length === 0) {
+          currentEventsDiv.innerHTML = '<p style="color: #94a3b8; text-align: center;">Aucun événement en cours aujourd\'hui</p>';
+          return;
+        }
+        
+        currentEventsDiv.innerHTML = current.map(evt => {
+          const eventDate = new Date(evt.date);
+          const formattedDate = eventDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          
+          // Calculer le temps restant (si c'est aujourd'hui)
+          const now = new Date();
+          const hours = now.getHours();
+          const minutes = now.getMinutes();
+          const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          
+          return `
+            <div style="padding: 1rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1)); border-radius: 0.5rem; border-left: 4px solid #10b981; position: relative;">
+              <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">
+                EN COURS
+              </div>
+              <h4 style="margin: 0 0 0.5rem 0; color: #10b981; font-size: 1.1rem;">${evt.name}</h4>
+              <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">📅 ${formattedDate}</p>
+              <p style="margin: 0.25rem 0 0 0; color: #6ee7b7; font-size: 0.85rem; font-weight: 600;">🕐 ${timeString}</p>
+              ${evt.description ? `<p style="margin: 0.5rem 0 0 0; color: #cbd5e1; font-size: 0.85rem;">${evt.description.substring(0, 150)}${evt.description.length > 150 ? '...' : ''}</p>` : ''}
+              <div style="margin-top: 0.75rem;">
+                <a href="events.html" class="primary" style="display: inline-block; padding: 0.5rem 1rem; font-size: 0.85rem; text-decoration: none;">Voir les détails →</a>
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement des événements en cours:', error);
+        currentEventsDiv.innerHTML = '<p style="color: #ef4444; text-align: center;">Erreur lors du chargement des événements</p>';
+      }
+    }
+    
+    // Afficher les événements à venir
+    async function loadUpcomingEvents() {
+      const upcomingEventsDiv = document.getElementById('upcomingEvents');
+      if (!upcomingEventsDiv) return;
+      
+      try {
+        const events = await loadAllEvents();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const upcoming = events.filter(evt => {
+          const eventDate = new Date(evt.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate > today;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
+        
+        if (upcoming.length === 0) {
+          upcomingEventsDiv.innerHTML = '<p style="color: #94a3b8; text-align: center;">Aucun événement à venir</p>';
+          return;
+        }
+        
+        upcomingEventsDiv.innerHTML = upcoming.map(evt => {
+          const eventDate = new Date(evt.date);
+          const formattedDate = eventDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          
+          // Calculer les jours restants
+          const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+          const daysText = daysUntil === 1 ? 'demain' : `dans ${daysUntil} jours`;
+          
+          return `
+            <div style="padding: 1rem; margin-bottom: 0.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.5rem; border-left: 3px solid #3b82f6;">
+              <h4 style="margin: 0 0 0.5rem 0; color: #60a5fa;">${evt.name}</h4>
+              <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">📅 ${formattedDate}</p>
+              <p style="margin: 0.25rem 0 0 0; color: #93c5fd; font-size: 0.85rem; font-weight: 600;">⏰ ${daysText}</p>
+              ${evt.description ? `<p style="margin: 0.5rem 0 0 0; color: #cbd5e1; font-size: 0.85rem;">${evt.description.substring(0, 100)}${evt.description.length > 100 ? '...' : ''}</p>` : ''}
+            </div>
+          `;
+        }).join('');
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement des événements:', error);
+        upcomingEventsDiv.innerHTML = '<p style="color: #ef4444; text-align: center;">Erreur lors du chargement des événements</p>';
+      }
+    }
+    
+    // Afficher l'historique des événements passés
+    async function loadPastEvents() {
+      const pastEventsDiv = document.getElementById('pastEvents');
+      if (!pastEventsDiv) return;
+      
+      try {
+        const events = await loadAllEvents();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const past = events.filter(evt => {
+          const eventDate = new Date(evt.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate < today;
+        }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Plus récents en premier
+        
+        if (past.length === 0) {
+          pastEventsDiv.innerHTML = '<p style="color: #94a3b8; text-align: center;">Aucun événement dans l\'historique</p>';
+          return;
+        }
+        
+        pastEventsDiv.innerHTML = past.map(evt => {
+          const eventDate = new Date(evt.date);
+          const formattedDate = eventDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          
+          // Calculer les jours écoulés
+          const daysAgo = Math.floor((today - eventDate) / (1000 * 60 * 60 * 24));
+          const daysText = daysAgo === 0 ? 'aujourd\'hui' : daysAgo === 1 ? 'hier' : `il y a ${daysAgo} jours`;
+          
+          return `
+            <div style="padding: 1rem; margin-bottom: 0.5rem; background: rgba(100, 116, 139, 0.1); border-radius: 0.5rem; border-left: 3px solid #64748b; opacity: 0.85;">
+              <h4 style="margin: 0 0 0.5rem 0; color: #94a3b8; font-size: 1rem;">${evt.name}</h4>
+              <p style="margin: 0; color: #64748b; font-size: 0.9rem;">📅 ${formattedDate}</p>
+              <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">⏳ ${daysText}</p>
+              ${evt.description ? `<p style="margin: 0.5rem 0 0 0; color: #cbd5e1; font-size: 0.85rem;">${evt.description.substring(0, 120)}${evt.description.length > 120 ? '...' : ''}</p>` : ''}
+            </div>
+          `;
+        }).join('');
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement de l\'historique:', error);
+        pastEventsDiv.innerHTML = '<p style="color: #ef4444; text-align: center;">Erreur lors du chargement de l\'historique</p>';
+      }
+    }
+    
+    // Toggle l'affichage de l'historique
+    let historyVisible = false;
+    function toggleEventHistory() {
+      const pastEventsDiv = document.getElementById('pastEvents');
+      const toggleBtn = document.getElementById('toggleHistoryBtn');
+      
+      if (!pastEventsDiv || !toggleBtn) return;
+      
+      historyVisible = !historyVisible;
+      pastEventsDiv.style.display = historyVisible ? 'block' : 'none';
+      toggleBtn.textContent = historyVisible ? 'Masquer' : 'Afficher';
+      
+      if (historyVisible && pastEventsDiv.innerHTML.includes('Chargement')) {
+        loadPastEvents();
+      }
+    }
+    
+    // Actualiser les événements en cours
+    async function refreshCurrentEvents() {
+      const currentEventsDiv = document.getElementById('currentEvents');
+      if (currentEventsDiv) {
+        currentEventsDiv.innerHTML = '<p style="color: #94a3b8; text-align: center;">Actualisation...</p>';
+        await loadCurrentEvents();
+      }
+    }
+    
+    // Charger tous les événements après le chargement de la page
+    document.addEventListener('DOMContentLoaded', () => {
+      // Attendre que data.js soit chargé
+      setTimeout(async () => {
+        await loadCurrentEvents();
+        await loadUpcomingEvents();
+        await loadAttendanceChart();
+        // Charger l'historique seulement si l'utilisateur l'ouvre
+      }, 1000);
+      
+      // Actualiser automatiquement les événements en cours toutes les 5 minutes
+      setInterval(loadCurrentEvents, 5 * 60 * 1000);
+      // Actualiser le graphique toutes les 2 minutes
+      setInterval(loadAttendanceChart, 2 * 60 * 1000);
+    });
+    
+    // Charger et afficher le graphique d'évolution du taux de présence
+    async function loadAttendanceChart() {
+      const chartContainer = document.getElementById('attendanceChartContainer');
+      const chartCanvas = document.getElementById('attendanceChart');
+      const chartLoading = document.getElementById('chartLoading');
+      const chartNoData = document.getElementById('chartNoData');
+      const averageRateEl = document.getElementById('averageRate');
+      const totalEventsCountEl = document.getElementById('totalEventsCount');
+      
+      if (!chartCanvas || !chartContainer) return;
+      
+      try {
+        // Obtenir l'utilisateur actuel (identifiant de connexion)
+        const currentUsername = localStorage.getItem('appUser');
+        if (!currentUsername) {
+          chartLoading.style.display = 'none';
+          chartNoData.style.display = 'block';
+          return;
+        }
+        
+        // Obtenir le membre correspondant à l'utilisateur
+        const members = await window.supabaseDB.getMembers();
+        const currentUser = await window.supabaseDB.getUserByUsername(currentUsername);
+        if (!currentUser) {
+          chartLoading.style.display = 'none';
+          chartNoData.style.display = 'block';
+          return;
+        }
+        
+        // Trouver le membre correspondant (par nom ou email)
+        const member = members.find(m => 
+          m.name === currentUser.name || 
+          m.email === currentUser.email ||
+          m.name.toLowerCase().includes(currentUser.name.toLowerCase())
+        );
+        
+        if (!member) {
+          chartLoading.style.display = 'none';
+          chartNoData.style.display = 'block';
+          return;
+        }
+        
+        // Obtenir tous les événements et présences
+        const events = await window.supabaseDB.getEvents();
+        const attendancesRaw = await window.supabaseDB.getAttendances();
+        
+        // Normaliser les présences Supabase (member_id, event_id, status) vers un format commun
+        const mapStatusToCode = (status) => {
+          const statusMap = {
+            'present': 'P',
+            'absent': 'A',
+            'excused': 'AJ',
+            'late': 'L'
+          };
+          return statusMap[status] || status;
+        };
+        
+        const attendances = attendancesRaw.map(a => ({
+          memberId: a.member_id,
+          eventId: a.event_id,
+          status: mapStatusToCode(a.status),
+          createdAt: a.created_at
+        }));
+        
+        // Filtrer les présences de l'utilisateur
+        const userAttendances = attendances.filter(a => {
+          const attMemberId = typeof a.memberId === 'string' ? parseInt(a.memberId) : a.memberId;
+          const memberId = typeof member.id === 'string' ? parseInt(member.id) : member.id;
+          return attMemberId == memberId;
+        });
+        
+        if (userAttendances.length === 0) {
+          chartLoading.style.display = 'none';
+          chartNoData.style.display = 'block';
+          totalEventsCountEl.textContent = '0';
+          return;
+        }
+        
+        // Trier les événements par date
+        const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // Calculer le taux de présence pour chaque événement
+        const chartData = [];
+        let totalPresent = 0;
+        let totalEvents = 0;
+        
+        sortedEvents.forEach(event => {
+          const eventId = typeof event.id === 'string' ? parseInt(event.id) : event.id;
+          const attendance = userAttendances.find(a => {
+            const attEventId = typeof a.eventId === 'string' ? parseInt(a.eventId) : a.eventId;
+            return attEventId == eventId;
+          });
+          
+          if (attendance) {
+            totalEvents++;
+            if (attendance.status === 'P') {
+              totalPresent++;
+            }
+            const rate = totalEvents > 0 ? (totalPresent / totalEvents) * 100 : 0;
+            chartData.push({
+              date: new Date(event.date),
+              rate: rate,
+              eventName: event.name,
+              status: attendance.status
+            });
+          }
+        });
+        
+        if (chartData.length === 0) {
+          chartLoading.style.display = 'none';
+          chartNoData.style.display = 'block';
+          totalEventsCountEl.textContent = '0';
+          return;
+        }
+        
+        // Afficher les statistiques
+        const averageRate = chartData.length > 0 
+          ? (chartData[chartData.length - 1].rate).toFixed(1)
+          : '0.0';
+        averageRateEl.textContent = averageRate + '%';
+        totalEventsCountEl.textContent = chartData.length;
+        
+        // Dessiner le graphique
+        const ctx = chartCanvas.getContext('2d');
+        const width = chartCanvas.offsetWidth;
+        const height = 250;
+        chartCanvas.width = width;
+        chartCanvas.height = height;
+        
+        // Effacer le canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        if (chartData.length === 0) {
+          chartLoading.style.display = 'none';
+          chartNoData.style.display = 'block';
+          return;
+        }
+        
+        // Configuration du graphique
+        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+        
+        // Dessiner les axes
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1;
+        
+        // Axe Y (vertical)
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top);
+        ctx.lineTo(padding.left, padding.top + chartHeight);
+        ctx.stroke();
+        
+        // Axe X (horizontal)
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top + chartHeight);
+        ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+        ctx.stroke();
+        
+        // Dessiner les lignes de grille
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i <= 5; i++) {
+          const y = padding.top + (chartHeight / 5) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding.left, y);
+          ctx.lineTo(padding.left + chartWidth, y);
+          ctx.stroke();
+          
+          // Labels Y (0%, 20%, 40%, 60%, 80%, 100%)
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '10px sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText((100 - i * 20) + '%', padding.left - 10, y + 4);
+        }
+        
+        // Dessiner la ligne d'évolution
+        if (chartData.length > 0) {
+          ctx.strokeStyle = '#00d4ff';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          
+          chartData.forEach((point, index) => {
+            const x = padding.left + (chartWidth / (chartData.length - 1 || 1)) * index;
+            const y = padding.top + chartHeight - (point.rate / 100) * chartHeight;
+            
+            if (index === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+          
+          ctx.stroke();
+          
+          // Dessiner les points
+          chartData.forEach((point, index) => {
+            const x = padding.left + (chartWidth / (chartData.length - 1 || 1)) * index;
+            const y = padding.top + chartHeight - (point.rate / 100) * chartHeight;
+            
+            // Couleur selon le statut
+            const color = point.status === 'P' ? '#10b981' : 
+                         point.status === 'A' ? '#ef4444' : 
+                         point.status === 'AJ' ? '#f97316' : '#64748b';
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Point blanc au centre
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+        
+        // Labels X (dates)
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '9px sans-serif';
+        ctx.textAlign = 'center';
+        
+        const labelStep = Math.max(1, Math.floor(chartData.length / 5));
+        chartData.forEach((point, index) => {
+          if (index % labelStep === 0 || index === chartData.length - 1) {
+            const x = padding.left + (chartWidth / (chartData.length - 1 || 1)) * index;
+            const dateStr = point.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            ctx.fillText(dateStr, x, padding.top + chartHeight + 20);
+          }
+        });
+        
+        chartLoading.style.display = 'none';
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement du graphique:', error);
+        chartLoading.style.display = 'none';
+        chartNoData.style.display = 'block';
+      }
+    }
+    
+    // Exposer les fonctions globalement
+    window.refreshCurrentEvents = refreshCurrentEvents;
+    window.toggleEventHistory = toggleEventHistory;
+    
+  </script>
 </body>
 </html>
 

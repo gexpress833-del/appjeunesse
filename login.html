@@ -239,6 +239,15 @@
     </div>
   </div>
 
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+  
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+  
   <script src="js/data.js"></script>
   <script src="js/notifications.js"></script>
   <script>
@@ -249,57 +258,27 @@
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
 
-    // Initialize users if not exists
-    if (!localStorage.getItem('appUsers')) {
-      const defaultUsers = [
-        { 
-          username: 'admin', 
-          password: 'admin123', 
-          role: 'admin', 
-          name: 'Jean-Baptiste Mukendi',
-          status: 'active',
-          email: 'admin@laparole.cd',
-          birthDate: '1985-03-15',
-          address: '123 Avenue de la Liberté, Quartier Golf, Kolwezi',
-          createdAt: new Date().toISOString()
-        },
-        { 
-          username: 'secretariat', 
-          password: 'secret123', 
-          role: 'secretariat', 
-          name: 'Marie Kabongo',
-          status: 'active',
-          email: 'secretariat@laparole.cd',
-          birthDate: '1990-07-22',
-          address: '456 Rue de la Paix, Quartier Makomeno, Kolwezi',
-          createdAt: new Date().toISOString()
-        },
-        { 
-          username: 'responsable', 
-          password: 'resp123', 
-          role: 'responsable', 
-          dept: 'DLB', 
-          name: 'Paul Mwanza',
-          status: 'active',
-          email: 'responsable@laparole.cd',
-          birthDate: '1988-11-10',
-          address: '789 Boulevard Lumumba, Quartier Dilala, Kolwezi',
-          createdAt: new Date().toISOString()
-        },
-        { 
-          username: 'user', 
-          password: 'user123', 
-          role: 'user', 
-          name: 'Grace Kasongo',
-          status: 'active',
-          email: 'user@laparole.cd',
-          birthDate: '1995-05-08',
-          address: '321 Avenue Mobutu, Quartier Kapata, Kolwezi',
-          createdAt: new Date().toISOString()
+    // Vérifier que Supabase est configuré et que les utilisateurs existent
+    async function checkSupabaseSetup() {
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+        console.warn('⚠️ Supabase n\'est pas configuré. L\'application nécessite Supabase pour fonctionner.');
+        return;
+      }
+      
+      try {
+        const users = await window.supabaseDB.getUsers();
+        if (users.length === 0) {
+          console.warn('⚠️ Aucun utilisateur trouvé dans Supabase. Veuillez exécuter le schéma SQL dans Supabase.');
+        } else {
+          console.log(`✅ ${users.length} utilisateur(s) trouvé(s) dans Supabase`);
         }
-      ];
-      localStorage.setItem('appUsers', JSON.stringify(defaultUsers));
+      } catch (error) {
+        console.error('Erreur lors de la vérification des utilisateurs:', error);
+      }
     }
+    
+    // Vérifier la configuration au chargement
+    checkSupabaseSetup();
 
     function showError(message) {
       // Use new notification system if available
@@ -326,21 +305,37 @@
       }
     }
 
-    function validateCredentials(username, password) {
-      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-      const user = users.find(user => user.username === username && user.password === password);
-      
-      // Debug: afficher les informations de l'utilisateur trouvé
-      if (user) {
-        console.log('Utilisateur trouvé:', {
-          username: user.username,
-          role: user.role,
-          name: user.name,
-          status: user.status
-        });
+    async function validateCredentials(username, password) {
+      // Utiliser uniquement Supabase
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+        console.error('❌ Supabase n\'est pas configuré');
+        showError('Supabase n\'est pas configuré. Veuillez configurer Supabase dans js/config.js');
+        return null;
       }
       
-      return user;
+      try {
+        const user = await window.supabaseDB.getUserByUsername(username);
+        if (user && user.password === password) {
+          // Mapper les données Supabase vers le format attendu
+          return {
+            username: user.username,
+            password: user.password,
+            role: user.role,
+            name: user.name,
+            status: user.status,
+            email: user.email,
+            birthDate: user.birth_date,
+            address: user.address,
+            dept: user.dept,
+            createdAt: user.created_at
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error('Erreur lors de la validation avec Supabase:', error);
+        showError('Erreur lors de la connexion. Veuillez réessayer.');
+        return null;
+      }
     }
 
     function redirectToRole(role) {
@@ -375,7 +370,7 @@
         // Simulate network delay for realism
         await simulateNetworkDelay();
         
-        const user = validateCredentials(username, password);
+        const user = await validateCredentials(username, password);
         
         if (!user) {
           showError('Nom d\'utilisateur ou mot de passe incorrect');

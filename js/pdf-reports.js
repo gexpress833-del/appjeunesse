@@ -76,33 +76,66 @@ class PDFReportGenerator {
     });
   }
 
+  // Fonction helper pour mapper les statuts Supabase vers les codes d'affichage
+  mapStatusToCode(status) {
+    const statusMap = {
+      'present': 'P',
+      'absent': 'A',
+      'excused': 'AJ',
+      'late': 'L'
+    };
+    return statusMap[status] || status;
+  }
+
   // Cache pour les données fréquemment utilisées
-  getCachedData() {
+  async getCachedData() {
     if (!this.dataCache || Date.now() - this.dataCacheTime > 30000) { // Cache 30s
-      this.dataCache = {
-        members: JSON.parse(localStorage.getItem('members') || '[]'),
-        events: JSON.parse(localStorage.getItem('events') || '[]'),
-        attendances: JSON.parse(localStorage.getItem('attendances') || '[]'),
-        departments: JSON.parse(localStorage.getItem('departments') || '[]')
-      };
-      this.dataCacheTime = Date.now();
+      // Charger depuis Supabase uniquement
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+        console.error('❌ Supabase n\'est pas configuré');
+        this.dataCache = { members: [], events: [], attendances: [], departments: [] };
+        this.dataCacheTime = Date.now();
+        return this.dataCache;
+      }
+      
+      try {
+        const [members, events, attendances, departments] = await Promise.all([
+          window.supabaseDB.getMembers(),
+          window.supabaseDB.getEvents(),
+          window.supabaseDB.getAttendances(),
+          window.supabaseDB.getDepartments()
+        ]);
+        
+        // Mapper les présences depuis Supabase vers un format cohérent avec le reste de l'app
+        const mappedAttendances = (attendances || []).map(att => ({
+          id: att.id,
+          memberId: att.member_id,
+          eventId: att.event_id,
+          status: this.mapStatusToCode(att.status),
+          notes: att.notes,
+          createdAt: att.created_at,
+          updatedAt: att.updated_at
+        }));
+        
+        this.dataCache = {
+          // Les membres et événements sont déjà dans un format exploitable (id, name, dept, date, ...)
+          members: members || [],
+          events: events || [],
+          attendances: mappedAttendances,
+          departments: departments || []
+        };
+        this.dataCacheTime = Date.now();
+      } catch (error) {
+        console.error('Erreur lors du chargement des données depuis Supabase:', error);
+        this.dataCache = { members: [], events: [], attendances: [], departments: [] };
+        this.dataCacheTime = Date.now();
+      }
     }
     return this.dataCache;
   }
 
   // Afficher le progrès de génération
   showProgress(message, percentage) {
-    if (window.notificationSystem) {
-      // Utiliser le système de notifications existant
-      if (this.currentProgressNotification) {
-        window.notificationSystem.dismiss(this.currentProgressNotification);
-      }
-      this.currentProgressNotification = window.notificationSystem.info(
-        `${message} (${percentage}%)`, 
-        { duration: 1000, persistent: percentage < 100 }
-      );
-    }
-    
     // Mettre à jour l'overlay de chargement s'il existe
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay && loadingOverlay.style.display !== 'none') {
@@ -111,41 +144,68 @@ class PDFReportGenerator {
         progressText.textContent = `${message} (${percentage}%)`;
       }
     }
+    
+    // Utiliser le système de notifications uniquement pour les messages importants
+    if (window.notificationSystem && percentage >= 100) {
+      // Ne pas afficher de notification pour chaque étape, seulement à la fin
+      // Les notifications de progression sont gérées par l'overlay de chargement
+    }
   }
 
   // Masquer le progrès
   hideProgress() {
+    // Fermer l'overlay de chargement s'il existe
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+    
+    // Nettoyer les notifications de progression si nécessaire
     if (this.currentProgressNotification && window.notificationSystem) {
-      window.notificationSystem.dismiss(this.currentProgressNotification);
+      // Le système de notifications gère automatiquement la fermeture via duration
       this.currentProgressNotification = null;
     }
   }
 
   // Traitement optimisé des données d'événement
   processEventData(eventId, members, attendances) {
-    const eventAttendances = attendances.filter(a => a.eventId == eventId);
+    // IDs normalisés (tous en nombre)
+    const normalizedEventId = typeof eventId === 'string' ? parseInt(eventId) : eventId;
+    
+    const eventAttendances = attendances.filter(a => {
+      const attEventId = typeof a.eventId === 'string' ? parseInt(a.eventId) : a.eventId;
+      return attEventId === normalizedEventId;
+    });
     
     // Créer un map pour un accès rapide aux présences
     const attendanceMap = new Map();
     eventAttendances.forEach(att => {
-      attendanceMap.set(att.memberId, att.status);
+      const attMemberId = typeof att.memberId === 'string' ? parseInt(att.memberId) : att.memberId;
+      attendanceMap.set(attMemberId, att.status);
     });
     
     // Traiter les membres avec leurs présences
-    const processedMembers = members.map(member => ({
-      ...member,
-      status: attendanceMap.get(member.id) || 'N/A',
-      statusLabel: this.getStatusLabel(attendanceMap.get(member.id) || 'N/A')
-    }));
+    const processedMembers = members.map(member => {
+      const memberId = typeof member.id === 'string' ? parseInt(member.id) : member.id;
+      const status = attendanceMap.get(memberId) || 'N/A';
+      return {
+        ...member,
+        id: memberId,
+        status: status,
+        statusLabel: this.getStatusLabel(status)
+      };
+    });
     
-    // Calculer les statistiques en une seule passe
+    // Calculer les statistiques
     const stats = {
       total: members.length,
       present: 0,
       absent: 0,
-      excused: 0
+      excused: 0,
+      notRecorded: 0
     };
     
+    // Compter les présences enregistrées (par statut)
     eventAttendances.forEach(att => {
       switch(att.status) {
         case 'P': stats.present++; break;
@@ -154,6 +214,14 @@ class PDFReportGenerator {
       }
     });
     
+    // Compter les membres sans présence enregistrée
+    processedMembers.forEach(member => {
+      if (member.status === 'N/A') {
+        stats.notRecorded++;
+      }
+    });
+    
+    // Taux de présence basé sur les membres présents / total membres
     stats.rate = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : 0;
     
     return { processedMembers, stats, eventAttendances };
@@ -170,45 +238,137 @@ class PDFReportGenerator {
     return statusLabels[status] || status;
   }
 
-  // Ajouter l'en-tête professionnel
-  addHeader(doc, title, subtitle = '') {
+  // Ajouter l'en-tête professionnel avec logo
+  async addHeader(doc, title, subtitle = '', eventInfo = null) {
     const pageWidth = doc.internal.pageSize.width;
+    const headerHeight = 70;
     
-    // Fond dégradé pour l'en-tête
-    doc.setFillColor(...this.colors.primary);
-    doc.rect(0, 0, pageWidth, 45, 'F');
+    // Fond avec couleur unie (plus lisible)
+    doc.setFillColor(0, 150, 200); // Bleu plus foncé pour meilleur contraste
+    doc.rect(0, 0, pageWidth, headerHeight, 'F');
     
-    // Logo et nom de l'entreprise
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('🏛️ ' + this.companyInfo.name, 20, 25);
-    
-    // Titre du rapport
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'normal');
-    doc.text(title, 20, 35);
-    
-    if (subtitle) {
-      doc.setFontSize(12);
-      doc.setTextColor(200, 200, 200);
-      doc.text(subtitle, 20, 42);
+    // Ajouter le logo si disponible
+    let logoLoaded = false;
+    try {
+      const logoImg = new Image();
+      // Chemin RELATIF simple – le même que celui utilisé dans les pages HTML
+      logoImg.src = 'images/logo.jpg';
+      
+      await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.warn('Timeout lors du chargement du logo');
+          resolve();
+        }, 2000);
+        
+        logoImg.onload = () => {
+          clearTimeout(timeout);
+          try {
+            // Créer un canvas pour redimensionner et convertir l'image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const logoSize = 35;
+            canvas.width = logoSize;
+            canvas.height = logoSize;
+            
+            // Dessiner l'image redimensionnée sur le canvas
+            ctx.drawImage(logoImg, 0, 0, logoSize, logoSize);
+            
+            // Convertir le canvas en data URL
+            const logoDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Ajouter l'image au PDF
+            doc.addImage(logoDataUrl, 'JPEG', 15, 15, logoSize, logoSize);
+            logoLoaded = true;
+            resolve();
+          } catch (e) {
+            console.warn('Erreur lors de l\'ajout du logo:', e);
+            resolve();
+          }
+        };
+        
+        logoImg.onerror = () => {
+          clearTimeout(timeout);
+          console.warn('Logo non trouvé à l\'emplacement "images/logo.jpg"');
+          resolve();
+        };
+      });
+    } catch (e) {
+      console.warn('Erreur lors du chargement du logo:', e);
     }
     
-    // Date et heure de génération
+    // Zone de texte (à droite du logo ou depuis le début)
+    const logoX = 15;
+    const logoWidth = logoLoaded ? 35 : 0;
+    const textX = logoX + logoWidth + (logoLoaded ? 12 : 0);
+    const rightMargin = 15;
+    
+    // Nom de l'église (grand et visible)
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(this.companyInfo.name, textX, 28);
+    
+    // Informations de contact (petites mais lisibles)
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(240, 240, 240);
+    doc.text(this.companyInfo.address, textX, 35);
+    doc.text(`${this.companyInfo.phone} | ${this.companyInfo.email}`, textX, 41);
+    
+    // Ligne de séparation subtile
+    doc.setDrawColor(255, 255, 255, 0.3);
+    doc.setLineWidth(0.5);
+    doc.line(textX, 45, pageWidth - rightMargin, 45);
+    
+    // Titre du rapport (centré, bien visible)
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    const titleY = 55;
+    doc.text(title, pageWidth / 2, titleY, { align: 'center' });
+    
+    // Sous-titre avec informations de l'événement (si fourni)
+    if (eventInfo) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(255, 255, 255);
+      const eventNameY = titleY + 8;
+      const eventNameText = `${eventInfo.name} - ${new Date(eventInfo.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+      const eventNameLines = doc.splitTextToSize(eventNameText, pageWidth - 40);
+      doc.text(eventNameLines[0], pageWidth / 2, eventNameY, { align: 'center', maxWidth: pageWidth - 40 });
+      
+      // Description de l'événement (si disponible)
+      if (eventInfo.description && eventInfo.description.trim()) {
+        doc.setFontSize(8);
+        doc.setTextColor(240, 240, 240);
+        const descY = eventNameY + 6;
+        const maxWidth = pageWidth - 40;
+        const descLines = doc.splitTextToSize(eventInfo.description.trim(), maxWidth);
+        if (descLines.length > 0) {
+          doc.text(descLines[0], pageWidth / 2, descY, { align: 'center', maxWidth: maxWidth });
+        }
+      }
+    } else if (subtitle) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(255, 255, 255);
+      doc.text(subtitle, pageWidth / 2, titleY + 8, { align: 'center' });
+    }
+    
+    // Date et heure de génération (coin supérieur droit, petit)
     const now = new Date();
     const dateStr = now.toLocaleDateString('fr-FR', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric'
     });
-    const timeStr = now.toLocaleTimeString('fr-FR');
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     
-    doc.setFontSize(10);
-    doc.setTextColor(220, 220, 220);
-    doc.text(`Généré le ${dateStr} à ${timeStr}`, pageWidth - 20, 25, { align: 'right' });
+    doc.setFontSize(7);
+    doc.setTextColor(240, 240, 240);
+    doc.text(`Généré: ${dateStr} ${timeStr}`, pageWidth - rightMargin, 22, { align: 'right' });
     
-    return 55; // Retourne la position Y après l'en-tête
+    return headerHeight + 15; // Retourne la position Y après l'en-tête
   }
 
   // Ajouter le pied de page
@@ -217,19 +377,24 @@ class PDFReportGenerator {
     const pageHeight = doc.internal.pageSize.height;
     
     // Ligne de séparation
-    doc.setDrawColor(...this.colors.muted);
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.5);
-    doc.line(20, pageHeight - 25, pageWidth - 20, pageHeight - 25);
+    doc.line(20, pageHeight - 30, pageWidth - 20, pageHeight - 30);
     
     // Informations de l'entreprise
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text(this.companyInfo.address, 20, pageHeight - 20);
     doc.setFontSize(8);
-    doc.setTextColor(...this.colors.muted);
-    doc.text(this.companyInfo.address, 20, pageHeight - 15);
-    doc.text(`${this.companyInfo.phone} | ${this.companyInfo.email}`, 20, pageHeight - 10);
+    doc.text(`${this.companyInfo.phone} | ${this.companyInfo.email}`, 20, pageHeight - 12);
     
     // Numéro de page
-    doc.text(`Page ${pageNumber} sur ${totalPages}`, pageWidth - 20, pageHeight - 15, { align: 'right' });
-    doc.text('Rapport confidentiel', pageWidth - 20, pageHeight - 10, { align: 'right' });
+    doc.setFontSize(9);
+    doc.text(`Page ${pageNumber} sur ${totalPages}`, pageWidth - 20, pageHeight - 20, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Rapport confidentiel', pageWidth - 20, pageHeight - 12, { align: 'right' });
   }
 
   // Générer rapport de présences par événement (optimisé)
@@ -247,7 +412,7 @@ class PDFReportGenerator {
     try {
       // Utiliser les données en cache pour de meilleures performances
       this.showProgress('Chargement des données...', 20);
-      const data = this.getCachedData();
+      const data = await this.getCachedData();
       const { events, members, attendances } = data;
       
       const event = events.find(e => e.id == eventId);
@@ -262,52 +427,96 @@ class PDFReportGenerator {
       
       this.showProgress('Génération du PDF...', 60);
       
-      // En-tête
-      const subtitle = `Événement: ${event.name} - ${new Date(event.date).toLocaleDateString('fr-FR')}`;
-      let yPos = this.addHeader(doc, 'RAPPORT DE PRÉSENCES', subtitle);
+      // En-tête avec informations de l'événement
+      let yPos = await this.addHeader(doc, 'RAPPORT DE PRÉSENCES', '', {
+        name: event.name,
+        date: event.date,
+        description: event.description || ''
+      });
 
+      // Ligne de séparation
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPos - 5, doc.internal.pageSize.width - 20, yPos - 5);
+      
       // Statistiques générales (optimisées)
-      yPos += 10;
-      doc.setFontSize(14);
-      doc.setTextColor(...this.colors.dark);
+      yPos += 15;
+      doc.setFontSize(16);
+      doc.setTextColor(50, 50, 50);
       doc.setFont('helvetica', 'bold');
-      doc.text('📊 STATISTIQUES GÉNÉRALES', 20, yPos);
+      doc.text('STATISTIQUES GÉNÉRALES', 20, yPos);
 
       yPos += 15;
 
       
       // Cartes de statistiques (utilisant les stats pré-calculées)
+      // Afficher seulement les statistiques pertinentes (si pas de "Non enregistré", on peut afficher 4 cartes)
       const statsData = [
-        { label: 'Total Membres', value: stats.total, color: this.colors.muted },
+        { label: 'Total Membres', value: stats.total, color: [100, 100, 100] },
         { label: 'Présents', value: stats.present, color: [34, 197, 94] },
         { label: 'Absents', value: stats.absent, color: [239, 68, 68] },
         { label: 'Excusés', value: stats.excused, color: [249, 115, 22] }
       ];
+      
+      // Ajouter "Non enregistrés" seulement s'il y en a
+      if (stats.notRecorded > 0) {
+        statsData.push({ label: 'Non enregistrés', value: stats.notRecorded, color: [148, 163, 184] });
+      }
+
+      // Ajuster la largeur des cartes selon le nombre
+      const cardWidth = statsData.length > 4 ? 38 : 42;
+      const cardHeight = 28;
+      const cardSpacing = 5;
+      const totalCardsWidth = (statsData.length * cardWidth) + ((statsData.length - 1) * cardSpacing);
+      const startX = Math.max(20, (doc.internal.pageSize.width - totalCardsWidth) / 2);
 
       statsData.forEach((stat, index) => {
-        const x = 20 + (index * 45);
+        const x = startX + (index * (cardWidth + cardSpacing));
         
-        // Fond de la carte
+        // Fond de la carte avec coins arrondis
         doc.setFillColor(...stat.color);
-        doc.roundedRect(x, yPos, 40, 25, 3, 3, 'F');
+        doc.roundedRect(x, yPos, cardWidth, cardHeight, 4, 4, 'F');
         
-        // Texte
+        // Bordure subtile
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, yPos, cardWidth, cardHeight, 4, 4, 'S');
+        
+        // Valeur
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(16);
+        doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
-        doc.text(stat.value.toString(), x + 20, yPos + 12, { align: 'center' });
+        doc.text(stat.value.toString(), x + cardWidth / 2, yPos + 14, { align: 'center' });
         
-        doc.setFontSize(8);
+        // Label
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.text(stat.label, x + 20, yPos + 20, { align: 'center' });
+        doc.text(stat.label, x + cardWidth / 2, yPos + 23, { align: 'center', maxWidth: cardWidth - 4 });
       });
 
       // Taux de présence (utilisant les stats pré-calculées)
-      yPos += 35;
-      doc.setFontSize(12);
-      doc.setTextColor(...this.colors.dark);
+      yPos += 40;
+      doc.setFontSize(13);
+      doc.setTextColor(50, 50, 50);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Taux de présence: ${stats.rate}%`, 20, yPos);
+      
+      // Afficher le taux de présence avec explication
+      if (stats.total === 0) {
+        doc.text('Taux de présence: 0% (aucun membre)', 20, yPos);
+      } else if (stats.notRecorded > 0) {
+        doc.text(`Taux de présence: ${stats.rate}% (${stats.present}/${stats.total} membres)`, 20, yPos);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        yPos += 6;
+        doc.text(`Note: ${stats.notRecorded} membre(s) sans présence enregistrée`, 20, yPos);
+        yPos -= 6;
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(50, 50, 50);
+      } else {
+        doc.text(`Taux de présence: ${stats.rate}% (${stats.present}/${stats.total} membres présents)`, 20, yPos);
+      }
 
       // Barre de progression (utilisant les stats pré-calculées)
       yPos += 5;
@@ -326,48 +535,82 @@ class PDFReportGenerator {
         doc.roundedRect(20, yPos, fillWidth, 8, 4, 4, 'F');
       }
 
+      // Ligne de séparation
+      yPos += 15;
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPos, doc.internal.pageSize.width - 20, yPos);
+      
       // Tableau détaillé des présences
-      yPos += 25;
-      doc.setFontSize(14);
-      doc.setTextColor(...this.colors.dark);
+      yPos += 20;
+      doc.setFontSize(16);
+      doc.setTextColor(50, 50, 50);
       doc.setFont('helvetica', 'bold');
-      doc.text('📋 DÉTAIL DES PRÉSENCES', 20, yPos);
+      doc.text('DÉTAIL DES PRÉSENCES', 20, yPos);
 
       yPos += 10;
 
       this.showProgress('Génération du tableau...', 80);
       
       // Préparer les données du tableau (optimisé avec les données pré-traitées)
-      const tableData = processedMembers.map(member => [
-        member.name,
-        member.dept || 'N/A',
-        member.statusLabel,
-        member.status !== 'N/A' ? new Date().toLocaleTimeString('fr-FR') : '-'
-      ]);
+      const normalizedEventId = typeof eventId === 'string' ? parseInt(eventId) : eventId;
+      const tableData = processedMembers.map(member => {
+        // Trouver l'heure d'enregistrement réelle depuis les présences
+        const attendance = attendances.find(a => {
+          const attEventId = typeof a.eventId === 'string' ? parseInt(a.eventId) : a.eventId;
+          const attMemberId = typeof a.memberId === 'string' ? parseInt(a.memberId) : a.memberId;
+          return attEventId == normalizedEventId && attMemberId == member.id;
+        });
+        
+        const recordedTime = attendance && attendance.created_at 
+          ? new Date(attendance.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          : (member.status !== 'N/A' ? new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-');
+        
+        return [
+          member.name || 'N/A',
+          member.dept || 'N/A',
+          member.statusLabel || 'Non enregistré',
+          recordedTime
+        ];
+      });
 
       // Configuration du tableau
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 20;
+      const availableWidth = pageWidth - (margin * 2);
+      
       doc.autoTable({
-        startY: yPos,
-        head: [['Nom du Membre', 'Département', 'Statut', 'Heure d\'enregistrement']],
+        startY: yPos + 8,
+        head: [['Nom du Membre', 'Département', 'Statut', 'Heure']],
         body: tableData,
-        theme: 'grid',
+        theme: 'striped',
         styles: {
           fontSize: 9,
           cellPadding: 5,
-          font: 'helvetica'
+          font: 'helvetica',
+          textColor: [50, 50, 50],
+          lineColor: [220, 220, 220],
+          lineWidth: 0.5,
+          overflow: 'linebreak',
+          cellWidth: 'wrap'
         },
         headStyles: {
-          fillColor: this.colors.primary,
+          fillColor: [0, 212, 255],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 10
+          fontSize: 10,
+          halign: 'center'
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
         },
         columnStyles: {
-          0: { cellWidth: 50 },
-          1: { cellWidth: 40 },
-          2: { cellWidth: 30, halign: 'center' },
-          3: { cellWidth: 35, halign: 'center' }
+          0: { cellWidth: availableWidth * 0.35, halign: 'left' }, // Nom
+          1: { cellWidth: availableWidth * 0.25, halign: 'left' }, // Département
+          2: { cellWidth: availableWidth * 0.25, halign: 'center' }, // Statut
+          3: { cellWidth: availableWidth * 0.15, halign: 'center', fontSize: 8 } // Heure
         },
+        margin: { left: margin, right: margin },
         didParseCell: (data) => {
           if (data.column.index === 2 && data.section === 'body') {
             const status = data.cell.text[0];
@@ -403,13 +646,15 @@ class PDFReportGenerator {
         throw new Error(`Impossible de télécharger le PDF: ${saveError.message}`);
       }
 
-      // Masquer le progrès
-      setTimeout(() => this.hideProgress(), 500);
+      // Masquer le progrès immédiatement
+      this.hideProgress();
 
       return { success: true, fileName, downloaded: true };
 
     } catch (error) {
       console.error('Erreur génération PDF:', error);
+      // Masquer le progrès en cas d'erreur
+      this.hideProgress();
       return { success: false, error: error.message };
     }
   }
@@ -427,7 +672,7 @@ class PDFReportGenerator {
 
     try {
       this.showProgress('Chargement des données...', 20);
-      const data = this.getCachedData();
+      const data = await this.getCachedData();
       const { events, members, attendances, departments } = data;
 
       // Filtrer les événements par période
@@ -438,7 +683,7 @@ class PDFReportGenerator {
 
       // En-tête
       const subtitle = `Période: ${new Date(startDate).toLocaleDateString('fr-FR')} - ${new Date(endDate).toLocaleDateString('fr-FR')}`;
-      let yPos = this.addHeader(doc, 'RAPPORT GLOBAL DE PRÉSENCES', subtitle);
+      let yPos = await this.addHeader(doc, 'RAPPORT GLOBAL DE PRÉSENCES', subtitle);
 
       // Statistiques par département
       yPos += 10;
@@ -450,11 +695,14 @@ class PDFReportGenerator {
       yPos += 15;
 
       const deptStats = [];
-      departments.forEach(dept => {
-        const deptMembers = members.filter(m => m.dept === dept);
+      // S'assurer que departments est un tableau de noms (chaînes)
+      const deptNames = departments.map(d => typeof d === 'string' ? d : d.name);
+      
+      deptNames.forEach(deptName => {
+        const deptMembers = members.filter(m => m.dept === deptName);
         const deptAttendances = attendances.filter(a => {
           const member = members.find(m => m.id == a.memberId);
-          return member && member.dept === dept;
+          return member && member.dept === deptName;
         });
         
         const totalEvents = filteredEvents.length;
@@ -463,7 +711,7 @@ class PDFReportGenerator {
         const attendanceRate = possibleAttendances > 0 ? ((actualAttendances / possibleAttendances) * 100).toFixed(1) : 0;
 
         deptStats.push([
-          dept,
+          deptName,
           deptMembers.length.toString(),
           totalEvents.toString(),
           actualAttendances.toString(),
@@ -555,10 +803,15 @@ class PDFReportGenerator {
       const fileName = `Rapport_Global_Presences_${startDate}_${endDate}.pdf`;
       doc.save(fileName);
 
+      // Masquer le progrès
+      this.hideProgress();
+
       return { success: true, fileName };
 
     } catch (error) {
       console.error('Erreur génération PDF global:', error);
+      // Masquer le progrès en cas d'erreur
+      this.hideProgress();
       return { success: false, error: error.message };
     }
   }
@@ -573,20 +826,34 @@ class PDFReportGenerator {
     const doc = new jsPDF();
 
     try {
-      const events = JSON.parse(localStorage.getItem('events') || '[]');
-      const members = JSON.parse(localStorage.getItem('members') || '[]');
-      const attendances = JSON.parse(localStorage.getItem('attendances') || '[]');
+      // Charger depuis Supabase uniquement
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+        console.error('❌ Supabase n\'est pas configuré');
+        return;
+      }
+      
+      const [events, members, attendances] = await Promise.all([
+        window.supabaseDB.getEvents(),
+        window.supabaseDB.getMembers(),
+        window.supabaseDB.getAttendances()
+      ]);
 
       const member = members.find(m => m.id == memberId);
       if (!member) {
         throw new Error('Membre non trouvé');
       }
 
-      const memberAttendances = attendances.filter(a => a.memberId == memberId);
+      // Mapper les statuts depuis Supabase vers les codes d'affichage
+      const mappedAttendances = attendances.map(att => ({
+        ...att,
+        status: this.mapStatusToCode(att.status)
+      }));
+
+      const memberAttendances = mappedAttendances.filter(a => a.memberId == memberId);
 
       // En-tête
       const subtitle = `Membre: ${member.name} - Département: ${member.dept || 'N/A'}`;
-      let yPos = this.addHeader(doc, 'RAPPORT INDIVIDUEL DE PRÉSENCES', subtitle);
+      let yPos = await this.addHeader(doc, 'RAPPORT INDIVIDUEL DE PRÉSENCES', subtitle);
 
       // Statistiques personnelles
       yPos += 10;
@@ -709,10 +976,15 @@ class PDFReportGenerator {
       const fileName = `Rapport_Individuel_${member.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
 
+      // Masquer le progrès
+      this.hideProgress();
+
       return { success: true, fileName };
 
     } catch (error) {
       console.error('Erreur génération PDF individuel:', error);
+      // Masquer le progrès en cas d'erreur
+      this.hideProgress();
       return { success: false, error: error.message };
     }
   }
@@ -822,6 +1094,88 @@ window.exportMemberReport = async function(memberId) {
     if (result.success) {
       if (window.notificationSystem) {
         window.notificationSystem.success(`Rapport individuel généré: ${result.fileName}`, { duration: 5000 });
+      }
+    } else {
+      if (window.notificationSystem) {
+        window.notificationSystem.error(`Erreur: ${result.error}`, { duration: 5000 });
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error(`Erreur: ${error.message}`, { duration: 5000 });
+    }
+    return { success: false, error: error.message };
+  }
+};
+
+// Fonctions d'export rapide (sans overlay de chargement)
+window.fastExportEventAttendance = async function(eventId) {
+  if (!window.checkPDFExportPermissions()) {
+    return { success: false, error: 'Permissions insuffisantes' };
+  }
+  
+  try {
+    const result = await window.pdfReports.generateEventAttendanceReport(eventId);
+    
+    if (result.success) {
+      if (window.notificationSystem) {
+        window.notificationSystem.success(`Rapport généré: ${result.fileName}`, { duration: 3000 });
+      }
+    } else {
+      if (window.notificationSystem) {
+        window.notificationSystem.error(`Erreur: ${result.error}`, { duration: 5000 });
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error(`Erreur: ${error.message}`, { duration: 5000 });
+    }
+    return { success: false, error: error.message };
+  }
+};
+
+window.fastExportGlobalAttendance = async function(startDate, endDate) {
+  if (!window.checkPDFExportPermissions()) {
+    return { success: false, error: 'Permissions insuffisantes' };
+  }
+  
+  try {
+    const result = await window.pdfReports.generateGlobalAttendanceReport(startDate, endDate);
+    
+    if (result.success) {
+      if (window.notificationSystem) {
+        window.notificationSystem.success(`Rapport global généré: ${result.fileName}`, { duration: 3000 });
+      }
+    } else {
+      if (window.notificationSystem) {
+        window.notificationSystem.error(`Erreur: ${result.error}`, { duration: 5000 });
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error(`Erreur: ${error.message}`, { duration: 5000 });
+    }
+    return { success: false, error: error.message };
+  }
+};
+
+window.fastExportMemberReport = async function(memberId) {
+  if (!window.checkPDFExportPermissions()) {
+    return { success: false, error: 'Permissions insuffisantes' };
+  }
+  
+  try {
+    const result = await window.pdfReports.generateMemberReport(memberId);
+    
+    if (result.success) {
+      if (window.notificationSystem) {
+        window.notificationSystem.success(`Rapport individuel généré: ${result.fileName}`, { duration: 3000 });
       }
     } else {
       if (window.notificationSystem) {

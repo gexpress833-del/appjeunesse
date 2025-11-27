@@ -1,27 +1,32 @@
-const eventForm = document.getElementById("eventForm");
-const eventNameInput = document.getElementById("eventName");
-const eventDateInput = document.getElementById("eventDate");
-const eventDescriptionInput = document.getElementById("eventDescription");
-const eventPhotoInput = document.getElementById("eventPhoto");
-const eventSubmit = document.getElementById("eventSubmit");
-const eventCancel = document.getElementById("eventCancel");
-let currentEventPhoto = null;
+let eventForm = null;
+let eventNameInput = null;
+let eventDateInput = null;
+let eventDescriptionInput = null;
+let eventPhotoInput = null;
+let eventSubmit = null;
+let eventCancel = null;
+let currentEventPhoto = null; // URL de l'image (Supabase Storage) ou File object avant upload
+let currentEventPhotoFile = null; // File object pour upload
 
 function resetEventEditor() {
+  if (!eventForm) return;
   eventForm.reset();
   removeEventPhoto();
   delete eventForm.dataset.editing;
-  eventSubmit.textContent = "Ajouter";
-  eventCancel.style.display = "none";
+  if (eventSubmit) eventSubmit.textContent = "Ajouter";
+  if (eventCancel) eventCancel.style.display = "none";
 }
 
 function removeEventPhoto() {
   currentEventPhoto = null;
+  currentEventPhotoFile = null;
   const preview = document.getElementById("eventPhotoPreview");
   const img = document.getElementById("eventPhotoImg");
   preview.style.display = "none";
   img.src = "";
-  eventPhotoInput.value = "";
+  if (eventPhotoInput) {
+    eventPhotoInput.value = "";
+  }
 }
 
 function getEventStatus(eventDate) {
@@ -182,28 +187,35 @@ function editEvent(eventId) {
     return;
   }
   
+  if (!eventForm || !eventNameInput || !eventDateInput) {
+    console.error('Formulaire d\'événement non initialisé');
+    return;
+  }
+  
   eventNameInput.value = evt.name;
   eventDateInput.value = evt.date;
   if (eventDescriptionInput) eventDescriptionInput.value = evt.description || '';
   
   // Load photo if exists
-  if (evt.photo) {
-    currentEventPhoto = evt.photo;
+  if (evt.photo || evt.photoUrl) {
+    currentEventPhoto = evt.photo || evt.photoUrl;
     const preview = document.getElementById("eventPhotoPreview");
     const img = document.getElementById("eventPhotoImg");
-    img.src = evt.photo;
-    preview.style.display = "block";
+    if (preview && img) {
+      img.src = currentEventPhoto;
+      preview.style.display = "block";
+    }
   }
   
   eventForm.dataset.editing = evt.id;
-  eventSubmit.textContent = "Mettre à jour";
-  eventCancel.style.display = "inline-flex";
+  if (eventSubmit) eventSubmit.textContent = "Mettre à jour";
+  if (eventCancel) eventCancel.style.display = "inline-flex";
   
   // Scroll to form
   eventForm.scrollIntoView({ behavior: 'smooth' });
 }
 
-function deleteEvent(eventId) {
+async function deleteEvent(eventId) {
   if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
   
   if (!auth.checkPermission("events", "delete")) {
@@ -211,18 +223,40 @@ function deleteEvent(eventId) {
     return;
   }
   
-  window.appState.events = window.appState.events.filter((e) => e.id !== eventId);
-  window.appState.attendances = window.appState.attendances.filter(
-    (att) => att.eventId !== eventId
-  );
-  saveData();
+  // Supprimer la photo associée si elle existe
+  const event = window.appState.events.find(e => e.id === eventId);
+  if (event && event.photoUrl && event.photoUrl.startsWith('http') && window.storageManager) {
+    try {
+      const fileName = window.storageManager.extractFileNameFromUrl(event.photoUrl);
+      if (fileName) {
+        await window.storageManager.deleteEventPhoto(fileName);
+      }
+    } catch (deleteError) {
+      console.warn('Impossible de supprimer la photo de l\'événement:', deleteError);
+      // Continuer la suppression de l'événement même si la photo n'a pas pu être supprimée
+    }
+  }
   
-  // Maintain current filter when re-rendering
-  const eventsFilter = document.getElementById('eventsFilter');
-  const currentFilter = eventsFilter ? eventsFilter.value : 'all';
-  renderEventsGrid(currentFilter);
-  
-  auth.showNotification("success", "Événement supprimé.");
+  // Supprimer dans Supabase
+  if (window.supabaseDB && window.supabaseDB.getClient()) {
+    try {
+      await window.supabaseDB.deleteEvent(eventId);
+      // Recharger les données depuis Supabase
+      await window.reloadData();
+      
+      // Re-rendre la liste des événements
+      const eventsFilter = document.getElementById('eventsFilter');
+      const currentFilter = eventsFilter ? eventsFilter.value : 'all';
+      renderEventsGrid(currentFilter);
+      
+      auth.showNotification("success", "Événement supprimé.");
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'événement:', error);
+      auth.showNotification("error", "Erreur lors de la suppression de l'événement.");
+    }
+  } else {
+    auth.showNotification("error", "Supabase n'est pas configuré.");
+  }
 }
 
 function showEventDetails(evt) {
@@ -293,38 +327,86 @@ function editEventFromModal() {
   closeEventModal();
 }
 
-// Handle photo upload
-if (eventPhotoInput) {
-  eventPhotoInput.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// Le code de gestion de la photo est maintenant dans initEventForm()
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      auth.showNotification('error', 'Veuillez sélectionner une image valide');
-      return;
-    }
+// Initialiser le formulaire et les event listeners
+function initEventForm() {
+  eventForm = document.getElementById("eventForm");
+  eventNameInput = document.getElementById("eventName");
+  eventDateInput = document.getElementById("eventDate");
+  eventDescriptionInput = document.getElementById("eventDescription");
+  eventPhotoInput = document.getElementById("eventPhoto");
+  eventSubmit = document.getElementById("eventSubmit");
+  eventCancel = document.getElementById("eventCancel");
+  
+  if (!eventForm) {
+    // Le formulaire peut être masqué pour certains rôles, ce n'est pas une erreur critique
+    console.warn('Formulaire d\'événement non trouvé (peut être masqué selon le rôle)');
+    return;
+  }
+  
+  // Ajouter l'event listener pour le submit
+  eventForm.addEventListener("submit", handleEventSubmit);
+  
+  // Ajouter l'event listener pour l'annulation
+  if (eventCancel) {
+    eventCancel.addEventListener("click", () => {
+      resetEventEditor();
+    });
+  }
+  
+  // Ajouter l'event listener pour la photo
+  if (eventPhotoInput) {
+    eventPhotoInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // Valider le fichier
+      if (window.storageManager) {
+        const validation = window.storageManager.validateImageFile(file);
+        if (!validation.isValid) {
+          auth.showNotification('error', validation.error);
+          e.target.value = '';
+          return;
+        }
+      } else {
+        // Validation basique si storageManager n'est pas disponible
+        if (file.size > 5 * 1024 * 1024) {
+          auth.showNotification('error', 'L\'image ne doit pas dépasser 5MB');
+          e.target.value = '';
+          return;
+        }
+      }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      auth.showNotification('error', 'L\'image ne doit pas dépasser 5MB');
-      return;
-    }
+      // Stocker le fichier pour l'upload ultérieur
+      currentEventPhotoFile = file;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      currentEventPhoto = e.target.result;
-      const preview = document.getElementById("eventPhotoPreview");
-      const img = document.getElementById("eventPhotoImg");
-      img.src = currentEventPhoto;
-      preview.style.display = "block";
-    };
-    reader.readAsDataURL(file);
-  });
+      // Afficher un aperçu (sans uploader encore)
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        currentEventPhoto = e.target.result; // Aperçu temporaire
+        const preview = document.getElementById("eventPhotoPreview");
+        const img = document.getElementById("eventPhotoImg");
+        if (preview && img) {
+          img.src = currentEventPhoto;
+          preview.style.display = "block";
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
-eventForm.addEventListener("submit", (event) => {
+async function handleEventSubmit(event) {
   event.preventDefault();
+  
+  // Vérifier que le formulaire est initialisé
+  if (!eventForm || !eventNameInput || !eventDateInput) {
+    console.error('Formulaire d\'événement non initialisé');
+    auth.showNotification("error", "Erreur: Formulaire non initialisé. Veuillez recharger la page.");
+    return;
+  }
+  
   const name = eventNameInput.value.trim();
   const date = eventDateInput.value;
   const description = eventDescriptionInput ? eventDescriptionInput.value.trim() : '';
@@ -334,71 +416,135 @@ eventForm.addEventListener("submit", (event) => {
     return;
   }
   
-  const editingId = eventForm.dataset.editing;
-  
-  if (editingId) {
-    if (!auth.checkPermission("events", "update")) {
-      auth.showNotification("error", "Action non autorisée.");
-      return;
-    }
-    
-    const targetEvent = window.appState.events.find((evt) => evt.id === parseInt(editingId, 10));
-    if (!targetEvent) {
-      auth.showNotification("error", "Événement introuvable.");
-      return;
-    }
-    
-    targetEvent.name = name;
-    targetEvent.date = date;
-    targetEvent.description = description;
-    if (currentEventPhoto) {
-      targetEvent.photo = currentEventPhoto;
-    }
-    
-    auth.showNotification("success", "Événement mis à jour.");
-  } else {
-    if (!auth.checkPermission("events", "create")) {
-      auth.showNotification("error", "Action non autorisée.");
-      return;
-    }
-    
-    const duplicate = window.appState.events.some(
-      (evt) => evt.name.toLowerCase() === name.toLowerCase() && evt.date === date
-    );
-    if (duplicate) {
-      auth.showNotification("error", "Cet événement existe déjà.");
-      return;
-    }
-    
-    const newEvent = {
-      id: generateId(window.appState.events),
-      name,
-      date,
-      description
-    };
-    
-    if (currentEventPhoto) {
-      newEvent.photo = currentEventPhoto;
-    }
-    
-    window.appState.events.push(newEvent);
-    auth.showNotification("success", "Événement ajouté.");
+  // Vérifier que Supabase est disponible
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    auth.showNotification("error", "Supabase n'est pas configuré.");
+    return;
   }
   
-  saveData();
-  resetEventEditor();
+  const editingId = eventForm.dataset.editing;
   
-  // Maintain current filter when re-rendering
-  const eventsFilter = document.getElementById('eventsFilter');
-  const currentFilter = eventsFilter ? eventsFilter.value : 'all';
-  renderEventsGrid(currentFilter);
-});
-
-eventCancel.addEventListener("click", () => {
-  resetEventEditor();
-});
+  try {
+    let photoUrl = null;
+    
+    // Uploader la photo vers Supabase Storage si un nouveau fichier a été sélectionné
+    if (currentEventPhotoFile && window.storageManager) {
+      try {
+        auth.showNotification("info", "Upload de la photo en cours...");
+        photoUrl = await window.storageManager.uploadEventPhoto(
+          currentEventPhotoFile,
+          editingId ? parseInt(editingId, 10) : null
+        );
+        auth.showNotification("success", "Photo uploadée avec succès");
+      } catch (uploadError) {
+        console.error('Erreur lors de l\'upload de la photo:', uploadError);
+        auth.showNotification("error", "Erreur lors de l'upload de la photo. L'événement sera créé sans photo.");
+        // Continuer sans photo plutôt que d'échouer complètement
+      }
+    } else if (currentEventPhoto && currentEventPhoto.startsWith('http')) {
+      // Si c'est déjà une URL (photo existante), la conserver
+      photoUrl = currentEventPhoto;
+    }
+    
+    if (editingId) {
+      if (!auth.checkPermission("events", "update")) {
+        auth.showNotification("error", "Action non autorisée.");
+        return;
+      }
+      
+      // Supprimer l'ancienne photo si une nouvelle a été uploadée
+      if (photoUrl && window.storageManager) {
+        const oldEvent = window.appState.events.find(e => e.id === parseInt(editingId, 10));
+        if (oldEvent && oldEvent.photoUrl && oldEvent.photoUrl.startsWith('http')) {
+          try {
+            const oldFileName = window.storageManager.extractFileNameFromUrl(oldEvent.photoUrl);
+            if (oldFileName) {
+              await window.storageManager.deleteEventPhoto(oldFileName);
+            }
+          } catch (deleteError) {
+            console.warn('Impossible de supprimer l\'ancienne photo:', deleteError);
+          }
+        }
+      }
+      
+      // Mettre à jour dans Supabase
+      await window.supabaseDB.updateEvent(parseInt(editingId, 10), {
+        name: name,
+        date: date,
+        description: description,
+        photoUrl: photoUrl
+      });
+      
+      // Recharger les données depuis Supabase
+      await window.reloadData();
+      
+      auth.showNotification("success", "Événement mis à jour.");
+      
+      // Re-rendre la liste des événements
+      const eventsFilter = document.getElementById('eventsFilter');
+      const currentFilter = eventsFilter ? eventsFilter.value : 'all';
+      renderEventsGrid(currentFilter);
+    } else {
+      if (!auth.checkPermission("events", "create")) {
+        auth.showNotification("error", "Action non autorisée.");
+        return;
+      }
+      
+      // Vérifier les doublons
+      const events = await window.supabaseDB.getEvents();
+      const duplicate = events.some(
+        (evt) => evt.name.toLowerCase() === name.toLowerCase() && evt.date === date
+      );
+      if (duplicate) {
+        // Demander confirmation au lieu de bloquer
+        const confirmCreate = confirm(
+          `Un événement avec le nom "${name}" et la date "${date}" existe déjà.\n\nVoulez-vous quand même créer cet événement ?`
+        );
+        if (!confirmCreate) {
+          return;
+        }
+      }
+      
+      // Créer dans Supabase
+      const newEvent = await window.supabaseDB.createEvent({
+        name: name,
+        date: date,
+        description: description,
+        photoUrl: photoUrl
+      });
+      
+      if (!newEvent) {
+        throw new Error('Erreur lors de la création de l\'événement');
+      }
+      
+      // Recharger les données depuis Supabase
+      await window.reloadData();
+      
+      auth.showNotification("success", "Événement ajouté.");
+    }
+    
+    // Réinitialiser les variables de photo
+    currentEventPhotoFile = null;
+    currentEventPhoto = null;
+    
+    resetEventEditor();
+    
+    // Re-rendre la liste des événements avec le filtre actuel
+    const eventsFilter = document.getElementById('eventsFilter');
+    const currentFilter = eventsFilter ? eventsFilter.value : 'all';
+    renderEventsGrid(currentFilter);
+    
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de l\'événement:', error);
+    const errorMessage = error?.message || error?.error?.message || "Erreur lors de la sauvegarde de l'événement.";
+    auth.showNotification("error", `Erreur: ${errorMessage}`);
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialiser le formulaire d'événement (peut être masqué pour certains rôles)
+  initEventForm();
+  
   auth.initRoleControls({
     roleSelectId: "roleSelect",
     deptSelectId: "responsableDeptSelect",

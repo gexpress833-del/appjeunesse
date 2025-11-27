@@ -358,7 +358,17 @@
     </div>
   </div>
 
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Configuration Supabase -->
+  <script src="js/config.js"></script>
+  
+  <!-- Module Supabase -->
+  <script src="js/supabase.js"></script>
+  
   <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
   <script>
     let currentUser = null;
 
@@ -406,7 +416,7 @@
       }
     }
 
-    function loadUserProfile() {
+    async function loadUserProfile() {
       const username = localStorage.getItem('appUser');
       const role = localStorage.getItem('appRole');
       const dept = localStorage.getItem('appDept');
@@ -419,16 +429,35 @@
         return;
       }
 
-      // Get user data
-      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-      currentUser = users.find(user => user.username === username);
+      // Charger les données utilisateur depuis Supabase
+      if (window.supabaseDB && window.supabaseDB.getClient()) {
+        try {
+          const user = await window.supabaseDB.getUserByUsername(username);
+          if (user) {
+            currentUser = {
+              username: user.username,
+              name: user.name,
+              email: user.email,
+              phone: user.phone || null,
+              role: user.role,
+              status: user.status,
+              dept: user.dept,
+              birthDate: user.birth_date,
+              address: user.address,
+              password: user.password // Pour validation
+            };
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement depuis Supabase:', error);
+        }
+      }
 
       if (!currentUser) {
-        showError('Utilisateur introuvable');
+        showError('Utilisateur introuvable dans Supabase');
         return;
       }
 
-      // Get user profile data (extended info)
+      // Get user profile data (extended info) - toujours depuis localStorage pour les préférences
       const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
       const userProfile = profiles[username] || {};
 
@@ -456,8 +485,19 @@
         welcomeEl.textContent = `Bienvenue, ${currentUser.name || 'Utilisateur'}`;
       }
 
-      // Load profile photo
-      updateProfilePhoto(userProfile.photo);
+      // Load profile photo depuis Supabase Storage
+      let photoUrl = null;
+      if (window.storageManager && window.supabaseDB && window.supabaseDB.getClient()) {
+        try {
+          photoUrl = await window.storageManager.getUserProfilePhotoUrl(username);
+        } catch (error) {
+          console.warn('Erreur lors de la récupération de la photo:', error);
+        }
+      }
+      
+      // Photo chargée uniquement depuis Supabase Storage
+      
+      updateProfilePhoto(photoUrl);
 
       // Fill form with current data - prioritize profile data over user data
       let firstName = userProfile.firstName;
@@ -473,7 +513,7 @@
       document.getElementById('firstName').value = firstName;
       document.getElementById('lastName').value = lastName;
       document.getElementById('email').value = userProfile.email || currentUser.email || '';
-      document.getElementById('phone').value = userProfile.phone || '';
+      document.getElementById('phone').value = currentUser.phone || userProfile.phone || '';
       document.getElementById('notifications').value = userProfile.notifications || 'all';
       document.getElementById('language').value = userProfile.language || 'fr';
       
@@ -511,41 +551,64 @@
     }
 
     // Handle photo upload
-    document.getElementById('photoInput').addEventListener('change', function(e) {
+    document.getElementById('photoInput').addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
 
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        showError('Veuillez sélectionner une image valide');
+      const username = localStorage.getItem('appUser');
+      if (!username) {
+        showError('Utilisateur non connecté');
         return;
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        showError('L\'image ne doit pas dépasser 5MB');
-        return;
+      // Valider le fichier avec storageManager
+      if (window.storageManager) {
+        const validation = window.storageManager.validateImageFile(file, { maxSize: 2 * 1024 * 1024 });
+        if (!validation.isValid) {
+          showError(validation.error);
+          return;
+        }
+      } else {
+        // Fallback validation
+        if (!file.type.startsWith('image/')) {
+          showError('Veuillez sélectionner une image valide');
+          return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+          showError('L\'image ne doit pas dépasser 2MB');
+          return;
+        }
       }
 
+      // Afficher un aperçu immédiat
       const reader = new FileReader();
       reader.onload = function(e) {
         const photoData = e.target.result;
         updateProfilePhoto(photoData);
-        
-        // Save photo to profile
-        const username = localStorage.getItem('appUser');
-        const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
-        if (!profiles[username]) profiles[username] = {};
-        profiles[username].photo = photoData;
-        localStorage.setItem('userProfiles', JSON.stringify(profiles));
-        
-        showSuccess('Photo de profil mise à jour !');
       };
       reader.readAsDataURL(file);
+
+      // Uploader vers Supabase Storage
+      if (window.storageManager && window.supabaseDB && window.supabaseDB.getClient()) {
+        try {
+          showSuccess('Upload de la photo en cours...');
+          const photoUrl = await window.storageManager.uploadUserProfilePhoto(file, username);
+          
+          // Mettre à jour l'affichage avec l'URL Supabase
+          updateProfilePhoto(photoUrl);
+          
+          showSuccess('Photo de profil mise à jour avec succès !');
+        } catch (uploadError) {
+          console.error('Erreur lors de l\'upload de la photo:', uploadError);
+          showError('Erreur lors de l\'upload de la photo: ' + uploadError.message);
+        }
+      } else {
+        showError('Supabase Storage n\'est pas disponible. Impossible d\'uploader la photo.');
+      }
     });
 
     // Handle form submission
-    document.getElementById('profileForm').addEventListener('submit', function(e) {
+    document.getElementById('profileForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const data = {
@@ -606,16 +669,54 @@
       }
 
       try {
-        // Update user profile (extended data)
-        const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
-        if (!profiles[username]) profiles[username] = {};
+        // Vérifier que Supabase est disponible
+        if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+          showError('Supabase n\'est pas configuré');
+          return;
+        }
+
+        // Préparer les données de mise à jour pour Supabase
+        const fullName = `${data.firstName} ${data.lastName}`.trim();
         
-        profiles[username] = {
-          ...profiles[username],
+        const updateData = {
+          name: fullName,
+          email: data.email
+        };
+        
+        // Ajouter le téléphone si fourni
+        if (data.phone) {
+          updateData.phone = data.phone;
+        }
+        
+        // Ajouter le mot de passe si fourni
+        if (data.newPassword) {
+          updateData.password = data.newPassword;
+        }
+        
+        // Mettre à jour l'utilisateur dans Supabase
+        console.log('Mise à jour du profil avec les données:', updateData); // Debug
+        const updatedUser = await window.supabaseDB.updateUser(username, updateData);
+        console.log('Utilisateur mis à jour:', updatedUser); // Debug
+        
+        if (!updatedUser) {
+          showError('Erreur lors de la mise à jour du profil');
+          return;
+        }
+
+        // Mettre à jour currentUser avec les nouvelles données
+        currentUser = {
+          ...currentUser,
+          name: fullName,
+          email: data.email,
+          phone: data.phone || currentUser.phone,
+          password: data.newPassword || currentUser.password
+        };
+
+        // Les préférences de notification peuvent être stockées localement ou dans une table séparée
+        // Pour l'instant, on les stocke dans localStorage (préférences utilisateur)
+        const userPreferences = {
           firstName: data.firstName,
           lastName: data.lastName,
-          email: data.email,
-          phone: data.phone || '',
           notifications: data.notifications,
           language: data.language,
           notifMembers: data.notifMembers,
@@ -625,37 +726,17 @@
           notifDuration: data.notifDuration,
           updatedAt: new Date().toISOString()
         };
-
-        // Update main user data
-        const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-        const userIndex = users.findIndex(user => user.username === username);
         
-        if (userIndex === -1) {
-          showError('Utilisateur introuvable');
-          return;
-        }
-
-        // Update user in the main users array
-        users[userIndex] = {
-          ...users[userIndex],
-          name: `${data.firstName} ${data.lastName}`,
-          email: data.email
+        // Stocker les préférences localement (elles ne sont pas critiques)
+        const profiles = JSON.parse(localStorage.getItem('userProfiles') || '{}');
+        profiles[username] = {
+          ...profiles[username],
+          ...userPreferences
         };
-        
-        if (data.newPassword) {
-          users[userIndex].password = data.newPassword;
-        }
-
-        // Save all changes
         localStorage.setItem('userProfiles', JSON.stringify(profiles));
-        localStorage.setItem('appUsers', JSON.stringify(users));
-        localStorage.setItem('appUserName', `${data.firstName} ${data.lastName}`);
 
-        console.log('Saved profiles:', profiles); // Debug
-        console.log('Saved users:', users); // Debug
-
-        // Update current user reference
-        currentUser = users[userIndex];
+        // Mettre à jour le nom d'utilisateur dans localStorage pour la session
+        localStorage.setItem('appUserName', fullName);
 
         // Clear password fields
         document.getElementById('currentPassword').value = '';

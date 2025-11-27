@@ -210,41 +210,55 @@ class PDFPerformanceOptimizer {
     return results;
   }
 
-  // Mise en cache intelligente des données
-  getCachedData(forceRefresh = false) {
-    const cacheKey = 'pdfDataCache';
-    const cacheTimeKey = 'pdfDataCacheTime';
-    const cacheTimeout = 60000; // 1 minute
-    
-    if (!forceRefresh) {
-      const cachedTime = localStorage.getItem(cacheTimeKey);
-      if (cachedTime && (Date.now() - parseInt(cachedTime)) < cacheTimeout) {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          return JSON.parse(cached);
-        }
+  // Mise en cache intelligente des données (en mémoire uniquement)
+  _dataCache = null;
+  _dataCacheTime = null;
+  _cacheTimeout = 60000; // 1 minute
+
+  async getCachedData(forceRefresh = false) {
+    // Vérifier le cache en mémoire
+    if (!forceRefresh && this._dataCache && this._dataCacheTime) {
+      if ((Date.now() - this._dataCacheTime) < this._cacheTimeout) {
+        return this._dataCache;
       }
     }
     
-    // Recharger les données
-    const data = {
-      members: JSON.parse(localStorage.getItem('members') || '[]'),
-      events: JSON.parse(localStorage.getItem('events') || '[]'),
-      attendances: JSON.parse(localStorage.getItem('attendances') || '[]'),
-      departments: JSON.parse(localStorage.getItem('departments') || '[]')
-    };
+    // Recharger les données depuis Supabase uniquement
+    if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+      console.error('❌ Supabase n\'est pas configuré');
+      return { members: [], events: [], attendances: [], departments: [] };
+    }
     
-    // Mettre en cache
-    localStorage.setItem(cacheKey, JSON.stringify(data));
-    localStorage.setItem(cacheTimeKey, Date.now().toString());
+    try {
+      const [members, events, attendances, departments] = await Promise.all([
+        window.supabaseDB.getMembers(),
+        window.supabaseDB.getEvents(),
+        window.supabaseDB.getAttendances(),
+        window.supabaseDB.getDepartments()
+      ]);
+      
+      const data = {
+        members: members || [],
+        events: events || [],
+        attendances: attendances || [],
+        departments: departments || []
+      };
+      
+      // Mettre en cache en mémoire uniquement (pas localStorage)
+      this._dataCache = data;
+      this._dataCacheTime = Date.now();
     
-    return data;
+      return data;
+    } catch (error) {
+      console.error('Erreur lors du chargement des données depuis Supabase:', error);
+      return { members: [], events: [], attendances: [], departments: [] };
+    }
   }
 
   // Nettoyage du cache
   clearCache() {
-    localStorage.removeItem('pdfDataCache');
-    localStorage.removeItem('pdfDataCacheTime');
+    this._dataCache = null;
+    this._dataCacheTime = null;
   }
 
   // Optimisation de la mémoire
