@@ -240,15 +240,22 @@
 
     /* Mise en valeur des images d'événements sur la page d'accueil uniquement */
     .home-events .event-card-image {
+      /* Pour la page d'accueil, on veut l'affiche complète, jamais coupée */
+      display: block;
       height: auto;          /* laisser l'image décider de la hauteur */
       min-height: 0;         /* annule la hauteur fixe globale */
+      padding: 0;
+      background: transparent; /* pas de fond bleu derrière l'image */
+      overflow: visible;       /* ne pas masquer les bords de l'affiche */
+      text-align: center;
     }
 
     .home-events .event-card-image img {
       width: 100%;
       height: auto;          /* respecter le ratio de l'affiche */
       object-fit: contain;   /* afficher l'image entière sans couper */
-      object-position: center top;
+      object-position: center center;
+      display: inline-block;
     }
 
     /* Ajustement spécifique pour écrans mobiles */
