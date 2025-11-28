@@ -153,6 +153,78 @@
       margin-top: 0.3rem;
     }
 
+    .verse-card,
+    .testimonial-card,
+    .video-card {
+      border-radius: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 1.25rem 1.4rem;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .verse-text {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--text-bright);
+      margin: 0 0 0.75rem;
+    }
+
+    .verse-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .verse-ref {
+      font-weight: 600;
+      color: var(--accent-tertiary);
+    }
+
+    .testimonial-text {
+      font-style: italic;
+      color: var(--text-bright);
+      margin: 0 0 0.75rem;
+      line-height: 1.6;
+    }
+
+    .testimonial-author {
+      font-size: 0.9rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .video-frame {
+      position: relative;
+      padding-top: 56.25%; /* 16:9 */
+      border-radius: 0.9rem;
+      overflow: hidden;
+      background: radial-gradient(circle at 10% 0, rgba(0, 212, 255, 0.2), transparent 55%),
+                  radial-gradient(circle at 90% 100%, rgba(124, 58, 237, 0.25), transparent 55%),
+                  #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-frame iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .video-placeholder {
+      font-size: 0.9rem;
+      color: var(--muted);
+      padding: 0 1rem;
+      text-align: center;
+    }
+
     .events-grid {
       margin-top: 1rem;
     }
@@ -443,6 +515,41 @@
         </aside>
       </section>
 
+      <section class="home-section" id="verset">
+        <h2>Verset du jour</h2>
+        <div class="verse-card" id="verseCard">
+          <p class="verse-text" id="verseText">
+            Le verset du jour sera bientôt disponible.
+          </p>
+          <div class="verse-meta">
+            <span id="verseReference" class="verse-ref"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section" id="temoignage">
+        <h2>Témoignage de la jeunesse</h2>
+        <div class="testimonial-card" id="testimonialCard">
+          <p class="testimonial-text" id="testimonialText">
+            Les témoignages des jeunes seront publiés ici pour encourager et fortifier la foi.
+          </p>
+          <div class="testimonial-meta">
+            <span id="testimonialAuthor" class="testimonial-author"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section" id="video">
+        <h2>Vidéo à la une</h2>
+        <div class="video-card" id="videoCard">
+          <div class="video-frame" id="videoFrame">
+            <p class="video-placeholder">
+              Aucune vidéo n'a encore été mise en avant. Lorsqu'un message sera publié par l'équipe, il apparaîtra ici.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section class="home-section" id="fonctionnement">
         <h2>Comment fonctionne la jeunesse&nbsp;?</h2>
         <p>
@@ -503,8 +610,8 @@
   <!-- Configuration Supabase -->
   <script src="js/config.js"></script>
 
-  <!-- Module Supabase -->
-  <script src="js/supabase.js"></script>
+  <!-- Module Supabase (avec version pour contourner le cache) -->
+  <script src="js/supabase.js?v=home1"></script>
 
   <!-- Chargement des données globales (appState) -->
   <script src="js/data.js"></script>
@@ -769,7 +876,7 @@
               ? `Connecté en tant que ${name}`
               : 'Connecté à l’espace interne';
           }
-        } else {
+          } else {
           btn.href = 'login.html';
           btn.textContent = '🔑 Se connecter';
         }
@@ -789,8 +896,95 @@
       }
     };
 
-    // Initialiser le bouton d'accès dès le chargement de la page
-    document.addEventListener('DOMContentLoaded', initHomeAccessButton);
+    // Helper pour convertir une URL vidéo en URL "embed" (YouTube)
+    function getEmbedUrl(rawUrl) {
+      if (!rawUrl) return null;
+      const url = rawUrl.trim();
+
+      // Déjà une URL embed
+      if (url.includes('youtube.com/embed/')) return url;
+
+      // URL classique YouTube: https://www.youtube.com/watch?v=ID
+      if (url.includes('youtube.com/watch')) {
+        try {
+          const u = new URL(url);
+          const id = u.searchParams.get('v');
+          if (id) return `https://www.youtube.com/embed/${id}`;
+        } catch (e) {
+          console.warn('Impossible de parser l\'URL YouTube:', e);
+        }
+      }
+
+      // URL raccourcie: https://youtu.be/ID
+      if (url.includes('youtu.be/')) {
+        const parts = url.split('youtu.be/');
+        if (parts[1]) {
+          const id = parts[1].split(/[?&]/)[0];
+          if (id) return `https://www.youtube.com/embed/${id}`;
+        }
+      }
+
+      // Pour d'autres plateformes (Facebook, etc.), on ne tente pas d'embed forcé
+      return null;
+    }
+
+    // Charger le contenu statique (verset, témoignage, vidéo)
+    async function loadHomeStaticContent() {
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) return;
+      try {
+        const [verse, testimony, video] = await Promise.all([
+          window.supabaseDB.getHomeContent('verse'),
+          window.supabaseDB.getHomeContent('testimony'),
+          window.supabaseDB.getHomeContent('video')
+        ]);
+
+        // Verset
+        if (verse) {
+          const textEl = document.getElementById('verseText');
+          const refEl = document.getElementById('verseReference');
+          if (textEl) textEl.textContent = verse.content || '';
+          if (refEl) refEl.textContent = verse.reference || '';
+        }
+
+        // Témoignage
+        if (testimony) {
+          const textEl = document.getElementById('testimonialText');
+          const authorEl = document.getElementById('testimonialAuthor');
+          if (textEl) textEl.textContent = testimony.content || '';
+          if (authorEl) authorEl.textContent = testimony.author ? `— ${testimony.author}` : '';
+        }
+
+        // Vidéo
+        if (video && video.video_url) {
+          const frame = document.getElementById('videoFrame');
+          if (frame) {
+            const embedUrl = getEmbedUrl(video.video_url);
+            if (embedUrl) {
+              frame.innerHTML = `<iframe src="${embedUrl}" title="${video.title || 'Vidéo à la une'}" allowfullscreen loading="lazy"></iframe>`;
+            } else {
+              // Fallback: lien externe si la plateforme n'autorise pas l'embed
+              const safeUrl = video.video_url;
+              frame.innerHTML = `
+                <p class="video-placeholder">
+                  Cette vidéo ne peut pas être intégrée automatiquement ici.<br>
+                  <a href="${safeUrl}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: underline;">
+                    Ouvrir la vidéo dans un nouvel onglet
+                  </a>
+                </p>
+              `;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Erreur lors du chargement du contenu d\'accueil:', error);
+      }
+    }
+
+    // Initialiser le bouton d'accès et le contenu statique dès le chargement de la page
+    document.addEventListener('DOMContentLoaded', () => {
+      initHomeAccessButton();
+      loadHomeStaticContent();
+    });
   </script>
 </body>
 </html>

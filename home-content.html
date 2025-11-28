@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contenu d'accueil - Jeunesse</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="content">
+  <div class="app">
+    <div class="panel">
+      <header>
+        <div class="header-left">
+          <img src="images/logo.jpg" alt="Logo" class="app-logo">
+          <div class="app-title">
+            <span class="app-name">La Parole Eternelle</span>
+            <span class="app-subtitle">Contenu d'accueil</span>
+          </div>
+        </div>
+        <div class="header-center">
+          <div class="header-info">
+            <h1 class="header-title">Gestion du contenu d'accueil</h1>
+            <span class="welcome-message">Réservé à l'administrateur et au secrétariat</span>
+          </div>
+        </div>
+        <div class="login-panel">
+          <button class="secondary logout-btn" id="logoutBtn" type="button">Déconnexion</button>
+        </div>
+      </header>
+
+      <nav class="nav role-nav">
+        <a href="index.html">Accueil public</a>
+        <a href="admin.html" id="adminHomeLink" style="display:none;">Accueil admin</a>
+        <a href="secretariat.html" id="secretariatHomeLink" style="display:none;">Accueil secrétariat</a>
+        <a href="profile.html">👤 Mon Profil</a>
+      </nav>
+
+      <section class="grid" style="gap: 1.5rem;">
+        <div class="card">
+          <h3>Verset du jour</h3>
+          <p class="text-muted" style="margin-top:0.25rem;">
+            Sera affiché dans la section <strong>"Verset du jour"</strong> de la page d'accueil.
+          </p>
+          <form id="verseForm" class="stack" style="margin-top:1rem; gap:0.75rem;">
+            <div class="form-control">
+              <label for="verseContent">Texte du verset</label>
+              <textarea id="verseContent" rows="3" placeholder="Texte biblique..." required></textarea>
+            </div>
+            <div class="form-control">
+              <label for="verseReference">Référence</label>
+              <input type="text" id="verseReferenceInput" placeholder="Ex: Jean 3:16" required>
+            </div>
+            <button type="submit" class="primary">💾 Enregistrer le verset</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3>Témoignage</h3>
+          <p class="text-muted" style="margin-top:0.25rem;">
+            Court témoignage qui sera mis en avant sur l'accueil.
+          </p>
+          <form id="testimonialForm" class="stack" style="margin-top:1rem; gap:0.75rem;">
+            <div class="form-control">
+              <label for="testimonialContent">Texte du témoignage</label>
+              <textarea id="testimonialContent" rows="3" placeholder="Témoignage..." required></textarea>
+            </div>
+            <div class="form-control">
+              <label for="testimonialAuthorInput">Auteur</label>
+              <input type="text" id="testimonialAuthorInput" placeholder="Nom du jeune ou du groupe" required>
+            </div>
+            <button type="submit" class="primary">💾 Enregistrer le témoignage</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3>Vidéo à la une</h3>
+          <p class="text-muted" style="margin-top:0.25rem;">
+            Collez un lien YouTube (ou autre lecteur) pour l'afficher sur la page d'accueil.
+          </p>
+          <form id="videoForm" class="stack" style="margin-top:1rem; gap:0.75rem;">
+            <div class="form-control">
+              <label for="videoTitle">Titre</label>
+              <input type="text" id="videoTitle" placeholder="Titre de la vidéo">
+            </div>
+            <div class="form-control">
+              <label for="videoUrl">URL de la vidéo (YouTube, etc.)</label>
+              <input type="url" id="videoUrl" placeholder="https://www.youtube.com/embed/...">
+            </div>
+            <button type="submit" class="primary">💾 Enregistrer la vidéo</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Supabase + scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <!-- Ajout d'un paramètre de version pour éviter le cache -->
+  <script src="js/supabase.js?v=home1"></script>
+  <script src="js/notifications.js"></script>
+  <script>
+    // Vérifier que l'utilisateur est admin ou secrétariat
+    function ensureContentPermissions() {
+      const role = localStorage.getItem('appRole');
+      const loginTime = localStorage.getItem('appLoginTime');
+      if (!role || !loginTime) {
+        window.location.href = 'login.html';
+        return false;
+      }
+
+      const sessionTimeout = 7 * 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(loginTime, 10) > sessionTimeout) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        window.location.href = 'login.html';
+        return false;
+      }
+
+      if (role !== 'admin' && role !== 'secretariat') {
+        alert('Accès réservé à l\'administrateur et au secrétariat.');
+        window.location.href = 'index.html';
+        return false;
+      }
+
+      // Adapter les liens d'accueil selon le rôle
+      if (role === 'admin') {
+        document.getElementById('adminHomeLink').style.display = 'inline-flex';
+      } else if (role === 'secretariat') {
+        document.getElementById('secretariatHomeLink').style.display = 'inline-flex';
+      }
+
+      return true;
+    }
+
+    async function loadExistingContent() {
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) return;
+      try {
+        const [verse, testimony, video] = await Promise.all([
+          window.supabaseDB.getHomeContent('verse'),
+          window.supabaseDB.getHomeContent('testimony'),
+          window.supabaseDB.getHomeContent('video')
+        ]);
+
+        if (verse) {
+          document.getElementById('verseContent').value = verse.content || '';
+          document.getElementById('verseReferenceInput').value = verse.reference || '';
+        }
+
+        if (testimony) {
+          document.getElementById('testimonialContent').value = testimony.content || '';
+          document.getElementById('testimonialAuthorInput').value = testimony.author || '';
+        }
+
+        if (video) {
+          document.getElementById('videoTitle').value = video.title || '';
+          document.getElementById('videoUrl').value = video.video_url || '';
+        }
+      } catch (error) {
+        console.warn('Erreur lors du chargement du contenu existant:', error);
+      }
+    }
+
+    async function saveHomeContent(type, payload, successMessage) {
+      if (!window.supabaseDB || !window.supabaseDB.getClient()) return;
+      try {
+        await window.supabaseDB.upsertHomeContent(type, payload);
+        if (window.notificationSystem) {
+          window.notificationSystem.success(successMessage || 'Contenu enregistré avec succès.');
+        } else {
+          alert(successMessage || 'Contenu enregistré avec succès.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du contenu:', error);
+        if (window.notificationSystem) {
+          window.notificationSystem.error('Erreur lors de l\'enregistrement du contenu.');
+        } else {
+          alert('Erreur lors de l\'enregistrement du contenu.');
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!ensureContentPermissions()) return;
+
+      // Bouton de déconnexion simple
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+            localStorage.removeItem('appRole');
+            localStorage.removeItem('appUser');
+            localStorage.removeItem('appUserName');
+            localStorage.removeItem('appLoginTime');
+            localStorage.removeItem('appDept');
+            window.location.href = 'login.html';
+          }
+        });
+      }
+
+      loadExistingContent();
+
+      // Gestion des formulaires
+      document.getElementById('verseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveHomeContent('verse', {
+          content: document.getElementById('verseContent').value.trim(),
+          reference: document.getElementById('verseReferenceInput').value.trim()
+        }, 'Verset du jour enregistré.');
+      });
+
+      document.getElementById('testimonialForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveHomeContent('testimony', {
+          content: document.getElementById('testimonialContent').value.trim(),
+          author: document.getElementById('testimonialAuthorInput').value.trim()
+        }, 'Témoignage enregistré.');
+      });
+
+      document.getElementById('videoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveHomeContent('video', {
+          title: document.getElementById('videoTitle').value.trim(),
+          videoUrl: document.getElementById('videoUrl').value.trim()
+        }, 'Vidéo enregistrée.');
+      });
+    });
+  </script>
+</body>
+</html>
+
+

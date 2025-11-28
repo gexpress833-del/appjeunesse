@@ -209,33 +209,10 @@
         <div class="error-message" id="errorMessage"></div>
         
         <div class="forgot-password">
-          <a href="#" onclick="showForgotPassword()">Mot de passe oublié ?</a>
-        </div>
-        
-        <div class="register-link">
-          <a href="#" onclick="showRegister()">Créer un compte</a>
+          <a href="forgot-password.html">Mot de passe oublié ?</a>
         </div>
       </form>
       
-      <div class="demo-credentials">
-        <h4>🧪 Comptes de démonstration</h4>
-        <div class="demo-user">
-          <span class="role">Admin</span>
-          <span class="credentials">admin / admin123</span>
-        </div>
-        <div class="demo-user">
-          <span class="role">Secrétariat</span>
-          <span class="credentials">secretariat / secret123</span>
-        </div>
-        <div class="demo-user">
-          <span class="role">Responsable</span>
-          <span class="credentials">responsable / resp123</span>
-        </div>
-        <div class="demo-user">
-          <span class="role">Utilisateur</span>
-          <span class="credentials">user / user123</span>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -457,13 +434,7 @@
       }
     });
 
-    function showForgotPassword() {
-      alert('Fonctionnalité de récupération de mot de passe à venir.\n\nPour la démo, utilisez les identifiants affichés ci-dessous.');
-    }
-
-    function showRegister() {
-      alert('Fonctionnalité d\'inscription à venir.\n\nPour la démo, utilisez les comptes existants.');
-    }
+    // plus de popup ici, la page forgot-password.html gère la réinitialisation
 
     // Auto-focus username field
     usernameInput.focus();

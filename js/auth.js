@@ -6,7 +6,8 @@ const sectionAccess = {
   attendances: ["admin", "secretariat", "responsable", "user"],
   users: ["admin", "secretariat"], // Admin pour attribution rôles, Secrétaire pour création comptes
   userCreation: ["secretariat"], // SEUL le secrétaire peut créer des comptes
-  roleAssignment: ["admin"] // SEUL l'admin peut attribuer des rôles
+  roleAssignment: ["admin"], // SEUL l'admin peut attribuer des rôles
+  homeContent: ["admin", "secretariat"] // Gestion du contenu d'accueil
 };
 
 const listenerQueue = [];

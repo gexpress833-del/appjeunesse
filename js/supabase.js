@@ -591,6 +591,66 @@ async function deleteAttendance(id) {
   }
 }
 
+// ==================== CONTENU ACCUEIL ====================
+
+/**
+ * Récupérer le contenu actif d'un type donné pour la page d'accueil
+ * @param {'verse'|'testimony'|'video'} type
+ */
+async function getHomeContent(type) {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('home_contents')
+      .select('*')
+      .eq('type', type)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    if (!data || !data.length) return null;
+    return data[0];
+  } catch (error) {
+    console.error('Erreur lors de la récupération du contenu d\'accueil:', error);
+    return null;
+  }
+}
+
+/**
+ * Créer ou mettre à jour le contenu d'accueil pour un type donné
+ * (réservé à l'admin / secrétariat au niveau de l'interface)
+ */
+async function upsertHomeContent(type, payload) {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('home_contents')
+      .upsert({
+        type,
+        title: payload.title || null,
+        subtitle: payload.subtitle || null,
+        content: payload.content || null,
+        reference: payload.reference || null,
+        video_url: payload.videoUrl || null,
+        author: payload.author || null,
+        is_active: payload.isActive !== false // par défaut true
+      }, { onConflict: 'type' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Erreur lors de l\'enregistrement du contenu d\'accueil:', error);
+    throw error;
+  }
+}
+
 // ==================== EXPORT DES FONCTIONS ====================
 
 window.supabaseDB = {
@@ -630,6 +690,10 @@ window.supabaseDB = {
   createAttendance,
   updateAttendance,
   deleteAttendance,
+
+  // Contenu accueil
+  getHomeContent,
+  upsertHomeContent,
   
   // Fonctions de mapping des statuts
   mapAttendanceStatus,

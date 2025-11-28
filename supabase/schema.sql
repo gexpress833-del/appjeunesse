@@ -103,6 +103,23 @@ CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events
 CREATE TRIGGER update_attendances_updated_at BEFORE UPDATE ON attendances
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Contenu de la page d'accueil (verset du jour, témoignages, vidéos, etc.)
+CREATE TABLE IF NOT EXISTS home_contents (
+  id SERIAL PRIMARY KEY,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('verse', 'testimony', 'video')),
+  title VARCHAR(255),
+  subtitle VARCHAR(255),
+  content TEXT,
+  reference VARCHAR(255),
+  video_url TEXT,
+  author VARCHAR(255),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Un seul contenu actif par type (la dernière entrée remplace l'ancienne)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_home_contents_type ON home_contents(type);
+
 -- Insérer les départements par défaut
 INSERT INTO departments (name) VALUES
   ('Chorale'),
