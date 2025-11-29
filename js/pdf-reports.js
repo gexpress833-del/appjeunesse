@@ -248,39 +248,45 @@ class PDFReportGenerator {
     doc.rect(0, 0, pageWidth, headerHeight, 'F');
     
     // Ajouter le logo si disponible (sans canvas pour éviter les problèmes CORS/tainted)
+    // IMPORTANT : si l'application est ouverte en file:// (développement local),
+    // on évite complètement de charger l'image pour ne pas provoquer d'erreurs CORS.
     let logoLoaded = false;
-    try {
-      const logoImg = new Image();
-      // Chemin RELATIF simple – le même que celui utilisé dans les pages HTML
-      logoImg.src = 'images/logo.jpg';
+    const isFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
 
-      await new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.warn('Timeout lors du chargement du logo (pdf-reports)');
-          resolve();
-        }, 2000);
+    if (!isFileProtocol) {
+      try {
+        const logoImg = new Image();
+        // Chemin RELATIF simple – le même que celui utilisé dans les pages HTML
+        logoImg.src = 'images/logo.jpg';
 
-        logoImg.onload = () => {
-          clearTimeout(timeout);
-          try {
-            const logoSize = 35;
-            // jsPDF accepte directement un élément <img> comme source
-            doc.addImage(logoImg, 'JPEG', 15, 15, logoSize, logoSize);
-            logoLoaded = true;
-          } catch (e) {
-            console.warn('Erreur lors de l\'ajout du logo dans le PDF:', e);
-          }
-          resolve();
-        };
+        await new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            console.warn('Timeout lors du chargement du logo (pdf-reports)');
+            resolve();
+          }, 2000);
 
-        logoImg.onerror = () => {
-          clearTimeout(timeout);
-          console.warn('Logo non trouvé à l\'emplacement "images/logo.jpg" (pdf-reports)');
-          resolve();
-        };
-      });
-    } catch (e) {
-      console.warn('Erreur inattendue lors du chargement du logo pour le PDF:', e);
+          logoImg.onload = () => {
+            clearTimeout(timeout);
+            try {
+              const logoSize = 35;
+              // jsPDF accepte directement un élément <img> comme source
+              doc.addImage(logoImg, 'JPEG', 15, 15, logoSize, logoSize);
+              logoLoaded = true;
+            } catch (e) {
+              console.warn('Erreur lors de l\'ajout du logo dans le PDF:', e);
+            }
+            resolve();
+          };
+
+          logoImg.onerror = () => {
+            clearTimeout(timeout);
+            console.warn('Logo non trouvé à l\'emplacement "images/logo.jpg" (pdf-reports)');
+            resolve();
+          };
+        });
+      } catch (e) {
+        console.warn('Erreur inattendue lors du chargement du logo pour le PDF:', e);
+      }
     }
     
     // Zone de texte (à droite du logo ou depuis le début)
@@ -445,17 +451,24 @@ class PDFReportGenerator {
         { label: 'Excusés', value: stats.excused, color: [249, 115, 22] }
       ];
       
-      // Ajouter "Non enregistrés" seulement s'il y en a
-      if (stats.notRecorded > 0) {
-        statsData.push({ label: 'Non enregistrés', value: stats.notRecorded, color: [148, 163, 184] });
-      }
+      // On ne crée plus de cinquième carte pour "Non enregistrés" afin d'éviter qu'elle soit coupée.
+      // L'information des membres non enregistrés est déjà affichée dans la note sous le taux de présence.
 
-      // Ajuster la largeur des cartes selon le nombre
-      const cardWidth = statsData.length > 4 ? 38 : 42;
+      // Ajuster la largeur des cartes selon le nombre, en s'assurant qu'elles tiennent toutes sur la ligne
       const cardHeight = 28;
       const cardSpacing = 5;
-      const totalCardsWidth = (statsData.length * cardWidth) + ((statsData.length - 1) * cardSpacing);
-      const startX = Math.max(20, (doc.internal.pageSize.width - totalCardsWidth) / 2);
+      const statsCount = statsData.length; // restera 4 cartes max
+      const statsPageWidth = doc.internal.pageSize.width;
+      const statsAvailableWidth = statsPageWidth - 40; // marges gauche/droite de 20 mm chacune
+
+      // Pour 4 cartes ou moins, garder le style large d'origine.
+      // Pour 5 cartes ou plus, calculer dynamiquement la largeur pour éviter que la dernière carte soit coupée.
+      const cardWidth = statsCount > 4
+        ? (statsAvailableWidth - cardSpacing * (statsCount - 1)) / statsCount
+        : 42;
+
+      const totalCardsWidth = (statsCount * cardWidth) + ((statsCount - 1) * cardSpacing);
+      const startX = (statsPageWidth - totalCardsWidth) / 2;
 
       statsData.forEach((stat, index) => {
         const x = startX + (index * (cardWidth + cardSpacing));
@@ -482,7 +495,8 @@ class PDFReportGenerator {
       });
 
       // Taux de présence (utilisant les stats pré-calculées)
-      yPos += 40;
+      // On laisse un peu plus d'espace sous les cartes pour mieux respirer
+      yPos += 42;
       doc.setFontSize(13);
       doc.setTextColor(50, 50, 50);
       doc.setFont('helvetica', 'bold');
@@ -506,24 +520,26 @@ class PDFReportGenerator {
       }
 
       // Barre de progression (utilisant les stats pré-calculées)
-      yPos += 5;
-      const barWidth = 170;
+      // Alignée sous le texte, avec la même marge gauche (20), et un espace vertical plus confortable
+      yPos += 8;
+      const barX = 20;
+      const barWidth = statsAvailableWidth; // s'étend jusqu'à la marge droite
       const fillWidth = (barWidth * stats.rate) / 100;
       
       // Fond de la barre
       doc.setFillColor(240, 240, 240);
-      doc.roundedRect(20, yPos, barWidth, 8, 4, 4, 'F');
+      doc.roundedRect(barX, yPos, barWidth, 8, 4, 4, 'F');
       
       // Remplissage
       if (fillWidth > 0) {
         const color = stats.rate >= 80 ? [34, 197, 94] : 
                      stats.rate >= 60 ? [249, 115, 22] : [239, 68, 68];
         doc.setFillColor(...color);
-        doc.roundedRect(20, yPos, fillWidth, 8, 4, 4, 'F');
+        doc.roundedRect(barX, yPos, fillWidth, 8, 4, 4, 'F');
       }
 
-      // Ligne de séparation
-      yPos += 15;
+      // Ligne de séparation avec plus d'espace sous la barre
+      yPos += 22;
       doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.5);
       doc.line(20, yPos, doc.internal.pageSize.width - 20, yPos);
