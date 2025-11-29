@@ -20,7 +20,7 @@
         <div class="header-center">
           <div class="header-info">
             <h1 class="header-title">Gestion du contenu d'accueil</h1>
-            <span class="welcome-message">Réservé à l'administrateur et au secrétariat</span>
+            <span class="welcome-message" id="homeContentWelcome">Consultation du contenu d'accueil</span>
           </div>
         </div>
         <div class="login-panel">
@@ -100,7 +100,7 @@
   <script src="js/supabase.js?v=home1"></script>
   <script src="js/notifications.js"></script>
   <script>
-    // Vérifier que l'utilisateur est admin ou secrétariat
+    // Vérifier la session de l'utilisateur (tous rôles confondus)
     function ensureContentPermissions() {
       const role = localStorage.getItem('appRole');
       const loginTime = localStorage.getItem('appLoginTime');
@@ -116,11 +116,8 @@
         return false;
       }
 
-      if (role !== 'admin' && role !== 'secretariat') {
-        alert('Accès réservé à l\'administrateur et au secrétariat.');
-        window.location.href = 'index.html';
-        return false;
-      }
+      // Déterminer qui peut modifier le contenu (admin + secrétariat)
+      window.homeContentCanEdit = (role === 'admin' || role === 'secretariat');
 
       // Adapter les liens d'accueil selon le rôle
       if (role === 'admin') {
@@ -129,7 +126,50 @@
         document.getElementById('secretariatHomeLink').style.display = 'inline-flex';
       }
 
+      // Adapter le message d'accueil selon les droits
+      const welcomeEl = document.getElementById('homeContentWelcome');
+      if (welcomeEl) {
+        if (window.homeContentCanEdit) {
+          welcomeEl.textContent = 'Gestion du contenu affiché sur la page d\'accueil';
+        } else {
+          welcomeEl.textContent = 'Consultation du contenu affiché sur la page d\'accueil';
+        }
+      }
+
       return true;
+    }
+
+    function setContentEditState() {
+      const canEdit = !!window.homeContentCanEdit;
+
+      const inputs = document.querySelectorAll('#verseForm textarea, #verseForm input, #testimonialForm textarea, #testimonialForm input, #videoForm input');
+      const buttons = document.querySelectorAll('#verseForm button, #testimonialForm button, #videoForm button');
+
+      inputs.forEach(el => {
+        el.readOnly = !canEdit;
+        if (!canEdit && el.tagName === 'INPUT') {
+          el.disabled = true;
+        }
+      });
+
+      buttons.forEach(btn => {
+        btn.disabled = !canEdit;
+        if (!canEdit) {
+          btn.classList.add('secondary');
+        }
+      });
+
+      if (!canEdit) {
+        const info = document.createElement('p');
+        info.className = 'text-muted';
+        info.style.marginTop = '0.75rem';
+        info.textContent = 'Seuls l\'administrateur et le secrétariat peuvent modifier ces contenus. Les autres rôles peuvent les consulter uniquement.';
+        const firstCard = document.querySelector('.grid .card');
+        if (firstCard && !firstCard.querySelector('.text-muted-info')) {
+          info.classList.add('text-muted-info');
+          firstCard.appendChild(info);
+        }
+      }
     }
 
     async function loadExistingContent() {
@@ -182,6 +222,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       if (!ensureContentPermissions()) return;
 
+      // Appliquer l'état lecture seule ou édition selon le rôle
+      setContentEditState();
+
       // Bouton de déconnexion simple
       const logoutBtn = document.getElementById('logoutBtn');
       if (logoutBtn) {
@@ -202,6 +245,7 @@
       // Gestion des formulaires
       document.getElementById('verseForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!window.homeContentCanEdit) return;
         await saveHomeContent('verse', {
           content: document.getElementById('verseContent').value.trim(),
           reference: document.getElementById('verseReferenceInput').value.trim()
@@ -210,6 +254,7 @@
 
       document.getElementById('testimonialForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!window.homeContentCanEdit) return;
         await saveHomeContent('testimony', {
           content: document.getElementById('testimonialContent').value.trim(),
           author: document.getElementById('testimonialAuthorInput').value.trim()
@@ -218,6 +263,7 @@
 
       document.getElementById('videoForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!window.homeContentCanEdit) return;
         await saveHomeContent('video', {
           title: document.getElementById('videoTitle').value.trim(),
           videoUrl: document.getElementById('videoUrl').value.trim()

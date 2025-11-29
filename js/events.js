@@ -553,6 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
     notificationId: "notifications"
   });
   
+  // Première tentative d'affichage (au cas où les données sont déjà chargées)
   renderEventsGrid();
   
   // Initialize filter dropdown
@@ -567,6 +568,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentFilter = eventsFilter ? eventsFilter.value : 'all';
     renderEventsGrid(currentFilter);
   });
+
+  // Rafraîchir automatiquement la liste des événements quand les données Supabase sont (re)chargées
+  if (window.onDataReloaded) {
+    const originalReload = window.onDataReloaded;
+    window.onDataReloaded = () => {
+      try {
+        originalReload();
+      } catch (e) {
+        console.warn('Erreur onDataReloaded existant (events):', e);
+      }
+      const currentFilter = eventsFilter ? eventsFilter.value : 'all';
+      renderEventsGrid(currentFilter);
+    };
+  } else {
+    window.onDataReloaded = () => {
+      const currentFilter = eventsFilter ? eventsFilter.value : 'all';
+      renderEventsGrid(currentFilter);
+    };
+  }
 });
 
 // Global functions for onclick handlers

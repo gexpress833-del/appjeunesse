@@ -7,7 +7,7 @@ const sectionAccess = {
   users: ["admin", "secretariat"], // Admin pour attribution rôles, Secrétaire pour création comptes
   userCreation: ["secretariat"], // SEUL le secrétaire peut créer des comptes
   roleAssignment: ["admin"], // SEUL l'admin peut attribuer des rôles
-  homeContent: ["admin", "secretariat"] // Gestion du contenu d'accueil
+  homeContent: ["admin", "secretariat", "responsable", "user"] // Accès à la page de contenu d'accueil pour tous les rôles
 };
 
 const listenerQueue = [];
@@ -54,10 +54,13 @@ function setDeptScope(scope) {
 function setRole(role) {
   currentRole = role;
   localStorage.setItem("appRole", role);
-  if (currentRole !== "responsable") {
-    setDeptScope(null);
-  } else if (!currentDepartmentScope && window.appState?.departments?.length) {
-    setDeptScope(window.appState.departments[0]);
+  // Pour un responsable, s'assurer qu'un département est défini.
+  // Pour les autres rôles (admin, secretariat, user), on conserve
+  // éventuellement le département déjà stocké (appDept).
+  if (currentRole === "responsable") {
+    if (!currentDepartmentScope && window.appState?.departments?.length) {
+      setDeptScope(window.appState.departments[0]);
+    }
   }
   applyNavPermissions();
   applyResponsableToggle();
