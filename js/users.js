@@ -96,6 +96,12 @@ function setupEventListeners() {
   if (confirmBtn) {
     confirmBtn.addEventListener('click', handleRoleAssignment);
   }
+
+  // Bouton de confirmation d'édition d'utilisateur
+  const confirmEditBtn = document.getElementById('confirmUserEdit');
+  if (confirmEditBtn) {
+    confirmEditBtn.addEventListener('click', handleUserEditSave);
+  }
   
   // Bouton de déconnexion
   const logoutBtn = document.getElementById('logoutBtn');
@@ -730,15 +736,147 @@ async function toggleUserStatus(username) {
 }
 
 function editUser(username) {
-  // Fonction pour éditer un utilisateur (à implémenter si nécessaire)
-  if (window.notificationSystem) {
-    window.notificationSystem.info('Fonctionnalité d\'édition à venir');
+  openUserEditModal(username);
+}
+
+async function openUserEditModal(username) {
+  const currentRole = localStorage.getItem('appRole');
+  if (currentRole !== 'admin') {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Seul l\'administrateur peut modifier les informations utilisateur');
+    }
+    return;
+  }
+
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
+    }
+    return;
+  }
+
+  try {
+    const user = await window.supabaseDB.getUserByUsername(username);
+    if (!user) {
+      if (window.notificationSystem) {
+        window.notificationSystem.error('Utilisateur introuvable');
+      }
+      return;
+    }
+
+    currentEditingUser = {
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      birthDate: user.birth_date,
+      address: user.address
+    };
+
+    // Pré-remplir le formulaire
+    const fullNameInput = document.getElementById('editUserFullName');
+    const emailInput = document.getElementById('editUserEmail');
+    const birthDateInput = document.getElementById('editUserBirthDate');
+    const addressInput = document.getElementById('editUserAddress');
+
+    if (fullNameInput) fullNameInput.value = user.name || '';
+    if (emailInput) emailInput.value = user.email || '';
+    if (birthDateInput) birthDateInput.value = user.birth_date || '';
+    if (addressInput) addressInput.value = user.address || '';
+
+    const modal = document.getElementById('userEditModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'utilisateur pour édition:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors du chargement de l\'utilisateur');
+    }
+  }
+}
+
+function closeUserEditModal() {
+  const modal = document.getElementById('userEditModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  currentEditingUser = null;
+}
+
+async function handleUserEditSave(event) {
+  if (event) {
+    event.preventDefault();
+  }
+
+  if (!currentEditingUser) return;
+
+  const fullNameInput = document.getElementById('editUserFullName');
+  const emailInput = document.getElementById('editUserEmail');
+  const birthDateInput = document.getElementById('editUserBirthDate');
+  const addressInput = document.getElementById('editUserAddress');
+
+  const updates = {
+    name: fullNameInput ? fullNameInput.value.trim() : '',
+    email: emailInput ? emailInput.value.trim() : '',
+    birthDate: birthDateInput ? birthDateInput.value : null,
+    address: addressInput ? addressInput.value.trim() : ''
+  };
+
+  if (!updates.name || !updates.email) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Nom complet et email sont obligatoires');
+    }
+    return;
+  }
+
+  if (!window.supabaseDB || !window.supabaseDB.getClient()) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Supabase n\'est pas configuré.');
+    }
+    return;
+  }
+
+  try {
+    await window.supabaseDB.updateUser(currentEditingUser.username, updates);
+
+    if (window.notificationSystem) {
+      window.notificationSystem.success('Utilisateur mis à jour avec succès');
+    }
+
+    closeUserEditModal();
+
+    // Recharger la liste des utilisateurs en conservant le filtre courant
+    const statusFilter = document.getElementById('usersStatusFilter');
+    const currentFilter = statusFilter ? statusFilter.value : 'all';
+    await renderUsersGrid(currentFilter);
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Erreur lors de la mise à jour de l\'utilisateur');
+    }
   }
 }
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
   initUsersPage();
+
+  // S'assurer que la liste des départements est remplie dès que les données Supabase sont prêtes
+  if (window.onDataReloaded) {
+    const originalReload = window.onDataReloaded;
+    window.onDataReloaded = () => {
+      try {
+        originalReload();
+      } catch (e) {
+        console.warn('Erreur onDataReloaded existant (users):', e);
+      }
+      loadDepartmentOptions();
+    };
+  } else {
+    window.onDataReloaded = () => {
+      loadDepartmentOptions();
+    };
+  }
 });
 
 async function deleteUserAccount(username, userName) {
@@ -805,3 +943,4 @@ window.closeRoleAssignmentModal = closeRoleAssignmentModal;
 window.toggleUserStatus = toggleUserStatus;
 window.editUser = editUser;
 window.deleteUserAccount = deleteUserAccount;
+window.closeUserEditModal = closeUserEditModal;

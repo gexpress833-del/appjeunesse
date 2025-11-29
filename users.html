@@ -197,6 +197,40 @@
         </div>
       </div>
 
+      <!-- Modal d'édition des informations utilisateur -->
+      <div class="modal-overlay" id="userEditModal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>✏️ Modifier l'utilisateur</h3>
+            <button class="modal-close" onclick="closeUserEditModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="userEditForm">
+              <div class="form-control">
+                <label for="editUserFullName">Nom complet</label>
+                <input type="text" id="editUserFullName" required>
+              </div>
+              <div class="form-control">
+                <label for="editUserEmail">Email</label>
+                <input type="email" id="editUserEmail" required>
+              </div>
+              <div class="form-control">
+                <label for="editUserBirthDate">Date de naissance</label>
+                <input type="date" id="editUserBirthDate">
+              </div>
+              <div class="form-control">
+                <label for="editUserAddress">Adresse</label>
+                <textarea id="editUserAddress" rows="2" placeholder="Adresse de résidence"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="secondary" onclick="closeUserEditModal()">Annuler</button>
+            <button class="primary" id="confirmUserEdit">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 

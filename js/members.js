@@ -17,7 +17,7 @@ function initMembersModule() {
     defaultOption.textContent = "Tous les départements";
     memberFilter.appendChild(defaultOption);
     const allowedDepts =
-      currentRole === "responsable" && currentDepartmentScope
+      (currentRole === "responsable" || currentRole === "user") && currentDepartmentScope
         ? [currentDepartmentScope]
         : window.appState.departments;
     allowedDepts.forEach((dept) => {
@@ -59,7 +59,7 @@ function initMembersModule() {
     const isAdmin = currentRole === "admin";
     
     // Activer les champs de base pour le secrétaire et l'admin
-    const inputs = [memberNameInput, memberDeptSelect, memberSubmit];
+    const inputs = [memberDeptSelect, memberSubmit, memberUserSelect];
     inputs.forEach((input) => {
       input.disabled = !createAllowed;
     });
@@ -86,7 +86,9 @@ function initMembersModule() {
   function getVisibleMembers() {
     const { currentRole, currentDepartmentScope } = auth.getRoleContext();
     let members = [...window.appState.members];
-    if (currentRole === "responsable" && currentDepartmentScope) {
+    // Responsable ou utilisateur rattaché à un département :
+    // ne voient que les membres de leur propre département.
+    if ((currentRole === "responsable" || currentRole === "user") && currentDepartmentScope) {
       members = members.filter((member) => member.dept === currentDepartmentScope);
     } else if (memberFilterValue !== "all") {
       members = members.filter((member) => member.dept === memberFilterValue);
@@ -198,8 +200,6 @@ function initMembersModule() {
     
     const { currentRole } = auth.getRoleContext();
     const isAdmin = currentRole === "admin";
-    
-    if (memberNameInput) memberNameInput.value = member.name;
     if (memberDeptSelect) memberDeptSelect.value = member.dept;
     if (memberRoleSelect) {
       memberRoleSelect.value = member.role || 'user';
