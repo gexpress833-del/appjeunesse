@@ -111,9 +111,30 @@ document.addEventListener("DOMContentLoaded", () => {
     navSelector: ".nav a",
     notificationId: "notifications"
   });
+  
+  // Rafraîchir la page une première fois (au cas où les données sont déjà chargées)
+  refreshDepartmentPage();
+
+  // Réagir aux changements de rôle (admin / non-admin)
   auth.registerRoleListener(() => {
     refreshDepartmentPage();
   });
-  refreshDepartmentPage();
+
+  // S'assurer que la table est mise à jour dès que les données Supabase sont chargées
+  if (window.onDataReloaded) {
+    const originalReload = window.onDataReloaded;
+    window.onDataReloaded = () => {
+      try {
+        originalReload();
+      } catch (e) {
+        console.warn('Erreur onDataReloaded existant (departments):', e);
+      }
+      refreshDepartmentPage();
+    };
+  } else {
+    window.onDataReloaded = () => {
+      refreshDepartmentPage();
+    };
+  }
 });
 

@@ -819,10 +819,12 @@ class PDFReportGenerator {
     }
   }
 
-  // Générer rapport individuel de membre
+  // Générer rapport individuel de membre (VERSION AMÉLIORÉE ET CORRIGÉE)
   async generateMemberReport(memberId) {
     // Vérifier les permissions avant de continuer
     this.checkExportPermissions();
+    
+    this.showProgress('Initialisation du rapport individuel...', 10);
     
     await this.waitForJsPDF();
     const { jsPDF } = window.jsPDF;
@@ -835,10 +837,13 @@ class PDFReportGenerator {
         return;
       }
       
-      const [events, members, attendances] = await Promise.all([
+      this.showProgress('Chargement des données du membre...', 20);
+      
+      const [events, members, attendances, departments] = await Promise.all([
         window.supabaseDB.getEvents(),
         window.supabaseDB.getMembers(),
-        window.supabaseDB.getAttendances()
+        window.supabaseDB.getAttendances(),
+        window.supabaseDB.getDepartments()
       ]);
 
       const member = members.find(m => m.id == memberId);
@@ -849,131 +854,384 @@ class PDFReportGenerator {
       // Mapper les statuts depuis Supabase vers les codes d'affichage
       const mappedAttendances = attendances.map(att => ({
         ...att,
-        status: this.mapStatusToCode(att.status)
+        memberId: att.member_id,
+        eventId: att.event_id,
+        status: this.mapStatusToCode(att.status),
+        recordedAt: att.created_at
       }));
 
       const memberAttendances = mappedAttendances.filter(a => a.memberId == memberId);
 
-      // En-tête
-      const subtitle = `Membre: ${member.name} - Département: ${member.dept || 'N/A'}`;
-      let yPos = await this.addHeader(doc, 'RAPPORT INDIVIDUEL DE PRÉSENCES', subtitle);
+      this.showProgress('Analyse des statistiques...', 40);
 
-      // Statistiques personnelles
-      yPos += 10;
-      doc.setFontSize(14);
-      doc.setTextColor(...this.colors.dark);
-      doc.setFont('helvetica', 'bold');
-      doc.text('👤 PROFIL DU MEMBRE', 20, yPos);
-
-      yPos += 15;
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Nom complet: ${member.name}`, 20, yPos);
-      yPos += 8;
-      doc.text(`Département: ${member.dept || 'Non assigné'}`, 20, yPos);
-      yPos += 8;
-      doc.text(`Rôle: ${member.role || 'Membre'}`, 20, yPos);
-
-      // Statistiques de présence
-      yPos += 20;
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('📊 STATISTIQUES DE PRÉSENCE', 20, yPos);
-
+      // ============= CALCULS STATISTIQUES =============
       const totalEvents = events.length;
       const presentCount = memberAttendances.filter(a => a.status === 'P').length;
       const absentCount = memberAttendances.filter(a => a.status === 'A').length;
       const excusedCount = memberAttendances.filter(a => a.status === 'AJ').length;
+      const lateCount = memberAttendances.filter(a => a.status === 'L').length;
+      const notRecordedCount = totalEvents - memberAttendances.length;
       const attendanceRate = totalEvents > 0 ? ((presentCount / totalEvents) * 100).toFixed(1) : 0;
 
-      yPos += 15;
+      // Calculer la série de présences consécutives (streak) - SIMPLIFIÉ
+      const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+      let currentStreak = 0;
+      let maxStreak = 0;
       
-      // Graphique en barres simple
-      const barHeight = 15;
-      const barWidth = 150;
+      for (let i = sortedEvents.length - 1; i >= 0; i--) {
+        const event = sortedEvents[i];
+        const attendance = memberAttendances.find(a => a.eventId == event.id);
+        if (attendance && attendance.status === 'P') {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
       
-      // Présent
-      doc.setFillColor(34, 197, 94);
-      doc.rect(20, yPos, (presentCount / totalEvents) * barWidth, barHeight, 'F');
-      doc.setTextColor(...this.colors.dark);
-      doc.setFontSize(10);
-      doc.text(`Présent: ${presentCount} (${((presentCount/totalEvents)*100).toFixed(1)}%)`, 20 + barWidth + 10, yPos + 10);
+      let tempStreak = 0;
+      for (const event of sortedEvents) {
+        const attendance = memberAttendances.find(a => a.eventId == event.id);
+        if (attendance && attendance.status === 'P') {
+          tempStreak++;
+          if (tempStreak > maxStreak) maxStreak = tempStreak;
+        } else {
+          tempStreak = 0;
+        }
+      }
 
-      yPos += 20;
-      
-      // Absent
-      doc.setFillColor(239, 68, 68);
-      doc.rect(20, yPos, (absentCount / totalEvents) * barWidth, barHeight, 'F');
-      doc.text(`Absent: ${absentCount} (${((absentCount/totalEvents)*100).toFixed(1)}%)`, 20 + barWidth + 10, yPos + 10);
+      // Statistiques du département pour comparaison
+      const deptMembers = members.filter(m => m.dept === member.dept);
+      const deptAttendances = mappedAttendances.filter(a => {
+        const m = members.find(mem => mem.id == a.memberId);
+        return m && m.dept === member.dept;
+      });
+      const deptPresentCount = deptAttendances.filter(a => a.status === 'P').length;
+      const deptTotalPossible = deptMembers.length * totalEvents;
+      const deptAvgRate = deptTotalPossible > 0 ? ((deptPresentCount / deptTotalPossible) * 100).toFixed(1) : 0;
 
-      yPos += 20;
-      
-      // Excusé
-      doc.setFillColor(249, 115, 22);
-      doc.rect(20, yPos, (excusedCount / totalEvents) * barWidth, barHeight, 'F');
-      doc.text(`Excusé: ${excusedCount} (${((excusedCount/totalEvents)*100).toFixed(1)}%)`, 20 + barWidth + 10, yPos + 10);
+      this.showProgress('Génération du PDF...', 60);
 
-      // Historique détaillé
-      yPos += 35;
+      // ============= PAGE 1: PROFIL ET RÉSUMÉ =============
+      const subtitle = `Membre: ${member.name} - Departement: ${member.dept || 'N/A'}`;
+      let yPos = await this.addHeader(doc, 'RAPPORT INDIVIDUEL DE PRESENCES', subtitle);
+
+      // Section: Informations personnelles - VERSION OPTIMISÉE
+      yPos += 5;
+      const pageWidth = doc.internal.pageSize.width;
+      
       doc.setFontSize(14);
+      doc.setTextColor(50, 50, 50);
       doc.setFont('helvetica', 'bold');
-      doc.text('📋 HISTORIQUE DÉTAILLÉ', 20, yPos);
+      doc.text('PROFIL DU MEMBRE', 20, yPos);
+
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Nom complet: ${member.name}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Departement: ${member.dept || 'Non assigne'}`, 20, yPos);
+      yPos += 6;
+      const roleLabels = { admin: 'Administrateur', secretariat: 'Secretariat', responsable: 'Responsable', user: 'Membre' };
+      doc.text(`Role: ${roleLabels[member.role] || 'Membre'}`, 20, yPos);
+      
+      if (member.phone) {
+        yPos += 6;
+        doc.text(`Telephone: ${member.phone}`, 20, yPos);
+      }
+      
+      if (member.email) {
+        yPos += 6;
+        doc.text(`Email: ${member.email}`, 20, yPos);
+      }
+
+      yPos += 12;
+
+      // Ligne de séparation
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPos, pageWidth - 20, yPos);
 
       yPos += 10;
 
-      // Tableau de l'historique
+      // ============= STATISTIQUES - VERSION OPTIMISÉE =============
+      doc.setFontSize(14);
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.text('STATISTIQUES DE PRESENCE', 20, yPos);
+
+      yPos += 12;
+
+      // Cartes de statistiques OPTIMISÉES
+      const statsData = [
+        { label: 'Total Evenements', value: totalEvents, color: [100, 100, 100] },
+        { label: 'Presences', value: presentCount, color: [34, 197, 94] },
+        { label: 'Absences', value: absentCount, color: [239, 68, 68] },
+        { label: 'Excusees', value: excusedCount, color: [249, 115, 22] }
+      ];
+
+      const cardWidth = 40;
+      const cardHeight = 26;
+      const cardSpacing = 6;
+      const totalCardsWidth = (statsData.length * cardWidth) + ((statsData.length - 1) * cardSpacing);
+      const startX = (pageWidth - totalCardsWidth) / 2;
+
+      statsData.forEach((stat, index) => {
+        const x = startX + (index * (cardWidth + cardSpacing));
+        
+        // Fond de la carte avec ombre simulée
+        doc.setFillColor(230, 230, 230);
+        doc.roundedRect(x + 1, yPos + 1, cardWidth, cardHeight, 3, 3, 'F');
+        
+        // Fond de la carte
+        doc.setFillColor(...stat.color);
+        doc.roundedRect(x, yPos, cardWidth, cardHeight, 3, 3, 'F');
+        
+        // Valeur
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(stat.value.toString(), x + cardWidth / 2, yPos + 12, { align: 'center' });
+        
+        // Label
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(stat.label, x + cardWidth / 2, yPos + 20, { align: 'center', maxWidth: cardWidth - 4 });
+      });
+
+      yPos += 35;
+
+      // Taux de présence avec barre de progression
+      doc.setFontSize(12);
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Taux de presence: ${attendanceRate}%`, 20, yPos);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`(${presentCount} sur ${totalEvents} evenement${totalEvents > 1 ? 's' : ''})`, 75, yPos);
+
+      // Barre de progression
+      yPos += 6;
+      const barX = 20;
+      const barWidth = pageWidth - 40;
+      const fillWidth = (barWidth * attendanceRate) / 100;
+      
+      // Fond de la barre
+      doc.setFillColor(240, 240, 240);
+      doc.roundedRect(barX, yPos, barWidth, 10, 5, 5, 'F');
+      
+      // Remplissage avec dégradé simulé
+      if (fillWidth > 0) {
+        const color = attendanceRate >= 80 ? [34, 197, 94] : 
+                     attendanceRate >= 60 ? [249, 115, 22] : [239, 68, 68];
+        doc.setFillColor(...color);
+        doc.roundedRect(barX, yPos, fillWidth, 10, 5, 5, 'F');
+      }
+
+      yPos += 18;
+
+      // Ligne de séparation
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPos, pageWidth - 20, yPos);
+
+      yPos += 10;
+
+      // ============= COMPARAISON AVEC LE DÉPARTEMENT =============
+      doc.setFontSize(14);
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.text('COMPARAISON AVEC LE DEPARTEMENT', 20, yPos);
+
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      doc.text(`Votre taux: ${attendanceRate}%`, 20, yPos);
+      yPos += 6;
+      doc.text(`Moyenne du departement "${member.dept || 'N/A'}": ${deptAvgRate}%`, 20, yPos);
+      yPos += 6;
+      
+      const comparison = attendanceRate - deptAvgRate;
+      if (comparison > 0) {
+        doc.setTextColor(34, 197, 94);
+        doc.text(`Vous etes ${comparison.toFixed(1)}% au-dessus de la moyenne`, 20, yPos);
+      } else if (comparison < 0) {
+        doc.setTextColor(239, 68, 68);
+        doc.text(`Vous etes ${Math.abs(comparison).toFixed(1)}% en-dessous de la moyenne`, 20, yPos);
+      } else {
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Vous etes dans la moyenne du departement`, 20, yPos);
+      }
+      doc.setTextColor(50, 50, 50);
+
+      yPos += 12;
+
+      // Informations supplémentaires (séries)
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Serie actuelle de presences consecutives: ${currentStreak}`, 20, yPos);
+      yPos += 6;
+      doc.text(`Meilleure serie de presences consecutives: ${maxStreak}`, 20, yPos);
+
+      yPos += 15;
+
+      // Vérifier si on a assez d'espace pour la section historique
+      // Si on est trop bas sur la page (> 220mm), passer à une nouvelle page
+      const pageHeight = doc.internal.pageSize.height;
+      if (yPos > pageHeight - 60) {
+        doc.addPage();
+        yPos = 20;
+      } else {
+        // Ligne de séparation seulement si on reste sur la même page
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.5);
+        doc.line(20, yPos, pageWidth - 20, yPos);
+        yPos += 12;
+      }
+      
+      // Titre de la section historique
+      doc.setFontSize(14);
+      doc.setTextColor(50, 50, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.text('HISTORIQUE DETAILLE DES PRESENCES', 20, yPos);
+
+      yPos += 12;
+
+      // Tableau de l'historique (trié par date décroissante)
       const historyData = [];
-      events.forEach(event => {
+      const sortedEventsForHistory = [...events].sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      sortedEventsForHistory.forEach(event => {
         const attendance = memberAttendances.find(a => a.eventId == event.id);
         const status = attendance ? attendance.status : 'N/A';
         const statusLabel = {
-          'P': 'Présent',
+          'P': 'Present',
           'A': 'Absent',
-          'AJ': 'Excusé',
-          'N/A': 'Non enregistré'
+          'AJ': 'Excuse',
+          'L': 'Retard',
+          'N/A': 'Non enregistre'
         }[status];
+
+        const recordedTime = attendance && attendance.recordedAt 
+          ? new Date(attendance.recordedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          : '-';
 
         historyData.push([
           event.name,
           new Date(event.date).toLocaleDateString('fr-FR'),
           statusLabel,
-          attendance ? new Date(attendance.recordedAt || Date.now()).toLocaleTimeString('fr-FR') : '-'
+          recordedTime
         ]);
       });
 
+      const margin = 20;
+      const availableWidth = pageWidth - (margin * 2);
+      
       doc.autoTable({
         startY: yPos,
-        head: [['Événement', 'Date', 'Statut', 'Heure']],
+        head: [['Evenement', 'Date', 'Statut', 'Heure']],
         body: historyData,
-        theme: 'grid',
+        theme: 'striped',
         styles: {
           fontSize: 9,
-          cellPadding: 4
+          cellPadding: 5,
+          font: 'helvetica',
+          textColor: [50, 50, 50],
+          lineColor: [220, 220, 220],
+          lineWidth: 0.1
         },
         headStyles: {
-          fillColor: this.colors.primary,
+          fillColor: [0, 150, 200],
           textColor: [255, 255, 255],
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          fontSize: 10,
+          halign: 'center',
+          cellPadding: 6
         },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          0: { cellWidth: availableWidth * 0.40, halign: 'left' },
+          1: { cellWidth: availableWidth * 0.25, halign: 'center' },
+          2: { cellWidth: availableWidth * 0.20, halign: 'center' },
+          3: { cellWidth: availableWidth * 0.15, halign: 'center', fontSize: 8 }
+        },
+        margin: { left: margin, right: margin },
         didParseCell: (data) => {
           if (data.column.index === 2 && data.section === 'body') {
             const status = data.cell.text[0];
-            if (status === 'Présent') {
+            if (status === 'Present') {
               data.cell.styles.fillColor = [34, 197, 94, 0.1];
               data.cell.styles.textColor = [34, 197, 94];
+              data.cell.styles.fontStyle = 'bold';
             } else if (status === 'Absent') {
               data.cell.styles.fillColor = [239, 68, 68, 0.1];
               data.cell.styles.textColor = [239, 68, 68];
-            } else if (status === 'Excusé') {
+              data.cell.styles.fontStyle = 'bold';
+            } else if (status === 'Excuse') {
               data.cell.styles.fillColor = [249, 115, 22, 0.1];
               data.cell.styles.textColor = [249, 115, 22];
+              data.cell.styles.fontStyle = 'bold';
             }
           }
         }
       });
 
-      // Pied de page
-      this.addFooter(doc, 1, 1);
+      // ============= RECOMMANDATIONS =============
+      const finalY = doc.lastAutoTable.finalY + 12;
+      
+      if (finalY < 250) {
+        // Ligne de séparation
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.5);
+        doc.line(20, finalY, pageWidth - 20, finalY);
+
+        const recY = finalY + 10;
+        doc.setFontSize(14);
+        doc.setTextColor(50, 50, 50);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RECOMMANDATIONS', 20, recY);
+
+        let textY = recY + 10;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+
+        if (attendanceRate >= 90) {
+          doc.setTextColor(34, 197, 94);
+          doc.text('Excellent engagement ! Continuez sur cette lancee.', 20, textY);
+        } else if (attendanceRate >= 75) {
+          doc.setTextColor(100, 150, 100);
+          doc.text('Bon taux de presence. Essayez de maintenir cette regularite.', 20, textY);
+          textY += 6;
+          doc.setTextColor(50, 50, 50);
+          doc.text('Objectif: Atteindre 90% pour un engagement optimal.', 20, textY);
+        } else if (attendanceRate >= 50) {
+          doc.setTextColor(249, 115, 22);
+          doc.text('Taux de presence moyen. Une amelioration est recommandee.', 20, textY);
+          textY += 6;
+          doc.setTextColor(50, 50, 50);
+          doc.text('Essayez de participer plus regulierement aux evenements.', 20, textY);
+        } else {
+          doc.setTextColor(239, 68, 68);
+          doc.text('Taux de presence faible. Votre engagement est important.', 20, textY);
+          textY += 6;
+          doc.setTextColor(50, 50, 50);
+          doc.text('Contactez votre responsable pour discuter des obstacles.', 20, textY);
+        }
+      }
+
+      this.showProgress('Finalisation du rapport...', 90);
+
+      // Pieds de page
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        this.addFooter(doc, i, totalPages);
+      }
+
+      this.showProgress('Téléchargement...', 100);
 
       // Télécharger
       const fileName = `Rapport_Individuel_${member.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -991,6 +1249,7 @@ class PDFReportGenerator {
       return { success: false, error: error.message };
     }
   }
+
 }
 
 // Instance globale
