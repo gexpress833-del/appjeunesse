@@ -1,17 +1,30 @@
-// Configuration Supabase
-const SUPABASE_CONFIG = {
-  url: window.SUPABASE_URL || 'https://etbootzjdlxrfrfycjsz.supabase.co',
-  anonKey: window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0Ym9vdHpqZGx4cmZyZnljanN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxNTE5MzMsImV4cCI6MjA3OTcyNzkzM30.K5hx0HjYvCwJUaiUlE8qYrB7SPm4ofCagICVGjKMnTc'
-};
+// ============================================================================
+// CONFIGURATION SUPABASE
+// ============================================================================
+// Ce fichier configure la connexion à Supabase.
+// Les variables doivent être définies dans window.SUPABASE_CONFIG avant le chargement.
+// ============================================================================
 
-// Vérification de la configuration
-if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey || 
-    SUPABASE_CONFIG.url === 'YOUR_SUPABASE_URL' || 
-    SUPABASE_CONFIG.anonKey === 'YOUR_SUPABASE_ANON_KEY') {
-  console.warn('⚠️ Configuration Supabase non définie. Veuillez configurer vos clés dans js/config.js ou via les variables d\'environnement.');
-} else {
-  console.log('✅ Configuration Supabase chargée');
+const SUPABASE_CONFIG = window.SUPABASE_CONFIG || {};
+
+if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+  console.error('❌ ERREUR CRITIQUE: SUPABASE_CONFIG non configuré');
+  console.error('   Définissez window.SUPABASE_CONFIG avant de charger ce script:');
+  console.error('   window.SUPABASE_CONFIG = {');
+  console.error('     url: "https://votre-projet.supabase.co",');
+  console.error('     anonKey: "votre_clé_anonyme"');
+  console.error('   };');
 }
 
-window.SUPABASE_CONFIG = SUPABASE_CONFIG;
+const APP_CONFIG = {
+  supabaseUrl: SUPABASE_CONFIG.url,
+  supabaseAnonKey: SUPABASE_CONFIG.anonKey,
+  cloudinaryCloudName: SUPABASE_CONFIG.cloudinaryCloudName || '',
+  cloudinaryUploadPreset: SUPABASE_CONFIG.cloudinaryUploadPreset || ''
+};
 
+if (APP_CONFIG.supabaseUrl && APP_CONFIG.supabaseAnonKey) {
+  console.log('✅ Supabase configuré:', APP_CONFIG.supabaseUrl);
+}
+
+window.APP_CONFIG = APP_CONFIG;

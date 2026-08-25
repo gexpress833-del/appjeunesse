@@ -1,23 +1,24 @@
-# 👥 AppJeune - Gestion d'Équipe
+# 👥 AppJeune-KZI - Gestion d'Équipe
 
-Une application web complète de gestion d'équipe avec gestion des rôles, des présences, des événements et des rapports.
+Application web de gestion d'équipe pour La Parole Éternelle Kolwezi, basée sur **Supabase** pour l'authentification et la persistance des données.
 
 ## 🚀 Fonctionnalités
 
-- **Authentification** : Système de login sécurisé avec rôles
-- **Gestion des Rôles** : Admin, Secrétariat, Responsable, Utilisateur
-- **Gestion d'Équipe** : Membres, départements, profils
-- **Présences** : Suivi des attendances
-- **Événements** : Création et gestion des événements
+- **Authentification Supabase** : Connexion sécurisée via Supabase Auth (pas de mots de passe en clair)
+- **Gestion des Rôles** : Admin, Secrétariat, Responsable, Utilisateur avec RLS (Row Level Security)
+- **Gestion d'Équipe** : Membres, départements, profils utilisateurs
+- **Présences** : Suivi des attendances aux événements
+- **Événements** : Création et gestion des événements avec photos
 - **Rapports** : Génération de rapports PDF
-- **Stockage** : Gestion des photos et des données
-- **Base de données** : Intégration Supabase pour la persistance des données
+- **Stockage Cloud** : Intégration Cloudinary pour les images (via Supabase Edge Functions)
 
 ## 📁 Structure du Projet
 
 ```
-├── index.html                 # Page d'accueil/redirection
-├── login.html                # Page de connexion
+├── index.html                 # Page d'accueil
+├── supabase-config.html       # Configuration initiale Supabase
+├── login.html                # Page de connexion (Supabase Auth)
+├── register.html             # Page d'inscription (Supabase Auth)
 ├── admin.html                # Tableau de bord administrateur
 ├── secretariat.html          # Interface secrétariat
 ├── responsable.html          # Interface responsable
@@ -31,176 +32,182 @@ Une application web complète de gestion d'équipe avec gestion des rôles, des 
 │   └── styles.css           # Styles principaux
 ├── js/
 │   ├── config.js            # Configuration Supabase
-│   ├── supabase.js          # Module Supabase
+│   ├── supabase.js          # Interface legacy Supabase
 │   ├── auth.js              # Authentification
-│   ├── data.js              # Gestion des données
+│   ├── data.js              # Gestion des données (appState)
+│   ├── storage.js           # Stockage images (Cloudinary)
 │   ├── users.js             # Gestion des utilisateurs
 │   ├── members.js           # Gestion des membres
 │   ├── departments.js       # Gestion des départements
 │   ├── events.js            # Gestion des événements
 │   ├── attendances.js       # Gestion des présences
 │   ├── pdf-reports.js       # Génération de rapports PDF
-│   └── autres fichiers...
+│   └── services/            # Services Supabase modulaires
+│       ├── supabase-client.js
+│       ├── auth.service.js
+│       ├── profiles.service.js
+│       ├── departments.service.js
+│       ├── members.service.js
+│       ├── events.service.js
+│       ├── attendances.service.js
+│       └── home-contents.service.js
 └── supabase/
-    └── schema.sql           # Schéma de base de données
+    └── schema.sql           # Schéma PostgreSQL avec RLS
 ```
 
-## 🔐 Rôles Disponibles
+## 🔐 Rôles et Permissions
 
-- **Admin** : Accès complet au système
-- **Secrétariat** : Gestion des données, rapports
-- **Responsable** : Supervision d'équipe
-- **User** : Accès basique
+- **Admin** : Accès complet, gestion des utilisateurs et rôles
+- **Secrétariat** : Gestion des données, rapports, événements
+- **Responsable** : Supervision d'équipe, présences
+- **User** : Accès basique en lecture seule
 
-## 💾 Stockage des Données
-
-L'application supporte deux modes de stockage :
-
-1. **Supabase** (recommandé) : Base de données cloud PostgreSQL
-2. **localStorage** (fallback) : Stockage local du navigateur
-
-L'application bascule automatiquement vers localStorage si Supabase n'est pas configuré.
+Les permissions sont appliquées au niveau de la base de données via **Row Level Security (RLS)**.
 
 ## 🚀 Installation et Configuration
 
-### Option 1 : Avec Supabase (Recommandé)
+### Prérequis
 
-#### Étape 1 : Créer un projet Supabase
+- Un compte [Supabase](https://supabase.com)
+- Un compte [Cloudinary](https://cloudinary.com) (optionnel, pour les images)
+
+### Étape 1 : Créer un projet Supabase
 
 1. Allez sur [supabase.com](https://supabase.com)
-2. Créez un compte ou connectez-vous
-3. Créez un nouveau projet
-4. Notez votre **Project URL** et **anon key** (Settings > API)
+2. Créez un nouveau projet
+3. Notez votre **Project URL** et **anon key** (Settings → API)
 
-#### Étape 2 : Configurer la base de données
+### Étape 2 : Configurer la base de données
 
 1. Dans votre projet Supabase, allez dans **SQL Editor**
 2. Ouvrez le fichier `supabase/schema.sql`
 3. Copiez et exécutez tout le contenu dans l'éditeur SQL
 4. Vérifiez que les tables sont créées (Table Editor)
 
-#### Étape 3 : Configurer l'application
+Le schéma inclut :
+- Table `profiles` (liée à `auth.users`)
+- Tables `departments`, `members`, `events`, `attendances`, `home_contents`
+- Politiques RLS pour chaque table
+- Triggers pour `updated_at`
 
-1. Ouvrez `js/config.js`
-2. Remplacez les valeurs par vos clés Supabase :
+### Étape 3 : Configurer l'application
 
-```javascript
-const SUPABASE_CONFIG = {
-  url: 'https://votre-projet.supabase.co',
-  anonKey: 'votre_cle_anon_ici'
-};
-```
+#### Option A : Via l'interface web (recommandé)
 
-**OU** créez un fichier `.env` à la racine :
+1. Ouvrez `supabase-config.html` dans votre navigateur
+2. Entrez vos clés Supabase
+3. Sauvegardez la configuration
+4. La configuration sera stockée dans localStorage
+
+#### Option B : Via fichier de configuration
+
+Créez un fichier `.env` à la racine (basé sur `.env.example`) :
 
 ```env
 SUPABASE_URL=https://votre-projet.supabase.co
-SUPABASE_ANON_KEY=votre_cle_anon_ici
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+CLOUDINARY_CLOUD_NAME=votre-cloud-name
+CLOUDINARY_UPLOAD_PRESET=unsigned
 ```
 
-#### Étape 4 : Lancer l'application
+### Étape 4 : Créer le premier utilisateur admin
 
-1. Ouvrez `index.html` ou `login.html` dans votre navigateur
-2. L'application se connectera automatiquement à Supabase
+Puisque Supabase Auth gère les utilisateurs, vous devez créer le premier admin :
 
-### Option 2 : Sans Supabase (localStorage uniquement)
+1. Ouvrez `register.html`
+2. Inscrivez-vous avec votre email et mot de passe
+3. Contactez un admin existant pour vous assigner le rôle `admin`
+4. Ou exécutez manuellement dans Supabase SQL Editor :
 
-1. Ouvrez simplement `index.html` dans votre navigateur
-2. L'application utilisera localStorage automatiquement
-3. Les données seront stockées localement dans le navigateur
+```sql
+-- Créer un utilisateur admin (remplacez l'email)
+INSERT INTO public.profiles (id, username, full_name, role, status)
+VALUES (
+  (SELECT id FROM auth.users WHERE email = 'admin@exemple.com'),
+  'admin',
+  'Administrateur',
+  'admin',
+  'active'
+);
+```
 
-## 🌐 Utilisation
+### Étape 5 : Lancer l'application
 
-1. Ouvrez `login.html` dans votre navigateur
-2. Connectez-vous avec vos identifiants
+1. Ouvrez `index.html` dans votre navigateur
+2. Connectez-vous via `login.html`
 3. Naviguez selon votre rôle
 
-### Identifiants par Défaut
+## 🛠️ Architecture Technique
 
-Les utilisateurs par défaut sont créés automatiquement dans Supabase via le schéma SQL :
+### Supabase Auth
 
-- **Admin** : `admin` / `admin123`
-- **Secrétariat** : `secretariat` / `secret123`
-- **Responsable** : `responsable` / `resp123`
-- **Utilisateur** : `user` / `user123`
+- Utilisation de `supabase.auth.signUp()` pour l'inscription
+- Utilisation de `supabase.auth.signInWithPassword()` pour la connexion
+- Gestion automatique des sessions via cookies
+- Table `profiles` liée à `auth.users` pour les métadonnées
 
-## 🛠️ Technologies Utilisées
+### Row Level Security (RLS)
 
-- **HTML5** : Structure
-- **CSS3** : Mise en forme et design
-- **JavaScript Vanilla** : Logique et interactivité
-- **Supabase** : Base de données PostgreSQL cloud
-- **LocalStorage** : Persistance locale (fallback)
+Toutes les tables sont protégées par des politiques RLS :
+- Les utilisateurs ne peuvent voir/modifier que les données autorisées
+- Les admins ont accès complet
+- Les rôles sont vérifiés au niveau de la base de données
 
-## 📊 Fonctionnalités Avancées
+### Services Modulaires
 
-- Génération de rapports PDF
-- Optimisation de la performance
-- Gestion des photos utilisateur
-- Système de notifications
-- Analyse du stockage local
-- Synchronisation cloud avec Supabase
+L'application utilise une architecture de services dans `js/services/` :
+- `auth.service.js` : Authentification et sessions
+- `profiles.service.js` : Gestion des profils utilisateurs
+- `departments.service.js` : Gestion des départements
+- `members.service.js` : Gestion des membres
+- `events.service.js` : Gestion des événements
+- `attendances.service.js` : Gestion des présences
+- `home-contents.service.js` : Contenu de la page d'accueil
 
-## 📝 Documentation
+### Interface Legacy
 
-- `SETUP.md` : Guide d'installation rapide
-- `CONFIG.md` : Guide de configuration Supabase
-- `GUIDE_UTILISATEURS.md` : Guide complet d'utilisation
-- `LOGO_INSTRUCTIONS.md` : Instructions pour les logos
-- `DEPANNAGE_ROLES.md` : Résolution des problèmes de rôles
-- `supabase/schema.sql` : Schéma de base de données
+Le fichier `js/supabase.js` fournit une interface compatible avec l'ancien code pour faciliter la transition.
 
-## 🔧 Déploiement sur GitHub
+## 🌐 Déploiement
 
-### Préparer le dépôt
+### GitHub Pages
 
-1. Créez un nouveau dépôt sur GitHub
-2. Initialisez git dans votre projet :
+1. Pushez votre code sur GitHub
+2. Activez GitHub Pages dans Settings → Pages
+3. Configurez Supabase via `supabase-config.html` après déploiement
 
-```bash
-git init
-git add .
-git commit -m "Initial commit - AppJeune avec Supabase"
-git branch -M main
-git remote add origin https://github.com/votre-username/votre-repo.git
-git push -u origin main
-```
+### Netlify / Vercel
 
-### Configuration pour GitHub Pages
+Ces plateformes supportent les variables d'environnement pour sécuriser vos clés Supabase.
 
-1. Allez dans **Settings** > **Pages** de votre dépôt
-2. Sélectionnez la branche `main` comme source
-3. Votre application sera accessible à `https://votre-username.github.io/votre-repo/`
+## ⚠️ Sécurité
 
-### ⚠️ Sécurité des clés Supabase
-
-**IMPORTANT** : Ne commitez jamais vos clés Supabase dans le dépôt public !
-
-1. Utilisez des variables d'environnement ou configurez directement dans `js/config.js`
-2. Pour GitHub Pages, vous pouvez :
-   - Utiliser des variables d'environnement via un service comme Netlify ou Vercel
-   - Ou configurer directement dans `js/config.js` (moins sécurisé mais fonctionnel)
+- **Jamais** de mots de passe en clair dans la base de données
+- Utilisation de Supabase Auth pour l'authentification
+- RLS activé sur toutes les tables
+- Clés Cloudinary stockées dans Edge Functions (pas dans le frontend)
+- Validation des entrées côté serveur
 
 ## 🐛 Dépannage
 
-### L'application ne se connecte pas à Supabase
+### Erreur de connexion Supabase
 
-1. Vérifiez que vos clés sont correctes dans `js/config.js`
-2. Vérifiez la console du navigateur pour les erreurs
-3. Assurez-vous que le schéma SQL a été exécuté dans Supabase
-4. L'application basculera automatiquement vers localStorage en cas d'erreur
-
-### Les données ne se synchronisent pas
-
-1. Vérifiez votre connexion internet
-2. Vérifiez les permissions RLS dans Supabase si activées
+1. Vérifiez vos clés dans `supabase-config.html`
+2. Vérifiez que le schéma SQL a été exécuté
 3. Consultez la console du navigateur pour les erreurs
+
+### RLS bloque les opérations
+
+1. Vérifiez que l'utilisateur a un profil dans la table `profiles`
+2. Vérifiez que le rôle est correctement assigné
+3. Consultez les politiques RLS dans Supabase
 
 ## 📄 Licence
 
-Ce projet est destiné à un usage interne.
+Ce projet est destiné à un usage interne pour La Parole Éternelle Kolwezi.
 
 ---
 
 **Auteur** : AppJeune Team  
-**Date** : 2025
+**Date** : 2026  
+**Version** : 2.0 (Architecture Supabase)

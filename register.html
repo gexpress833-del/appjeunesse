@@ -188,6 +188,15 @@
     </div>
   </div>
 
+  <!-- Configuration Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+
+  <!-- Services Supabase -->
+  <script src="js/services/supabase-client.js"></script>
+  <script src="js/services/auth.service.js"></script>
+  <script src="js/services/profiles.service.js"></script>
+
   <script src="js/data.js"></script>
   <script>
     const registerForm = document.getElementById('registerForm');
@@ -274,16 +283,6 @@
         throw new Error('Vous devez accepter les conditions d\'utilisation');
       }
 
-      // Check if username already exists
-      const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-      if (users.some(user => user.username === data.username)) {
-        throw new Error('Ce nom d\'utilisateur est déjà pris');
-      }
-
-      if (users.some(user => user.email === data.email)) {
-        throw new Error('Cette adresse email est déjà utilisée');
-      }
-
       return data;
     }
 
@@ -298,25 +297,26 @@
         const userData = validateForm();
         setLoading(true);
 
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Vérifier que Supabase est configuré
+        if (!window.supabase || !window.APP_CONFIG) {
+          throw new Error('Supabase n\'est pas configuré. <a href="supabase-config.html" style="color: #60a5fa;">Configurer maintenant</a>');
+        }
 
-        // Get existing users
-        const users = JSON.parse(localStorage.getItem('appUsers') || '[]');
-        
-        // Create new user
-        const newUser = {
-          username: userData.username,
-          password: userData.password,
-          email: userData.email,
-          name: `${userData.firstName} ${userData.lastName}`,
-          role: 'user', // New users start as regular users
-          dept: userData.department,
-          createdAt: new Date().toISOString()
-        };
+        // Inscription via Supabase Auth
+        const fullName = `${userData.firstName} ${userData.lastName}`;
+        const { data, error } = await window.authService.signUp(
+          userData.email,
+          userData.password,
+          {
+            username: userData.username,
+            full_name: fullName,
+            dept: userData.department
+          }
+        );
 
-        users.push(newUser);
-        localStorage.setItem('appUsers', JSON.stringify(users));
+        if (error) {
+          throw new Error(error.message || 'Erreur lors de l\'inscription');
+        }
 
         // Success animation
         registerBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
@@ -337,7 +337,7 @@
     }
 
     function showPrivacy() {
-      alert('Politique de confidentialité:\n\n- Vos données sont stockées localement dans votre navigateur\n- Aucune donnée n\'est transmise à des serveurs externes\n- Vous pouvez supprimer vos données à tout moment\n- Cette application est à des fins de démonstration');
+      alert('Politique de confidentialité:\n\n- Vos données sont stockées dans Supabase (PostgreSQL)\n- L\'authentification est gérée par Supabase Auth\n- Vos données sont protégées par Row Level Security (RLS)\n- Vous pouvez demander la suppression de vos données à l\'administrateur');
     }
 
     // Clear error on input

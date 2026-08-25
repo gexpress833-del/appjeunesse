@@ -1,24 +1,32 @@
+// ============================================================================
+// AUTH - Gestion des rôles et permissions (Supabase Auth)
+// ============================================================================
+// Ce fichier gère le RBAC (Role-Based Access Control) et les permissions.
+// L'authentification est gérée par Supabase Auth via js/services/auth.service.js
+// ============================================================================
+
 const sectionAccess = {
   dashboard: ["admin", "secretariat", "responsable", "user"],
   members: ["admin", "secretariat", "responsable", "user"],
   departments: ["admin"],
-  events: ["admin", "secretariat", "responsable", "user"], // Tous peuvent voir les événements
+  events: ["admin", "secretariat", "responsable", "user"],
   attendances: ["admin", "secretariat", "responsable", "user"],
-  users: ["admin", "secretariat"], // Admin pour attribution rôles, Secrétaire pour création comptes
-  userCreation: ["secretariat"], // SEUL le secrétaire peut créer des comptes
-  roleAssignment: ["admin"], // SEUL l'admin peut attribuer des rôles
-  homeContent: ["admin", "secretariat", "responsable", "user"] // Accès à la page de contenu d'accueil pour tous les rôles
+  users: ["admin", "secretariat"],
+  userCreation: ["secretariat"],
+  roleAssignment: ["admin"],
+  homeContent: ["admin", "secretariat", "responsable", "user"]
 };
 
 const listenerQueue = [];
-let currentRole = localStorage.getItem("appRole") || "admin";
-let currentDepartmentScope = localStorage.getItem("appDept") || null;
+let currentRole = null;
+let currentDepartmentScope = null;
+let currentProfile = null;
 let notificationEl = null;
 let deptSelectEl = null;
 let deptContainerEl = null;
 
 function getRoleContext() {
-  return { currentRole, currentDepartmentScope };
+  return { currentRole, currentDepartmentScope, currentProfile };
 }
 
 function notifyRoleListeners() {
@@ -26,13 +34,11 @@ function notifyRoleListeners() {
 }
 
 function showNotification(type, message) {
-  // Use new notification system if available
   if (window.notificationSystem) {
     window.notificationSystem.show(type, message);
     return;
   }
   
-  // Fallback to old system
   if (!notificationEl) return;
   notificationEl.textContent = message;
   notificationEl.className = `notifications ${type} show`;
@@ -54,9 +60,7 @@ function setDeptScope(scope) {
 function setRole(role) {
   currentRole = role;
   localStorage.setItem("appRole", role);
-  // Pour un responsable, s'assurer qu'un département est défini.
-  // Pour les autres rôles (admin, secretariat, user), on conserve
-  // éventuellement le département déjà stocké (appDept).
+  
   if (currentRole === "responsable") {
     if (!currentDepartmentScope && window.appState?.departments?.length) {
       setDeptScope(window.appState.departments[0]);
@@ -111,7 +115,6 @@ function checkPermission(resource, action, targetDept) {
   }
   if (resource === "events") {
     if (action === "view") return ["admin", "secretariat", "responsable", "user"].includes(currentRole);
-    // Seuls admin et secretariat peuvent créer/modifier/supprimer
     return ["admin", "secretariat"].includes(currentRole);
   }
   if (resource === "attendances") {
@@ -127,6 +130,74 @@ function checkPermission(resource, action, targetDept) {
   return false;
 }
 
+// Initialiser l'auth depuis Supabase
+async function initAuthFromSupabase() {
+  try {
+    if (!window.authService) {
+      console.warn('AuthService non disponible, utilisation du fallback localStorage');
+      initAuthFromStorage();
+      return;
+    }
+
+    const session = await window.authService.getSession();
+    if (!session) {
+      // Pas de session, rediriger vers login
+      if (window.location.pathname !== '/login.html' && window.location.pathname !== '/register.html') {
+        window.location.href = 'login.html';
+      }
+      return;
+    }
+
+    const profile = await window.authService.getCurrentProfile();
+    if (profile) {
+      currentProfile = profile;
+      currentRole = profile.role || 'user';
+      currentDepartmentScope = profile.dept || null;
+      
+      // Synchroniser avec localStorage pour compatibilité
+      localStorage.setItem("appRole", currentRole);
+      if (currentDepartmentScope) {
+        localStorage.setItem("appDept", currentDepartmentScope);
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation Supabase Auth:', error);
+    initAuthFromStorage();
+  }
+}
+
+// Fallback: initialiser depuis localStorage
+function initAuthFromStorage() {
+  currentRole = localStorage.getItem("appRole") || "user";
+  currentDepartmentScope = localStorage.getItem("appDept") || null;
+}
+
+// Déconnexion
+async function signOut() {
+  try {
+    if (window.authService) {
+      await window.authService.signOut();
+    }
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+  }
+  
+  // Nettoyer localStorage
+  localStorage.removeItem("appRole");
+  localStorage.removeItem("appUser");
+  localStorage.removeItem("appUserName");
+  localStorage.removeItem("appDept");
+  localStorage.removeItem("appLoginTime");
+  
+  // Réinitialiser les variables
+  currentRole = null;
+  currentDepartmentScope = null;
+  currentProfile = null;
+  
+  // Rediriger vers login
+  window.location.href = 'login.html';
+}
+
 function initRoleControls(options = {}) {
   const { roleSelectId, deptSelectId, deptContainerSelector, navSelector, notificationId } = options;
   const roleSelectEl = document.getElementById(roleSelectId);
@@ -137,7 +208,7 @@ function initRoleControls(options = {}) {
     : null;
 
   if (roleSelectEl) {
-    roleSelectEl.value = currentRole;
+    roleSelectEl.value = currentRole || 'user';
     roleSelectEl.addEventListener("change", (event) => {
       setRole(event.target.value);
     });
@@ -184,9 +255,7 @@ function departmentSelect(id) {
 function ensureDepartmentOptions(select) {
   if (!select) return;
   
-  // Attendre que appState soit chargé
   if (!window.appState || !window.appState.departments) {
-    // Si les départements ne sont pas encore chargés, attendre un peu
     setTimeout(() => ensureDepartmentOptions(select), 100);
     return;
   }
@@ -195,7 +264,6 @@ function ensureDepartmentOptions(select) {
   const currentValue = select.value;
   select.innerHTML = "";
   
-  // Ajouter une option par défaut si nécessaire
   if (select.id === 'memberDeptSelect' || select.id === 'newUserDept') {
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
@@ -203,7 +271,6 @@ function ensureDepartmentOptions(select) {
     select.appendChild(defaultOption);
   }
   
-  // Ajouter les départements
   const departments = Array.isArray(window.appState.departments) 
     ? window.appState.departments 
     : [];
@@ -216,18 +283,11 @@ function ensureDepartmentOptions(select) {
     select.appendChild(option);
   });
   
-  // Restaurer la valeur précédente si elle existe toujours
   if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
     select.value = currentValue;
   } else if (currentDepartmentScope && departments.includes(currentDepartmentScope)) {
     select.value = currentDepartmentScope;
   }
-}
-
-// Initialize auth variables from localStorage without modifying them
-function initAuthFromStorage() {
-  currentRole = localStorage.getItem("appRole") || "user";
-  currentDepartmentScope = localStorage.getItem("appDept") || null;
 }
 
 window.auth = {
@@ -240,6 +300,8 @@ window.auth = {
   setRole,
   setDeptScope,
   applyNavPermissions,
-  initAuthFromStorage
+  initAuthFromStorage,
+  initAuthFromSupabase,
+  signOut
 };
 

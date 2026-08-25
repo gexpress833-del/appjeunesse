@@ -215,7 +215,7 @@ async function handleUserCreation(e) {
     email: formData.email,
     birthDate: formData.birthDate,
     address: formData.address,
-    password: formData.password,
+    password: formData.password, // Transmis à Supabase Auth pour hashage sécurisé
     role: null, // Pas de rôle attribué initialement
     status: USER_STATUS.PENDING,
     createdBy: localStorage.getItem('appUser'),

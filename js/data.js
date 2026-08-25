@@ -1,5 +1,9 @@
-// Module de gestion des données - 100% Supabase
-// L'application nécessite Supabase pour fonctionner
+// ============================================================================
+// MODULE DE GESTION DES DONNÉES
+// ============================================================================
+// Ce fichier gère l'état de l'application et les mappings de données.
+// Utilise window.supabaseDB (fourni par js/supabase.js)
+// ============================================================================
 
 const defaultDepartments = [
   "Chorale",
@@ -21,16 +25,16 @@ const appState = {
 // Vérifier que Supabase est disponible
 function checkSupabaseRequired() {
   if (!window.supabaseDB || !window.supabaseDB.getClient()) {
-    console.error('❌ Supabase n\'est pas configuré. Veuillez configurer Supabase dans js/config.js');
+    console.error('❌ Supabase non configuré. Configurez window.SUPABASE_CONFIG avant le chargement.');
     if (window.notificationSystem) {
-      window.notificationSystem.error('Supabase n\'est pas configuré. L\'application ne peut pas fonctionner sans Supabase.');
+      window.notificationSystem.error('Supabase n\'est pas configuré. Vérifiez votre configuration.');
     }
     return false;
   }
   return true;
 }
 
-// Initialisation des données depuis Supabase uniquement
+// Initialisation des données depuis Supabase
 async function initializeData() {
   if (!checkSupabaseRequired()) {
     return;
@@ -57,6 +61,7 @@ async function initializeData() {
       email: member.email,
       birthDate: member.birth_date,
       address: member.address,
+      profilePhotoUrl: member.profile_photo_url,
       notes: member.notes
     }));
 
@@ -86,7 +91,7 @@ async function initializeData() {
       date: event.date,
       description: event.description,
       photoUrl: event.photo_url,
-      photo: event.photo_url // Pour compatibilité
+      cloudinaryPublicId: event.cloudinary_public_id
     }));
 
     // Fonction helper pour mapper les statuts Supabase vers les codes d'affichage
@@ -104,12 +109,11 @@ async function initializeData() {
       id: attendance.id,
       memberId: attendance.member_id,
       eventId: attendance.event_id,
-      // Mapper le statut Supabase vers les codes d'affichage
       status: mapStatusToCode(attendance.status),
       notes: attendance.notes
     }));
 
-    console.log('✅ Données chargées depuis Supabase:', {
+    console.log('✅ Données chargées:', {
       members: appState.members.length,
       departments: appState.departments.length,
       events: appState.events.length,
@@ -126,9 +130,9 @@ async function initializeData() {
     }
     
   } catch (error) {
-    console.error('❌ Erreur lors du chargement depuis Supabase:', error);
+    console.error('❌ Erreur lors du chargement des données:', error);
     if (window.notificationSystem) {
-      window.notificationSystem.error('Erreur lors du chargement des données depuis Supabase. Veuillez vérifier votre connexion.');
+      window.notificationSystem.error('Erreur lors du chargement des données. Vérifiez votre connexion Supabase.');
     }
     throw error;
   }
@@ -150,14 +154,8 @@ function generateId(collection) {
 
 // Fonction de sauvegarde - synchronise avec Supabase
 async function saveData() {
-  if (!checkSupabaseRequired()) {
-    return;
-  }
-  
-  // Les données sont automatiquement synchronisées via les fonctions CRUD de Supabase
-  // Cette fonction est maintenue pour compatibilité mais ne fait rien
-  // car chaque opération CRUD synchronise directement avec Supabase
-  console.log('💾 Les données sont synchronisées automatiquement avec Supabase via les opérations CRUD');
+  // Les données sont synchronisées automatiquement via Supabase
+  console.log('💾 Les données sont synchronisées via Supabase');
 }
 
 // Initialiser les données au chargement

@@ -192,8 +192,8 @@
         </div>
         
         <div class="form-control">
-          <label for="username">Nom d'utilisateur</label>
-          <input type="text" id="username" name="username" required autocomplete="username">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="email">
         </div>
         
         <div class="form-control">
@@ -216,43 +216,39 @@
     </div>
   </div>
 
-  <!-- Supabase Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
   <!-- Configuration Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
-  
-  <!-- Module Supabase -->
-  <script src="js/supabase.js"></script>
-  
+
+  <!-- Services Supabase -->
+  <script src="js/services/supabase-client.js"></script>
+  <script src="js/services/auth.service.js"></script>
+  <script src="js/services/profiles.service.js"></script>
+
   <script src="js/data.js"></script>
   <script src="js/notifications.js"></script>
   <script>
-    // Rediriger automatiquement si une session valide existe déjà
-    (function autoRedirectIfLoggedIn() {
+    // Rediriger automatiquement si une session Supabase valide existe
+    (async function autoRedirectIfLoggedIn() {
       try {
-        const role = localStorage.getItem('appRole');
-        const loginTime = localStorage.getItem('appLoginTime');
-        if (!role || !loginTime) return;
-
-        const sessionTimeout = 7 * 24 * 60 * 60 * 1000; // 7 jours de session
-        if (Date.now() - parseInt(loginTime, 10) > sessionTimeout) {
-          return;
-        }
-
-        const rolePages = {
-          admin: 'admin.html',
-          secretariat: 'secretariat.html',
-          responsable: 'responsable.html',
-          user: 'user.html'
-        };
-
-        const target = rolePages[role];
-        if (target) {
-          window.location.href = target;
+        const session = await window.authService.getSession();
+        if (session) {
+          const profile = await window.authService.getCurrentProfile();
+          if (profile && profile.role) {
+            const rolePages = {
+              admin: 'admin.html',
+              secretariat: 'secretariat.html',
+              responsable: 'responsable.html',
+              user: 'user.html'
+            };
+            const target = rolePages[profile.role];
+            if (target) {
+              window.location.href = target;
+            }
+          }
         }
       } catch (e) {
-        console.warn('Impossible de vérifier la session existante sur la page de connexion:', e);
+        console.warn('Impossible de vérifier la session existante:', e);
       }
     })();
 
@@ -260,40 +256,29 @@
     const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
     const errorMessage = document.getElementById('errorMessage');
-    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
 
-    // Vérifier que Supabase est configuré et que les utilisateurs existent
+    // Vérifier que Supabase est configuré
     async function checkSupabaseSetup() {
-      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
-        console.warn('⚠️ Supabase n\'est pas configuré. L\'application nécessite Supabase pour fonctionner.');
-        return;
+      if (!window.supabase || !window.APP_CONFIG) {
+        console.warn('⚠️ Supabase n\'est pas configuré. Configurez-le via supabase-config.html');
+        showError('Supabase n\'est pas configuré. <a href="supabase-config.html" style="color: #60a5fa;">Configurer maintenant</a>');
+        return false;
       }
-      
-      try {
-        const users = await window.supabaseDB.getUsers();
-        if (users.length === 0) {
-          console.warn('⚠️ Aucun utilisateur trouvé dans Supabase. Veuillez exécuter le schéma SQL dans Supabase.');
-        } else {
-          console.log(`✅ ${users.length} utilisateur(s) trouvé(s) dans Supabase`);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la vérification des utilisateurs:', error);
-      }
+      return true;
     }
     
     // Vérifier la configuration au chargement
     checkSupabaseSetup();
 
     function showError(message) {
-      // Use new notification system if available
       if (window.notificationSystem) {
         window.notificationSystem.error(message);
         return;
       }
       
-      // Fallback to old system
-      errorMessage.textContent = message;
+      errorMessage.innerHTML = message;
       errorMessage.classList.add('show');
       setTimeout(() => {
         errorMessage.classList.remove('show');
@@ -310,39 +295,6 @@
       }
     }
 
-    async function validateCredentials(username, password) {
-      // Utiliser uniquement Supabase
-      if (!window.supabaseDB || !window.supabaseDB.getClient()) {
-        console.error('❌ Supabase n\'est pas configuré');
-        showError('Supabase n\'est pas configuré. Veuillez configurer Supabase dans js/config.js');
-        return null;
-      }
-      
-      try {
-        const user = await window.supabaseDB.getUserByUsername(username);
-        if (user && user.password === password) {
-          // Mapper les données Supabase vers le format attendu
-          return {
-            username: user.username,
-            password: user.password,
-            role: user.role,
-            name: user.name,
-            status: user.status,
-            email: user.email,
-            birthDate: user.birth_date,
-            address: user.address,
-            dept: user.dept,
-            createdAt: user.created_at
-          };
-        }
-        return null;
-      } catch (error) {
-        console.error('Erreur lors de la validation avec Supabase:', error);
-        showError('Erreur lors de la connexion. Veuillez réessayer.');
-        return null;
-      }
-    }
-
     function redirectToRole(role) {
       const rolePages = {
         admin: 'admin.html',
@@ -354,17 +306,13 @@
       window.location.href = rolePages[role] || 'user.html';
     }
 
-    function simulateNetworkDelay() {
-      return new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
-    }
-
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const username = usernameInput.value.trim();
+      const email = emailInput.value.trim();
       const password = passwordInput.value.trim();
       
-      if (!username || !password) {
+      if (!email || !password) {
         showError('Veuillez remplir tous les champs');
         return;
       }
@@ -372,75 +320,63 @@
       setLoading(true);
       
       try {
-        // Simulate network delay for realism
-        await simulateNetworkDelay();
+        // Connexion via Supabase Auth
+        const { data, error } = await window.authService.signIn(email, password);
         
-        const user = await validateCredentials(username, password);
+        if (error) {
+          showError(error.message || 'Email ou mot de passe incorrect');
+          setLoading(false);
+          return;
+        }
         
-        if (!user) {
-          showError('Nom d\'utilisateur ou mot de passe incorrect');
+        // Récupérer le profil utilisateur
+        const profile = await window.authService.getCurrentProfile();
+        
+        if (!profile) {
+          showError('Profil utilisateur non trouvé. Contactez l\'administrateur.');
           setLoading(false);
           return;
         }
         
         // Check user status
-        if (user.status === 'pending') {
+        if (profile.status === 'pending') {
           showError('Votre compte est en attente d\'attribution de rôle par l\'administrateur. Veuillez patienter.');
           setLoading(false);
           return;
         }
         
-        if (user.status === 'inactive') {
+        if (profile.status === 'inactive') {
           showError('Votre compte a été désactivé. Contactez l\'administrateur.');
           setLoading(false);
           return;
         }
         
-        if (!user.role) {
+        if (!profile.role) {
           showError('Aucun rôle attribué à votre compte. Contactez l\'administrateur.');
           setLoading(false);
           return;
         }
-        
-        // Store session data
-        localStorage.setItem('appRole', user.role);
-        localStorage.setItem('appUser', user.username);
-        localStorage.setItem('appUserName', user.name);
-        localStorage.setItem('appLoginTime', Date.now().toString());
-        
-        if (user.dept) {
-          localStorage.setItem('appDept', user.dept);
-        }
-        
-        // Debug: vérifier ce qui est stocké
-        console.log('Données de session stockées:', {
-          appRole: localStorage.getItem('appRole'),
-          appUser: localStorage.getItem('appUser'),
-          appUserName: localStorage.getItem('appUserName'),
-          appDept: localStorage.getItem('appDept')
-        });
         
         // Success animation
         loginBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
         loginBtn.querySelector('.btn-text').textContent = 'Connexion réussie !';
         
         setTimeout(() => {
-          redirectToRole(user.role);
+          redirectToRole(profile.role);
         }, 1000);
         
       } catch (error) {
+        console.error('Erreur de connexion:', error);
         showError('Erreur de connexion. Veuillez réessayer.');
         setLoading(false);
       }
     });
 
-    // plus de popup ici, la page forgot-password.html gère la réinitialisation
-
-    // Auto-focus username field
-    usernameInput.focus();
+    // Auto-focus email field
+    emailInput.focus();
 
     // Clear error on input
-    [usernameInput, passwordInput].forEach(input => {
+    [emailInput, passwordInput].forEach(input => {
       input.addEventListener('input', () => {
         errorMessage.classList.remove('show');
       });

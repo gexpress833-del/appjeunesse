@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Supabase - AppJeune-KZI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #666;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .help-text {
+      font-size: 12px;
+      color: #888;
+      margin-top: 5px;
+    }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .success {
+      background: #4caf50;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      color: white;
+      text-align: center;
+      display: none;
+    }
+    .error {
+      background: #f44336;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      color: white;
+      text-align: center;
+      display: none;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ Configuration Supabase</h1>
+    <p class="subtitle">AppJeune-KZI - Configuration initiale</p>
+
+    <div class="info-box">
+      <strong>Instructions :</strong><br>
+      1. Créez un projet sur <a href="https://supabase.com" target="_blank">supabase.com</a><br>
+      2. Exécutez le script SQL <code>supabase/schema.sql</code> dans l'éditeur SQL<br>
+      3. Copiez les valeurs ci-dessous depuis votre dashboard Supabase
+    </div>
+
+    <form id="configForm">
+      <div class="form-group">
+        <label for="supabaseUrl">Supabase URL *</label>
+        <input type="text" id="supabaseUrl" required placeholder="https://votre-projet.supabase.co">
+        <div class="help-text">Disponible dans Settings → API → Project URL</div>
+      </div>
+
+      <div class="form-group">
+        <label for="supabaseAnonKey">Supabase Anon Key *</label>
+        <input type="text" id="supabaseAnonKey" required placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        <div class="help-text">Disponible dans Settings → API → anon public key</div>
+      </div>
+
+      <div class="form-group">
+        <label for="cloudinaryCloudName">Cloudinary Cloud Name</label>
+        <input type="text" id="cloudinaryCloudName" placeholder="votre-cloud-name">
+        <div class="help-text">Optionnel - pour le stockage des images</div>
+      </div>
+
+      <div class="form-group">
+        <label for="cloudinaryUploadPreset">Cloudinary Upload Preset</label>
+        <input type="text" id="cloudinaryUploadPreset" placeholder="unsigned">
+        <div class="help-text">Optionnel - preset d'upload Cloudinary</div>
+      </div>
+
+      <button type="submit" class="btn">💾 Sauvegarder la configuration</button>
+    </form>
+
+    <div id="success" class="success">
+      ✅ Configuration sauvegardée ! Redirection vers index.html...
+    </div>
+
+    <div id="error" class="error">
+      ❌ Erreur lors de la sauvegarde
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('configForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const config = {
+        url: document.getElementById('supabaseUrl').value.trim(),
+        anonKey: document.getElementById('supabaseAnonKey').value.trim(),
+        cloudinaryCloudName: document.getElementById('cloudinaryCloudName').value.trim(),
+        cloudinaryUploadPreset: document.getElementById('cloudinaryUploadPreset').value.trim()
+      };
+
+      // Sauvegarder dans localStorage
+      localStorage.setItem('SUPABASE_CONFIG', JSON.stringify(config));
+
+      // Afficher le succès
+      document.getElementById('success').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+
+      // Rediriger après 2 secondes
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 2000);
+    });
+
+    // Charger la configuration existante si disponible
+    const savedConfig = localStorage.getItem('SUPABASE_CONFIG');
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        if (config.url) document.getElementById('supabaseUrl').value = config.url;
+        if (config.anonKey) document.getElementById('supabaseAnonKey').value = config.anonKey;
+        if (config.cloudinaryCloudName) document.getElementById('cloudinaryCloudName').value = config.cloudinaryCloudName;
+        if (config.cloudinaryUploadPreset) document.getElementById('cloudinaryUploadPreset').value = config.cloudinaryUploadPreset;
+      } catch (e) {
+        console.error('Erreur lors du chargement de la configuration:', e);
+      }
+    }
+  </script>
+</body>
+</html>
