@@ -4,14 +4,12 @@
 // Gère les événements
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Obtenir tous les événements
  * @returns {Promise<Array>} Liste des événements
  */
 async function getAllEvents() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('events')
     .select('*')
     .order('date', { ascending: false });
@@ -30,7 +28,7 @@ async function getAllEvents() {
  * @returns {Promise<Object>} Événement
  */
 async function getEventById(id) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('events')
     .select('*')
     .eq('id', id)
@@ -53,7 +51,7 @@ async function getEventById(id) {
  * @returns {Promise<Object>} Événement créé
  */
 async function createEvent(event) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('events')
     .insert(event)
     .select()
@@ -74,7 +72,7 @@ async function createEvent(event) {
  * @returns {Promise<Object>} Événement mis à jour
  */
 async function updateEvent(id, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('events')
     .update(updates)
     .eq('id', id)
@@ -95,7 +93,7 @@ async function updateEvent(id, updates) {
  * @returns {Promise<boolean>} Succès
  */
 async function deleteEvent(id) {
-  const { error } = await supabase
+  const { error } = await window.supabase
     .from('events')
     .delete()
     .eq('id', id);

@@ -261,7 +261,7 @@
 
     // Vérifier que Supabase est configuré
     async function checkSupabaseSetup() {
-      if (!window.supabase || !window.APP_CONFIG) {
+      if (!window.supabase || !window.SUPABASE_CONFIG) {
         console.warn('⚠️ Supabase n\'est pas configuré. Configurez-le via supabase-config.html');
         showError('Supabase n\'est pas configuré. <a href="supabase-config.html" style="color: #60a5fa;">Configurer maintenant</a>');
         return false;
@@ -360,6 +360,15 @@
         // Success animation
         loginBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
         loginBtn.querySelector('.btn-text').textContent = 'Connexion réussie !';
+        
+        // Sauvegarder le rôle et les infos utilisateur dans localStorage
+        localStorage.setItem('appRole', profile.role);
+        localStorage.setItem('appUser', profile.username || email);
+        localStorage.setItem('appUserName', profile.full_name || profile.username || email);
+        if (profile.dept) {
+          localStorage.setItem('appDept', profile.dept);
+        }
+        localStorage.setItem('appLoginTime', Date.now().toString());
         
         setTimeout(() => {
           redirectToRole(profile.role);

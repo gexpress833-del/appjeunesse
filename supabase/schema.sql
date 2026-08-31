@@ -134,6 +134,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_home_contents_type ON public.home_contents
 -- ============================================================================
 -- TRIGGERS POUR UPDATED_AT
 -- ============================================================================
+
+-- Fonction pour mettre à jour automatiquement updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

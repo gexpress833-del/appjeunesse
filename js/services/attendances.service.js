@@ -4,14 +4,12 @@
 // Gère les présences
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Obtenir toutes les présences
  * @returns {Promise<Array>} Liste des présences
  */
 async function getAllAttendances() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('attendances')
     .select('*')
     .order('created_at', { ascending: false });
@@ -30,7 +28,7 @@ async function getAllAttendances() {
  * @returns {Promise<Array>} Liste des présences
  */
 async function getAttendancesByMember(memberId) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('attendances')
     .select('*')
     .eq('member_id', memberId)
@@ -50,7 +48,7 @@ async function getAttendancesByMember(memberId) {
  * @returns {Promise<Array>} Liste des présences
  */
 async function getAttendancesByEvent(eventId) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('attendances')
     .select('*')
     .eq('event_id', eventId)
@@ -71,7 +69,7 @@ async function getAttendancesByEvent(eventId) {
  * @returns {Promise<Object>} Présence
  */
 async function getAttendanceByMemberAndEvent(memberId, eventId) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('attendances')
     .select('*')
     .eq('member_id', memberId)
@@ -95,7 +93,7 @@ async function getAttendanceByMemberAndEvent(memberId, eventId) {
  * @returns {Promise<Object>} Présence créée
  */
 async function createAttendance(attendance) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('attendances')
     .insert(attendance)
     .select()
@@ -116,7 +114,7 @@ async function createAttendance(attendance) {
  * @returns {Promise<Object>} Présence mise à jour
  */
 async function updateAttendance(id, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('attendances')
     .update(updates)
     .eq('id', id)
@@ -137,7 +135,7 @@ async function updateAttendance(id, updates) {
  * @returns {Promise<boolean>} Succès
  */
 async function deleteAttendance(id) {
-  const { error } = await supabase
+  const { error } = await window.supabase
     .from('attendances')
     .delete()
     .eq('id', id);

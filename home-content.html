@@ -93,31 +93,29 @@
     </div>
   </div>
 
-  <!-- Configuration et API (MySQL + Cloudinary) -->
+  <!-- Configuration Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
+  <script src="js/services/supabase-client.js"></script>
+  <script src="js/services/auth.service.js"></script>
+  <script src="js/services/profiles.service.js"></script>
+  <script src="js/services/departments.service.js"></script>
+  <script src="js/services/members.service.js"></script>
+  <script src="js/services/events.service.js"></script>
+  <script src="js/services/attendances.service.js"></script>
+  <script src="js/services/home-contents.service.js"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/notifications.js"></script>
   <script>
     // Vérifier la session de l'utilisateur (tous rôles confondus)
     function ensureContentPermissions() {
       const role = localStorage.getItem('appRole');
-      const loginTime = localStorage.getItem('appLoginTime');
-      if (!role || !loginTime) {
+      if (!role) {
         window.location.href = 'login.html';
         return false;
       }
-
-      const sessionTimeout = 7 * 24 * 60 * 60 * 1000;
-      if (Date.now() - parseInt(loginTime, 10) > sessionTimeout) {
-        alert('Votre session a expiré. Veuillez vous reconnecter.');
-        window.location.href = 'login.html';
-        return false;
-      }
-
-      // Déterminer qui peut modifier le contenu (admin + secrétariat)
-      window.homeContentCanEdit = (role === 'admin' || role === 'secretariat');
-
-      // Adapter les liens d'accueil selon le rôle
+      
+      // Afficher les liens appropriés selon le rôle
       if (role === 'admin') {
         document.getElementById('adminHomeLink').style.display = 'inline-flex';
       } else if (role === 'secretariat') {

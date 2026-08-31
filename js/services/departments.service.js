@@ -4,14 +4,12 @@
 // Gère les départements
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Obtenir tous les départements
  * @returns {Promise<Array>} Liste des départements
  */
 async function getAllDepartments() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('departments')
     .select('*')
     .order('name', { ascending: true });
@@ -30,7 +28,7 @@ async function getAllDepartments() {
  * @returns {Promise<Object>} Département
  */
 async function getDepartmentByName(name) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('departments')
     .select('*')
     .eq('name', name)
@@ -53,7 +51,7 @@ async function getDepartmentByName(name) {
  * @returns {Promise<Object>} Département créé
  */
 async function createDepartment(name) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('departments')
     .insert({ name })
     .select()
@@ -74,7 +72,7 @@ async function createDepartment(name) {
  * @returns {Promise<Object>} Département mis à jour
  */
 async function updateDepartment(id, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('departments')
     .update(updates)
     .eq('id', id)
@@ -95,7 +93,7 @@ async function updateDepartment(id, updates) {
  * @returns {Promise<boolean>} Succès
  */
 async function deleteDepartment(id) {
-  const { error } = await supabase
+  const { error } = await window.supabase
     .from('departments')
     .delete()
     .eq('id', id);

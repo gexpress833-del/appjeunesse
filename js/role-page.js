@@ -1,4 +1,20 @@
 // Enhanced role page with session management
+
+// Check Supabase session validity
+async function checkSupabaseSession() {
+  try {
+    if (!window.authService) {
+      console.warn('AuthService non disponible');
+      return false;
+    }
+    const session = await window.authService.getSession();
+    return !!session;
+  } catch (error) {
+    console.error('Erreur lors de la vérification de la session Supabase:', error);
+    return false;
+  }
+}
+
 async function updateRoleStats() {
   const membersCountEl = document.getElementById("roleStatMembers");
   const departmentsCountEl = document.getElementById("roleStatDepts");
@@ -191,101 +207,216 @@ function setupLogoutButton() {
   }
 }
 
-function initRolePage(expectedRole) {
-  // Check session validity
-  if (!checkSessionValidity()) {
-    alert('Votre session a expiré. Veuillez vous reconnecter.');
-    window.location.href = 'login.html';
-    return;
-  }
-  
-  const currentRole = localStorage.getItem('appRole');
-  const currentDept = localStorage.getItem('appDept');
+async function initRolePage(expectedRole) {
+  try {
+    console.log("🔐 Initialisation de la page :", expectedRole);
 
-  // Check if user has permission for this page
-  // Special case for users page: accessible by both admin and secretariat
-  if (expectedRole === 'users') {
-    if (!['admin', 'secretariat'].includes(currentRole)) {
-      alert('Vous n\'avez pas l\'autorisation d\'accéder à cette page.');
+    // ============================================================
+    // 1. Vérifier la session Supabase
+    // ============================================================
+    const hasValidSession = await checkSupabaseSession();
+
+    if (!hasValidSession) {
+      console.warn("❌ Aucune session Supabase");
+      window.location.href = 'login.html';
+      return;
+    }
+
+    console.log("✅ Session Supabase valide");
+
+    // ============================================================
+    // 2. Récupérer le profil ET le rôle depuis Supabase
+    // ============================================================
+    if (window.auth && typeof window.auth.initAuthFromSupabase === 'function') {
+
+      console.log("🔄 Récupération du profil depuis Supabase...");
+
+      await window.auth.initAuthFromSupabase();
+
+    } else {
+      console.error("❌ auth.initAuthFromSupabase() indisponible");
+    }
+
+    // ============================================================
+    // 3. Récupérer le rôle maintenant qu'il a été synchronisé
+    // ============================================================
+    const currentRole = localStorage.getItem('appRole');
+    const currentDept = localStorage.getItem('appDept');
+
+    console.log("🔐 Rôle après synchronisation :", currentRole);
+    console.log("🎯 Rôle attendu :", expectedRole);
+
+    // ============================================================
+    // 4. Si aucun rôle n'est trouvé
+    // ============================================================
+    if (!currentRole) {
+      console.error("❌ Aucun rôle trouvé dans le profil utilisateur");
+
+      alert("Impossible de déterminer votre rôle. Veuillez vous reconnecter.");
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // ============================================================
+    // 5. Vérification des permissions
+    // ============================================================
+
+    // Page utilisateurs : admin + secrétariat
+    if (expectedRole === 'users') {
+
+      if (!['admin', 'secretariat'].includes(currentRole)) {
+
+        alert("Vous n'avez pas l'autorisation d'accéder à cette page.");
+        window.location.href = getRoleHomePage(currentRole);
+        return;
+      }
+    }
+
+    // Page rapports : admin + secrétariat
+    else if (expectedRole === 'reports') {
+
+      if (!['admin', 'secretariat'].includes(currentRole)) {
+
+        alert("Vous n'avez pas l'autorisation d'accéder à cette page.");
+        window.location.href = 'access-denied-reports.html';
+        return;
+      }
+    }
+
+    // Pages avec rôle précis
+    else if (currentRole !== expectedRole) {
+
+      console.error(
+        `❌ Accès refusé : rôle actuel = "${currentRole}", rôle requis = "${expectedRole}"` 
+      );
+
+      alert("Vous n'avez pas l'autorisation d'accéder à cette page.");
       window.location.href = getRoleHomePage(currentRole);
       return;
     }
-  }
-  // Special case for reports page: accessible by both admin and secretariat
-  else if (expectedRole === 'reports') {
-    if (!['admin', 'secretariat'].includes(currentRole)) {
-      alert('Vous n\'avez pas l\'autorisation d\'accéder à cette page.');
-      window.location.href = 'access-denied-reports.html';
-      return;
+
+    // ============================================================
+    // 6. Initialiser le système de rôle
+    // ============================================================
+    if (window.auth) {
+
+      if (typeof auth.initAuthFromStorage === 'function') {
+        auth.initAuthFromStorage();
+      }
+
+      if (typeof auth.applyNavPermissions === 'function') {
+        auth.applyNavPermissions();
+      }
     }
-  } 
-  else if (currentRole !== expectedRole) {
-    alert('Vous n\'avez pas l\'autorisation d\'accéder à cette page.');
-    window.location.href = getRoleHomePage(currentRole);
-    return;
-  }
-  
-  // Initialize auth system without changing the role
-  if (window.auth) {
-    // Initialize auth variables from localStorage
-    if (typeof auth.initAuthFromStorage === 'function') {
-      auth.initAuthFromStorage();
-    }
-    
-    // Apply navigation permissions based on current role
-    if (typeof auth.applyNavPermissions === 'function') {
-      auth.applyNavPermissions();
-    }
-  }
-  
-  // Update UI
-  updateWelcomeMessage();
-  updateRoleStats().catch(err => console.error('Erreur lors de la mise à jour des statistiques:', err));
-  setupLogoutButton();
-  
-  // Show welcome notification
-  if (window.notificationSystem) {
-    const userName = localStorage.getItem('appUserName') || 'Utilisateur';
-    const roleLabels = {
-      'admin': 'Administrateur',
-      'secretariat': 'Secrétariat', 
-      'responsable': 'Responsable',
-      'user': 'Utilisateur'
-    };
-    
-    setTimeout(() => {
-      window.notificationSystem.success(
-        `Bienvenue ${userName} ! Vous êtes connecté en tant que ${roleLabels[currentRole] || currentRole}.`,
-        { duration: 4000 }
+
+    // ============================================================
+    // 7. Mettre à jour l'interface
+    // ============================================================
+    updateWelcomeMessage();
+
+    updateRoleStats().catch(err => {
+      console.error(
+        "Erreur lors de la mise à jour des statistiques :",
+        err
       );
-    }, 1000);
-  }
-  
-  // Update role description
-  const descriptionEl = document.getElementById("roleDescription");
-  if (descriptionEl) {
-    descriptionEl.textContent = describeRole(currentRole);
-  }
-  
-  // Update department info for responsable
-  if (currentRole === 'responsable' && currentDept) {
-    const userDeptEl = document.getElementById("userDepartment");
-    if (userDeptEl) {
-      userDeptEl.textContent = currentDept;
+    });
+
+    setupLogoutButton();
+
+    // ============================================================
+    // 8. Notification de bienvenue
+    // ============================================================
+    if (window.notificationSystem) {
+
+      const userName =
+        localStorage.getItem('appUserName') || 'Utilisateur';
+
+      const roleLabels = {
+        admin: 'Administrateur',
+        secretariat: 'Secrétariat',
+        responsable: 'Responsable',
+        user: 'Utilisateur'
+      };
+
+      setTimeout(() => {
+
+        window.notificationSystem.success(
+          `Bienvenue ${userName} ! Vous êtes connecté en tant que ${
+            roleLabels[currentRole] || currentRole
+          }.`,
+          { duration: 4000 }
+        );
+
+      }, 1000);
     }
-  }
-  
-  // Initialize auth system without role selector (since role is fixed after login)
-  auth.setRole(currentRole, currentDept);
-  auth.applyNavPermissions();
-  
-  auth.registerRoleListener(() => {
-    updateRoleStats().catch(err => console.error('Erreur lors de la mise à jour des statistiques:', err));
-    const newRole = auth.getRoleContext().currentRole;
+
+    // ============================================================
+    // 9. Description du rôle
+    // ============================================================
+    const descriptionEl =
+      document.getElementById("roleDescription");
+
     if (descriptionEl) {
-      descriptionEl.textContent = describeRole(newRole);
+      descriptionEl.textContent = describeRole(currentRole);
     }
-  });
+
+    // ============================================================
+    // 10. Département du responsable
+    // ============================================================
+    if (currentRole === 'responsable' && currentDept) {
+
+      const userDeptEl =
+        document.getElementById("userDepartment");
+
+      if (userDeptEl) {
+        userDeptEl.textContent = currentDept;
+      }
+    }
+
+    // ============================================================
+    // 11. Synchroniser le rôle
+    // ============================================================
+    if (window.auth) {
+
+      auth.setRole(currentRole);
+
+      auth.applyNavPermissions();
+
+      auth.registerRoleListener(() => {
+
+        updateRoleStats().catch(err =>
+          console.error(
+            "Erreur statistiques :",
+            err
+          )
+        );
+
+        const newRole =
+          auth.getRoleContext().currentRole;
+
+        if (descriptionEl) {
+          descriptionEl.textContent =
+            describeRole(newRole);
+        }
+      });
+    }
+
+    console.log("✅ Page initialisée avec succès");
+    console.log("👤 Rôle :", currentRole);
+
+  } catch (error) {
+
+    console.error(
+      "❌ Erreur lors de l'initialisation de la page :",
+      error
+    );
+
+    alert(
+      "Une erreur est survenue lors de la vérification de vos autorisations."
+    );
+
+    window.location.href = 'login.html';
+  }
 }
 
 // Auto-initialize when DOM is loaded

@@ -54,9 +54,18 @@
       </section>
     </div>
   </div>
-  <!-- Configuration et API (MySQL + Cloudinary) -->
+  <!-- Configuration Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
+  <script src="js/services/supabase-client.js"></script>
+  <script src="js/services/auth.service.js"></script>
+  <script src="js/services/profiles.service.js"></script>
+  <script src="js/services/departments.service.js"></script>
+  <script src="js/services/members.service.js"></script>
+  <script src="js/services/events.service.js"></script>
+  <script src="js/services/attendances.service.js"></script>
+  <script src="js/services/home-contents.service.js"></script>
+  <script src="js/supabase.js"></script>
   
   <script src="js/data.js" defer></script>
   <script src="js/auth.js" defer></script>
@@ -65,30 +74,23 @@
   <script>
     function logout() {
       if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        localStorage.removeItem('appRole');
-        localStorage.removeItem('appUser');
-        localStorage.removeItem('appUserName');
-        localStorage.removeItem('appLoginTime');
-        localStorage.removeItem('appDept');
-        window.location.href = 'login.html';
+        if (window.auth && window.auth.signOut) {
+          window.auth.signOut();
+        } else {
+          localStorage.removeItem('appRole');
+          localStorage.removeItem('appUser');
+          localStorage.removeItem('appUserName');
+          localStorage.removeItem('appDept');
+          window.location.href = 'login.html';
+        }
       }
     }
     
-    // Check if user is logged in and apply role-based visibility
     document.addEventListener('DOMContentLoaded', () => {
       const currentRole = localStorage.getItem('appRole');
-      const loginTime = localStorage.getItem('appLoginTime');
       
-      if (!currentRole || !loginTime) {
+      if (!currentRole) {
         window.location.href = 'login.html';
-        return;
-      }
-      
-      // Check session timeout (7 jours d'inactivité)
-      const sessionTimeout = 7 * 24 * 60 * 60 * 1000;
-      if (Date.now() - parseInt(loginTime) > sessionTimeout) {
-        alert('Votre session a expiré. Veuillez vous reconnecter.');
-        logout();
         return;
       }
       

@@ -4,14 +4,12 @@
 // Gère les profiles utilisateurs (table profiles liée à auth.users)
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Obtenir tous les profiles
  * @returns {Promise<Array>} Liste des profiles
  */
 async function getAllProfiles() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: false });

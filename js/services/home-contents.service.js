@@ -4,14 +4,12 @@
 // Gère le contenu de la page d'accueil
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Obtenir tous les contenus d'accueil
  * @returns {Promise<Array>} Liste des contenus
  */
 async function getAllHomeContents() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('home_contents')
     .select('*')
     .order('created_at', { ascending: false });
@@ -30,7 +28,7 @@ async function getAllHomeContents() {
  * @returns {Promise<Object>} Contenu actif
  */
 async function getActiveHomeContentByType(type) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('home_contents')
     .select('*')
     .eq('type', type)
@@ -54,7 +52,7 @@ async function getActiveHomeContentByType(type) {
  * @returns {Promise<Object>} Contenu
  */
 async function getHomeContentById(id) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('home_contents')
     .select('*')
     .eq('id', id)
@@ -77,7 +75,7 @@ async function getHomeContentById(id) {
  * @returns {Promise<Object>} Contenu créé
  */
 async function createHomeContent(content) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('home_contents')
     .insert(content)
     .select()
@@ -98,7 +96,7 @@ async function createHomeContent(content) {
  * @returns {Promise<Object>} Contenu mis à jour
  */
 async function updateHomeContent(id, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('home_contents')
     .update(updates)
     .eq('id', id)
@@ -119,7 +117,7 @@ async function updateHomeContent(id, updates) {
  * @returns {Promise<boolean>} Succès
  */
 async function deleteHomeContent(id) {
-  const { error } = await supabase
+  const { error } = await window.supabase
     .from('home_contents')
     .delete()
     .eq('id', id);

@@ -4,8 +4,6 @@
 // Gère l'authentification via Supabase Auth
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Inscrire un nouvel utilisateur
  * @param {string} email - Email de l'utilisateur
@@ -14,7 +12,7 @@ const supabase = window.supabase;
  * @returns {Promise<Object>} Résultat de l'inscription
  */
 async function signUp(email, password, metadata = {}) {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await window.supabase.auth.signUp({
     email,
     password,
     options: {
@@ -42,7 +40,7 @@ async function signUp(email, password, metadata = {}) {
  * @returns {Promise<Object>} Résultat de la connexion
  */
 async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await window.supabase.auth.signInWithPassword({
     email,
     password
   });
@@ -60,7 +58,7 @@ async function signIn(email, password) {
  * @returns {Promise<Object>} Résultat de la déconnexion
  */
 async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await window.supabase.auth.signOut();
   
   if (error) {
     console.error('Erreur déconnexion:', error);
@@ -82,7 +80,7 @@ async function signOut() {
  * @returns {Promise<Object>} Session actuelle
  */
 async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await window.supabase.auth.getSession();
   
   if (error) {
     console.error('Erreur récupération session:', error);
@@ -97,7 +95,7 @@ async function getSession() {
  * @returns {Promise<Object>} Utilisateur actuel
  */
 async function getCurrentUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await window.supabase.auth.getUser();
   
   if (error) {
     console.error('Erreur récupération utilisateur:', error);
@@ -113,7 +111,7 @@ async function getCurrentUser() {
  * @returns {Object} Subscription
  */
 function onAuthStateChange(callback) {
-  return supabase.auth.onAuthStateChange((event, session) => {
+  return window.supabase.auth.onAuthStateChange((event, session) => {
     callback(event, session);
   });
 }
@@ -125,7 +123,7 @@ function onAuthStateChange(callback) {
  * @returns {Promise<Object>} Profile créé
  */
 async function createProfile(userId, metadata) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('profiles')
     .insert({
       id: userId,
@@ -161,7 +159,7 @@ async function getCurrentProfile() {
     return null;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -182,7 +180,7 @@ async function getCurrentProfile() {
  * @returns {Promise<Object>} Profile mis à jour
  */
 async function updateProfile(userId, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('profiles')
     .update(updates)
     .eq('id', userId)

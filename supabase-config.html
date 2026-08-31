@@ -198,6 +198,12 @@
       } catch (e) {
         console.error('Erreur lors du chargement de la configuration:', e);
       }
+    } else {
+      // Pré-remplir avec les credentials par défaut
+      document.getElementById('supabaseUrl').value = 'https://gfolhwqthifhnhzspaou.supabase.co';
+      document.getElementById('supabaseAnonKey').value = 'sb_publishable_gCThAA5ax0sbSVdgB90FvA_m6FGJpdh';
+      document.getElementById('cloudinaryCloudName').value = 'dxarljqz7';
+      document.getElementById('cloudinaryUploadPreset').value = 'unsigned';
     }
   </script>
 </body>

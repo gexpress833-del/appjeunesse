@@ -4,14 +4,12 @@
 // Gère les membres
 // ============================================================================
 
-const supabase = window.supabase;
-
 /**
  * Obtenir tous les membres
  * @returns {Promise<Array>} Liste des membres
  */
 async function getAllMembers() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('members')
     .select('*')
     .order('name', { ascending: true });
@@ -30,7 +28,7 @@ async function getAllMembers() {
  * @returns {Promise<Object>} Membre
  */
 async function getMemberById(id) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('members')
     .select('*')
     .eq('id', id)
@@ -53,7 +51,7 @@ async function getMemberById(id) {
  * @returns {Promise<Array>} Liste des membres
  */
 async function getMembersByDepartment(dept) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('members')
     .select('*')
     .eq('dept', dept)
@@ -73,7 +71,7 @@ async function getMembersByDepartment(dept) {
  * @returns {Promise<Object>} Membre créé
  */
 async function createMember(member) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('members')
     .insert(member)
     .select()
@@ -94,7 +92,7 @@ async function createMember(member) {
  * @returns {Promise<Object>} Membre mis à jour
  */
 async function updateMember(id, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabase
     .from('members')
     .update(updates)
     .eq('id', id)
@@ -115,7 +113,7 @@ async function updateMember(id, updates) {
  * @returns {Promise<boolean>} Succès
  */
 async function deleteMember(id) {
-  const { error } = await supabase
+  const { error } = await window.supabase
     .from('members')
     .delete()
     .eq('id', id);

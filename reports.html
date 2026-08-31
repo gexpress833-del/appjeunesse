@@ -370,9 +370,18 @@
     </div>
   </div>
 
-  <!-- Configuration et API (MySQL + Cloudinary) -->
+  <!-- Configuration Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
+  <script src="js/services/supabase-client.js"></script>
+  <script src="js/services/auth.service.js"></script>
+  <script src="js/services/profiles.service.js"></script>
+  <script src="js/services/departments.service.js"></script>
+  <script src="js/services/members.service.js"></script>
+  <script src="js/services/events.service.js"></script>
+  <script src="js/services/attendances.service.js"></script>
+  <script src="js/services/home-contents.service.js"></script>
+  <script src="js/supabase.js"></script>
   
   <!-- Bibliothèques PDF (version simplifiée) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onload="
@@ -408,40 +417,44 @@
       return (Date.now() - parseInt(loginTime)) <= sessionTimeout;
     }
 
-    function initReportsPage() {
-      // Vérifier la validité de la session
-      if (!checkSessionValidity()) {
-        alert('Votre session a expiré. Veuillez vous reconnecter.');
-        window.location.href = 'login.html';
-        return;
-      }
+    function checkSupabaseSession() {
+      return window.supabaseDB.checkSession();
+    }
 
-      // Vérifier les permissions d'accès aux rapports PDF
-      const currentRole = localStorage.getItem('appRole');
-      if (!['admin', 'secretariat'].includes(currentRole)) {
-        // Afficher un message d'erreur et rediriger
-        if (window.notificationSystem) {
-          window.notificationSystem.error('Accès refusé. Seuls l\'Administrateur et le Secrétariat peuvent accéder aux rapports PDF.', { duration: 5000 });
-        } else {
-          alert('Accès refusé. Seuls l\'Administrateur et le Secrétariat peuvent accéder aux rapports PDF.');
+    function initReportsPage() {
+      // Vérifier la validité de la session via Supabase
+      checkSupabaseSession().then(hasValidSession => {
+        if (!hasValidSession) {
+          window.location.href = 'login.html';
+          return;
         }
         
-        window.location.href = 'access-denied-reports.html';
-        return;
-      }
+        const currentRole = localStorage.getItem('appRole');
+        
+        if (!currentRole) {
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        // Check if user has permission for this page
+        if (!['admin', 'secretariat'].includes(currentRole)) {
+          window.location.href = 'access-denied-reports.html';
+          return;
+        }
 
-      // Mettre à jour l'interface utilisateur
-      updateWelcomeMessage();
-      setupLogoutButton();
+        // Mettre à jour l'interface utilisateur
+        updateWelcomeMessage();
+        setupLogoutButton();
 
-      // Charger les données depuis Supabase de manière asynchrone
-      loadData().then(() => {
-        setupEventListeners();
-        populateSelects();
-      }).catch(error => {
-        console.error('Erreur lors de l\'initialisation:', error);
-        setupEventListeners();
-        populateSelects(); // Essayer quand même de peupler les selects
+        // Charger les données depuis Supabase de manière asynchrone
+        loadData().then(() => {
+          setupEventListeners();
+          populateSelects();
+        }).catch(error => {
+          console.error('Erreur lors de l\'initialisation:', error);
+          setupEventListeners();
+          populateSelects(); // Essayer quand même de peupler les selects
+        });
       });
     }
 
