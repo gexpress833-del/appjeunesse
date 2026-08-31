@@ -438,12 +438,16 @@ async function handleEventSubmit(event) {
         auth.showNotification("success", "Photo uploadée avec succès");
       } catch (uploadError) {
         console.error('Erreur lors de l\'upload de la photo:', uploadError);
-        auth.showNotification("error", "Erreur lors de l'upload de la photo. L'événement sera créé sans photo.");
-        // Continuer sans photo plutôt que d'échouer complètement
+        auth.showNotification("error", "Erreur lors de l'upload de la photo. Veuillez configurer Cloudinary ou créer un preset unsigned.");
+        throw new Error('Upload de photo requis pour créer un événement');
       }
     } else if (currentEventPhoto && currentEventPhoto.startsWith('http')) {
       // Si c'est déjà une URL (photo existante), la conserver
       photoUrl = currentEventPhoto;
+    } else {
+      // Pas de photo sélectionnée
+      auth.showNotification("error", "Une photo est requise pour créer un événement.");
+      throw new Error('Photo requise');
     }
     
     if (editingId) {
