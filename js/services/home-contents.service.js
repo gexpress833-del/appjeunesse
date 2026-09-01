@@ -33,12 +33,9 @@ async function getActiveHomeContentByType(type) {
     .select('*')
     .eq('type', type)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return null;
-    }
     console.error('Erreur récupération contenu actif:', error);
     throw error;
   }

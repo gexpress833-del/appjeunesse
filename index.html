@@ -705,7 +705,16 @@
         });
 
         const statusLabel = evt.status === 'current' ? 'Aujourd\'hui' : 'À venir';
-        const photo = evt.photo || evt.photoUrl;
+        let photo = evt.photo || evt.photoUrl;
+        // Parser JSON si nécessaire
+        if (typeof photo === 'string' && photo.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(photo);
+            photo = parsed.url;
+          } catch (e) {
+            photo = null;
+          }
+        }
 
         card.innerHTML = `
           <div class="event-card-image">

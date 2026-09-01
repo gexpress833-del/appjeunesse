@@ -8,6 +8,20 @@ let eventCancel = null;
 let currentEventPhoto = null; // URL de l'image (Supabase Storage) ou File object avant upload
 let currentEventPhotoFile = null; // File object pour upload
 
+function getEventPhotoUrl(evt) {
+  let photoSrc = evt.photoUrl || evt.photo;
+  // Si photoSrc est une chaîne JSON, extraire l'URL
+  if (typeof photoSrc === 'string' && photoSrc.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(photoSrc);
+      photoSrc = parsed.url;
+    } catch (e) {
+      photoSrc = null;
+    }
+  }
+  return photoSrc;
+}
+
 function resetEventEditor() {
   if (!eventForm) return;
   eventForm.reset();
@@ -56,9 +70,13 @@ function getStatusLabel(status) {
 }
 
 function renderEventsGrid(filterStatus = 'all') {
+  console.log('🎨 renderEventsGrid appelée avec filtre:', filterStatus);
   const eventsGrid = document.getElementById("eventsGrid");
   
-  if (!eventsGrid) return;
+  if (!eventsGrid) {
+    console.warn('⚠️ eventsGrid non trouvé');
+    return;
+  }
   
   eventsGrid.innerHTML = "";
   
@@ -129,7 +147,13 @@ function renderEventsGrid(filterStatus = 'all') {
         ${getStatusLabel(eventStatus)}
       </div>
       <div class="event-card-image">
-        ${evt.photo ? `<img src="${evt.photo}" alt="Photo de ${evt.name}">` : '📅'}
+        ${(() => {
+          const photoSrc = getEventPhotoUrl(evt);
+          console.log('🖼️ Rendu photo pour', evt.name, ':', photoSrc);
+          return photoSrc
+            ? `<img src="${photoSrc}" alt="Photo de ${evt.name}" loading="lazy" onerror="console.error('❌ Impossible de charger la photo:', this.src); this.style.display='none';">`
+            : '📅';
+        })()}
       </div>
       <div class="event-card-content">
         <h4>${evt.name}</h4>
@@ -272,8 +296,8 @@ function showEventDetails(evt) {
   const modalEditBtn = document.getElementById('modalEventEditBtn');
   
   // Update photo
-  if (evt.photo) {
-    modalImg.src = evt.photo;
+  if (evt.photoUrl || evt.photo) {
+    modalImg.src = evt.photoUrl || evt.photo;
     modalPhoto.style.display = 'block';
   } else {
     modalPhoto.style.display = 'none';
@@ -431,76 +455,53 @@ async function handleEventSubmit(event) {
     if (currentEventPhotoFile && window.storageManager) {
       try {
         auth.showNotification("info", "Upload de la photo en cours...");
-        photoUrl = await window.storageManager.uploadEventPhoto(
+        const uploadResult = await window.storageManager.uploadEventPhoto(
           currentEventPhotoFile,
           editingId ? parseInt(editingId, 10) : null
         );
+        // Extraire l'URL du résultat (uploadEventPhoto retourne { url, publicId })
+        photoUrl = uploadResult?.url || uploadResult;
         auth.showNotification("success", "Photo uploadée avec succès");
       } catch (uploadError) {
         console.error('Erreur lors de l\'upload de la photo:', uploadError);
-        auth.showNotification("error", "Erreur lors de l'upload de la photo. Veuillez configurer Cloudinary ou créer un preset unsigned.");
-        throw new Error('Upload de photo requis pour créer un événement');
+        throw new Error("Impossible d'uploader la photo.");
       }
     } else if (currentEventPhoto && currentEventPhoto.startsWith('http')) {
-      // Si c'est déjà une URL (photo existante), la conserver
       photoUrl = currentEventPhoto;
     } else {
-      // Pas de photo sélectionnée
-      auth.showNotification("error", "Une photo est requise pour créer un événement.");
-      throw new Error('Photo requise');
+      photoUrl = null;
     }
     
     if (editingId) {
-      if (!auth.checkPermission("events", "update")) {
+      const role = localStorage.getItem("appRole");
+      if (!["admin", "secretariat"].includes(role)) {
         auth.showNotification("error", "Action non autorisée.");
         return;
       }
       
-      // Supprimer l'ancienne photo si une nouvelle a été uploadée
-      if (photoUrl && window.storageManager) {
-        const oldEvent = window.appState.events.find(e => e.id === parseInt(editingId, 10));
-        if (oldEvent && oldEvent.photoUrl && oldEvent.photoUrl.startsWith('http')) {
-          try {
-            const oldFileName = window.storageManager.extractFileNameFromUrl(oldEvent.photoUrl);
-            if (oldFileName) {
-              await window.storageManager.deleteEventPhoto(oldFileName);
-            }
-          } catch (deleteError) {
-            console.warn('Impossible de supprimer l\'ancienne photo:', deleteError);
-          }
-        }
-      }
-      
-      // Mettre à jour dans Supabase
       await window.supabaseDB.updateEvent(parseInt(editingId, 10), {
         name: name,
         date: date,
         description: description,
-        photoUrl: photoUrl
+        photo_url: photoUrl
       });
       
-      // Recharger les données depuis Supabase
       await window.reloadData();
       
       auth.showNotification("success", "Événement mis à jour.");
       
-      // Re-rendre la liste des événements
-      const eventsFilter = document.getElementById('eventsFilter');
-      const currentFilter = eventsFilter ? eventsFilter.value : 'all';
-      renderEventsGrid(currentFilter);
     } else {
-      if (!auth.checkPermission("events", "create")) {
-        auth.showNotification("error", "Action non autorisée.");
+      const role = localStorage.getItem("appRole");
+      if (!["admin", "secretariat"].includes(role)) {
+        auth.showNotification("error", `Action non autorisée pour le rôle : ${role || "inconnu"}`);
         return;
       }
       
-      // Vérifier les doublons
       const events = await window.supabaseDB.getEvents();
       const duplicate = events.some(
         (evt) => evt.name.toLowerCase() === name.toLowerCase() && evt.date === date
       );
       if (duplicate) {
-        // Demander confirmation au lieu de bloquer
         const confirmCreate = confirm(
           `Un événement avec le nom "${name}" et la date "${date}" existe déjà.\n\nVoulez-vous quand même créer cet événement ?`
         );
@@ -509,19 +510,17 @@ async function handleEventSubmit(event) {
         }
       }
       
-      // Créer dans Supabase
       const newEvent = await window.supabaseDB.createEvent({
         name: name,
         date: date,
         description: description,
-        photoUrl: photoUrl
+        photo_url: photoUrl
       });
       
       if (!newEvent) {
         throw new Error('Erreur lors de la création de l\'événement');
       }
       
-      // Recharger les données depuis Supabase
       await window.reloadData();
       
       auth.showNotification("success", "Événement ajouté.");
@@ -545,7 +544,12 @@ async function handleEventSubmit(event) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Attendre que l'auth soit synchronisée depuis Supabase
+  if (window.auth && typeof window.auth.initAuthFromSupabase === 'function') {
+    await window.auth.initAuthFromSupabase();
+  }
+  
   // Initialiser le formulaire d'événement (peut être masqué pour certains rôles)
   initEventForm();
   

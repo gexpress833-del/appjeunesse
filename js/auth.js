@@ -99,34 +99,124 @@ function registerRoleListener(fn) {
 }
 
 function checkPermission(resource, action, targetDept) {
-  if (resource === "dashboard") return true;
+  // Utiliser le rôle Supabase s'il est disponible,
+  // sinon utiliser le rôle synchronisé dans localStorage.
+  const role = currentRole || localStorage.getItem("appRole");
+
+  if (!role) {
+    console.warn("❌ Aucun rôle utilisateur disponible");
+    return false;
+  }
+
+  // ============================================================
+  // DASHBOARD
+  // ============================================================
+  if (resource === "dashboard") {
+    return true;
+  }
+
+  // ============================================================
+  // MEMBRES
+  // ============================================================
   if (resource === "members") {
-    if (action === "view") return ["admin", "secretariat", "responsable", "user"].includes(currentRole);
+    if (action === "view") {
+      return [
+        "admin",
+        "secretariat",
+        "responsable",
+        "user"
+      ].includes(role);
+    }
+
     if (["create", "update", "delete"].includes(action)) {
-      if (["admin", "secretariat"].includes(currentRole)) return true;
-      if (currentRole === "responsable") {
+
+      if (["admin", "secretariat"].includes(role)) {
+        return true;
+      }
+
+      if (role === "responsable") {
         return targetDept === currentDepartmentScope;
       }
+
       return false;
     }
   }
+
+  // ============================================================
+  // DÉPARTEMENTS
+  // ============================================================
   if (resource === "departments") {
-    return currentRole === "admin";
+
+    if (action === "view") {
+      return [
+        "admin",
+        "secretariat",
+        "responsable",
+        "user"
+      ].includes(role);
+    }
+
+    return role === "admin";
   }
+
+  // ============================================================
+  // ÉVÉNEMENTS
+  // ============================================================
   if (resource === "events") {
-    if (action === "view") return ["admin", "secretariat", "responsable", "user"].includes(currentRole);
-    return ["admin", "secretariat"].includes(currentRole);
-  }
-  if (resource === "attendances") {
-    if (action === "view") return ["admin", "secretariat", "responsable", "user"].includes(currentRole);
+
+    // Consultation
+    if (action === "view") {
+      return [
+        "admin",
+        "secretariat",
+        "responsable",
+        "user"
+      ].includes(role);
+    }
+
+    // Création / modification / suppression
     if (["create", "update", "delete"].includes(action)) {
-      if (["admin", "secretariat"].includes(currentRole)) return true;
-      if (currentRole === "responsable" && targetDept) {
-        return targetDept === currentDepartmentScope;
+      return [
+        "admin",
+        "secretariat"
+      ].includes(role);
+    }
+
+    return false;
+  }
+
+  // ============================================================
+  // PRÉSENCES
+  // ============================================================
+  if (resource === "attendances") {
+
+    if (action === "view") {
+      return [
+        "admin",
+        "secretariat",
+        "responsable",
+        "user"
+      ].includes(role);
+    }
+
+    if (["create", "update", "delete"].includes(action)) {
+
+      if (["admin", "secretariat"].includes(role)) {
+        return true;
       }
+
+      if (
+        role === "responsable" &&
+        targetDept &&
+        targetDept === currentDepartmentScope
+      ) {
+        return true;
+      }
+
       return false;
     }
   }
+
   return false;
 }
 
