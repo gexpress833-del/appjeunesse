@@ -2502,26 +2502,31 @@ body[data-role="admin"] .secretariat-only {
 /* Carrousel de témoignages */
 .testimonial-carousel {
   position: relative;
-  margin-top: 1rem;
-  padding: 40px 60px 20px 60px; /* Espace interne pour ne pas chevaucher le texte */
+  margin-top: 1.5rem;
+  padding: 30px 50px 20px 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .testimonial-viewport {
   overflow: hidden;
-  border-radius: 1rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  min-height: 200px;
+  border-radius: 1.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(10px);
+  min-height: 280px;
   width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .testimonial-track {
   display: flex;
-  transition: transform 0.6s ease;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 
@@ -2529,7 +2534,7 @@ body[data-role="admin"] .secretariat-only {
   min-width: 100%;
   flex-shrink: 0;
   border-radius: 0;
-  padding: 2rem;
+  padding: 3rem 2.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -2538,23 +2543,32 @@ body[data-role="admin"] .secretariat-only {
 }
 
 .testimonial-track .testimonial-text {
-  font-size: 1.1rem;
-  line-height: 1.6;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.8;
   font-style: italic;
-  color: var(--text-bright);
-  margin: 0 0 1rem 0;
+  color: #ffffff;
+  margin: 0 0 1.5rem 0;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
 }
 
 .testimonial-track .testimonial-author {
-  color: var(--accent);
-  font-weight: 500;
+  color: #ffd700;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .testimonial-empty {
   text-align: center;
-  color: var(--muted);
-  padding: 2rem;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 3rem;
   font-style: italic;
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
 }
 
 /* Style des boutons en position absolue */
@@ -2562,59 +2576,173 @@ body[data-role="admin"] .secretariat-only {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: #fff;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transition: background 0.2s ease, transform 0.2s ease;
-  font-size: 1.2rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.4rem;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .carousel-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-50%) scale(1.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.15) 100%);
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.carousel-btn:active {
+  transform: translateY(-50%) scale(1.05);
 }
 
 /* Ancrage précis à gauche et à droite */
 .prev-btn {
-  left: 20px;
+  left: 15px;
 }
 
 .next-btn {
-  right: 20px;
+  right: 15px;
 }
 
 /* Alignement des puces en bas */
 .dots-container {
-  margin-top: 20px;
+  margin-top: 25px;
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .carousel-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid var(--border);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   background: transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .carousel-dot.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #ffd700;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  transform: scale(1.2);
 }
 
 .carousel-dot:hover {
-  border-color: var(--accent);
+  border-color: rgba(255, 215, 0, 0.7);
+  transform: scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .testimonial-carousel {
+    padding: 25px 40px 15px 40px;
+  }
+
+  .testimonial-viewport {
+    min-height: 240px;
+    border-radius: 1.25rem;
+  }
+
+  .testimonial-track .testimonial-card {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .carousel-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+
+  .prev-btn {
+    left: 10px;
+  }
+
+  .next-btn {
+    right: 10px;
+  }
+
+  .carousel-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .testimonial-carousel {
+    padding: 20px 30px 15px 30px;
+  }
+
+  .testimonial-viewport {
+    min-height: 200px;
+    border-radius: 1rem;
+  }
+
+  .testimonial-track .testimonial-card {
+    padding: 2rem 1rem;
+  }
+
+  .carousel-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .prev-btn {
+    left: 8px;
+  }
+
+  .next-btn {
+    right: 8px;
+  }
+
+  .dots-container {
+    gap: 8px;
+  }
+
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .testimonial-carousel {
+    padding: 40px 70px 25px 70px;
+  }
+
+  .testimonial-viewport {
+    min-height: 320px;
+  }
+
+  .testimonial-track .testimonial-card {
+    padding: 4rem 3rem;
+  }
+
+  .carousel-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 1.5rem;
+  }
+
+  .prev-btn {
+    left: 20px;
+  }
+
+  .next-btn {
+    right: 20px;
+  }
 }
 
 /* Modale d'édition de témoignage */
