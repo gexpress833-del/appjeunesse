@@ -789,7 +789,22 @@
       const loginTime = localStorage.getItem('appLoginTime');
       
       if (!currentRole || !loginTime) {
-        window.location.href = 'login.html';
+        // Essayer de récupérer le rôle depuis Supabase avant de rediriger
+        if (window.auth && typeof window.auth.initAuthFromSupabase === 'function') {
+          window.auth.initAuthFromSupabase().then(() => {
+            const role = localStorage.getItem('appRole');
+            const time = localStorage.getItem('appLoginTime');
+            if (!role || !time) {
+              window.location.href = 'login.html';
+              return;
+            }
+            // Continuer avec la session récupérée
+            loadUserProfile();
+          });
+        } else {
+          window.location.href = 'login.html';
+          return;
+        }
         return;
       }
       

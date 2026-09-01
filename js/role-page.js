@@ -234,12 +234,21 @@ async function initRolePage(expectedRole) {
     const hasValidSession = await checkSupabaseSession();
 
     if (!hasValidSession) {
-      console.warn("❌ Aucune session Supabase");
-      window.location.href = 'login.html';
-      return;
+      console.warn("⚠️ Aucune session Supabase, tentative de fallback localStorage");
+      // Essayer localStorage comme fallback avant de rediriger
+      const role = localStorage.getItem('appRole');
+      if (role) {
+        console.log("✅ Fallback localStorage réussi avec rôle:", role);
+        // Continuer avec le rôle localStorage
+      } else {
+        console.warn("❌ Aucune session Supabase ni localStorage");
+        // Rediriger seulement si vraiment pas de session
+        window.location.href = 'login.html';
+        return;
+      }
+    } else {
+      console.log("✅ Session Supabase valide");
     }
-
-    console.log("✅ Session Supabase valide");
 
     // ============================================================
     // 2. Récupérer le profil ET le rôle depuis Supabase

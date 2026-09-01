@@ -173,8 +173,20 @@
       const currentRole = localStorage.getItem('appRole');
       
       if (!currentRole) {
-        window.location.href = 'login.html';
-        return;
+        // Essayer de récupérer le rôle depuis Supabase avant de rediriger
+        if (window.auth && typeof window.auth.initAuthFromSupabase === 'function') {
+          window.auth.initAuthFromSupabase().then(() => {
+            const role = localStorage.getItem('appRole');
+            if (!role) {
+              window.location.href = 'login.html';
+              return;
+            }
+            // Continuer avec le rôle récupéré
+          });
+        } else {
+          window.location.href = 'login.html';
+          return;
+        }
       }
       
       // Update welcome message

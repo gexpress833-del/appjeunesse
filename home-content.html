@@ -135,10 +135,29 @@
     function ensureContentPermissions() {
       const role = localStorage.getItem('appRole');
       if (!role) {
-        window.location.href = 'login.html';
-        return false;
+        // Essayer de récupérer le rôle depuis Supabase avant de rediriger
+        if (window.auth && typeof window.auth.initAuthFromSupabase === 'function') {
+          window.auth.initAuthFromSupabase().then(() => {
+            const retrievedRole = localStorage.getItem('appRole');
+            if (!retrievedRole) {
+              window.location.href = 'login.html';
+              return false;
+            }
+            // Continuer avec le rôle récupéré
+            applyRolePermissions(retrievedRole);
+          });
+          return false;
+        } else {
+          window.location.href = 'login.html';
+          return false;
+        }
       }
       
+      applyRolePermissions(role);
+      return true;
+    }
+    
+    function applyRolePermissions(role) {
       // Définir si l'utilisateur peut modifier le contenu (admin et secretariat uniquement)
       window.homeContentCanEdit = (role === 'admin' || role === 'secretariat');
       

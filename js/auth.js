@@ -231,10 +231,9 @@ async function initAuthFromSupabase() {
 
     const session = await window.authService.getSession();
     if (!session) {
-      // Pas de session, rediriger vers login
-      if (window.location.pathname !== '/login.html' && window.location.pathname !== '/register.html') {
-        window.location.href = 'login.html';
-      }
+      // Pas de session Supabase, essayer localStorage comme fallback
+      console.warn('Pas de session Supabase, tentative de fallback localStorage');
+      initAuthFromStorage();
       return;
     }
 
@@ -246,12 +245,18 @@ async function initAuthFromSupabase() {
       
       // Synchroniser avec localStorage pour compatibilité
       localStorage.setItem("appRole", currentRole);
+      localStorage.setItem("appLoginTime", Date.now().toString());
       if (currentDepartmentScope) {
         localStorage.setItem("appDept", currentDepartmentScope);
       }
+    } else {
+      // Session Supabase mais pas de profil, essayer localStorage
+      console.warn('Session Supabase mais pas de profil, tentative de fallback localStorage');
+      initAuthFromStorage();
     }
   } catch (error) {
     console.error('Erreur lors de l\'initialisation Supabase Auth:', error);
+    // En cas d'erreur, essayer localStorage comme fallback
     initAuthFromStorage();
   }
 }

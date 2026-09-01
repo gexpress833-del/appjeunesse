@@ -449,8 +449,13 @@
       // Vérifier la validité de la session via Supabase
       checkSupabaseSession().then(hasValidSession => {
         if (!hasValidSession) {
-          window.location.href = 'login.html';
-          return;
+          // Essayer localStorage comme fallback avant de rediriger
+          const role = localStorage.getItem('appRole');
+          if (!role) {
+            window.location.href = 'login.html';
+            return;
+          }
+          console.log('Utilisation du rôle depuis localStorage:', role);
         }
         
         const currentRole = localStorage.getItem('appRole');
