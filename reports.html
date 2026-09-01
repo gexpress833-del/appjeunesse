@@ -386,14 +386,21 @@
   <script src="js/services/home-contents.service.js"></script>
   <script src="js/supabase.js"></script>
   
-  <!-- Bibliothèques PDF (version simplifiée) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onload="
+  <!-- Bibliothèques PDF (version améliorée avec gestion d'erreur) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" 
+    onerror="console.error('Erreur de chargement jsPDF');"
+    onload="
     // Normaliser jsPDF : la version UMD l'expose sous window.jspdf (minuscule)
     if (typeof window.jspdf !== 'undefined' && !window.jsPDF) {
       window.jsPDF = window.jspdf;
+      console.log('jsPDF normalisé avec succès');
+    } else if (typeof window.jspdf !== 'undefined') {
+      console.log('jsPDF déjà disponible');
     }
   "></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"
+    onerror="console.error('Erreur de chargement jsPDF-autotable');"
+    onload="console.log('jsPDF-autotable chargé avec succès');"></script>
   
   <!-- Scripts de base -->
   <script src="js/data.js" defer></script>
@@ -860,11 +867,11 @@
       window.location.href = homePages[currentRole] || 'login.html';
     }
 
-    // Vérifier que les bibliothèques PDF sont chargées (version simplifiée)
+    // Vérifier que les bibliothèques PDF sont chargées (version améliorée)
     function waitForPDFLibraries() {
       return new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 50; // 5 secondes maximum
+        const maxAttempts = 100; // 10 secondes maximum
         
         const checkLibraries = () => {
           attempts++;
@@ -883,14 +890,18 @@
           if (jsPDFAvailable) {
             resolve();
           } else if (attempts >= maxAttempts) {
-            reject(new Error('Les bibliothèques PDF n\'ont pas pu être chargées. Vérifiez votre connexion internet.'));
+            console.error('Détails de chargement PDF:', {
+              'window.jsPDF': typeof window.jsPDF,
+              'window.jspdf': typeof window.jspdf,
+              'window.jsPDF.jsPDF': window.jsPDF ? typeof window.jsPDF.jsPDF : 'N/A'
+            });
+            reject(new Error('Les bibliothèques PDF n\'ont pas pu être chargées. Vérifiez votre connexion internet et rechargez la page.'));
           } else {
             setTimeout(checkLibraries, 100);
           }
         };
         
-        // Attendre un peu avant de commencer la vérification
-        setTimeout(checkLibraries, 300);
+        checkLibraries();
       });
     }
 
