@@ -189,7 +189,10 @@
   <div class="app">
     <div class="panel">
       <header>
-        <h1>👤 Mon Profil</h1>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <a href="#" id="backToRolePage" class="secondary" style="padding: 0.5rem 1rem; text-decoration: none; border-radius: 0.5rem; background: var(--surface-elevated); color: var(--text);">← Retour</a>
+          <h1>👤 Mon Profil</h1>
+        </div>
         <div class="login-panel">
           <div class="user-info">
             <span class="welcome-message">Bienvenue</span>
@@ -376,6 +379,21 @@
   <script src="js/storage.js"></script>
   <script>
     let currentUser = null;
+
+    // Configurer le bouton de retour vers la page de rôle appropriée
+    document.addEventListener('DOMContentLoaded', () => {
+      const backBtn = document.getElementById('backToRolePage');
+      if (backBtn) {
+        const role = localStorage.getItem('appRole');
+        const rolePages = {
+          admin: 'admin.html',
+          secretariat: 'secretariat.html',
+          responsable: 'responsable.html',
+          user: 'user.html'
+        };
+        backBtn.href = rolePages[role] || 'index.html';
+      }
+    });
 
     function logout() {
       if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {

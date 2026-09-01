@@ -12,11 +12,13 @@
     <div class="panel">
       <header>
         <div class="header-left">
-          <img src="images/logo.jpg" alt="Logo" class="app-logo">
-          <div class="app-title">
-            <span class="app-name">La Parole Eternelle</span>
-            <span class="app-subtitle">Contenu d'accueil</span>
-          </div>
+          <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+            <img src="images/logo.jpg" alt="Logo" class="app-logo">
+            <div class="app-title">
+              <span class="app-name">La Parole Eternelle</span>
+              <span class="app-subtitle">Contenu d'accueil</span>
+            </div>
+          </a>
         </div>
         <div class="header-center">
           <div class="header-info">
@@ -74,6 +76,26 @@
         </div>
 
         <div class="card">
+          <h3>Gestion des témoignages</h3>
+          <p class="text-muted" style="margin-top:0.25rem;">
+            Modifier ou supprimer les témoignages existants.
+          </p>
+          
+          <!-- Bloc de configuration de l'intervalle -->
+          <div class="config-interval" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
+            <label style="display: block; font-size: 0.85rem; margin-bottom: 8px; color: var(--muted);">Délai de défilement (secondes) :</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="number" id="carousel-interval" min="1" value="5" style="width: 80px; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-light); color: var(--text);" />
+              <button id="save-config-btn" class="primary" style="padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">Enregistrer</button>
+            </div>
+          </div>
+          
+          <div id="testimonialsList" style="margin-top:1rem; gap:0.75rem;">
+            <p class="text-muted">Chargement des témoignages...</p>
+          </div>
+        </div>
+
+        <div class="card">
           <h3>Vidéo à la une</h3>
           <p class="text-muted" style="margin-top:0.25rem;">
             Collez un lien YouTube (ou autre lecteur) pour l'afficher sur la page d'accueil.
@@ -105,6 +127,7 @@
   <script src="js/services/events.service.js"></script>
   <script src="js/services/attendances.service.js"></script>
   <script src="js/services/home-contents.service.js"></script>
+  <script src="js/services/testimonials.service.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/notifications.js"></script>
   <script>
@@ -115,6 +138,9 @@
         window.location.href = 'login.html';
         return false;
       }
+      
+      // Définir si l'utilisateur peut modifier le contenu (admin et secretariat uniquement)
+      window.homeContentCanEdit = (role === 'admin' || role === 'secretariat');
       
       // Afficher les liens appropriés selon le rôle
       if (role === 'admin') {
@@ -197,6 +223,151 @@
       }
     }
 
+    // Charger et afficher la liste des témoignages
+    async function loadTestimonialsList() {
+      const container = document.getElementById('testimonialsList');
+      if (!container) return;
+
+      try {
+        const testimonials = await window.testimonialsService.getAllTestimonials();
+        
+        if (!testimonials || testimonials.length === 0) {
+          container.innerHTML = '<p class="text-muted">Aucun témoignage n\'est encore enregistré.</p>';
+          return;
+        }
+
+        container.innerHTML = '';
+        testimonials.forEach((t) => {
+          const item = document.createElement('div');
+          item.className = 'testimonial-item';
+          item.style.cssText = 'background: var(--surface-light); padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; border: 1px solid var(--border);';
+          item.innerHTML = `
+            <div style="margin-bottom: 0.5rem;">
+              <p style="margin: 0 0 0.5rem 0; font-style: italic;">"${escapeHtml(t.texte)}"</p>
+              <span style="color: var(--accent); font-weight: 500;">— ${escapeHtml(t.auteur)}</span>
+            </div>
+            <div class="item-actions" style="display: flex; gap: 0.5rem;">
+              <button class="btn-edit" data-id="${t.id}" data-text="${escapeHtml(t.texte)}" data-author="${escapeHtml(t.auteur)}" style="background: #29b6f6; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;">Modifier</button>
+              <button class="btn-delete" data-id="${t.id}" style="background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;">Supprimer</button>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+
+        // Ajouter les écouteurs d'événements
+        container.querySelectorAll('.btn-edit').forEach(btn => {
+          btn.addEventListener('click', () => openEditTestimonialModal(
+            parseInt(btn.dataset.id),
+            btn.dataset.text,
+            btn.dataset.author
+          ));
+        });
+
+        container.querySelectorAll('.btn-delete').forEach(btn => {
+          btn.addEventListener('click', () => deleteTestimonial(parseInt(btn.dataset.id)));
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des témoignages:', error);
+        container.innerHTML = '<p class="text-muted">Erreur lors du chargement des témoignages.</p>';
+      }
+    }
+
+    // Charger la configuration de l'intervalle du carrousel
+    async function loadCarouselIntervalConfig() {
+      const inputEl = document.getElementById('carousel-interval');
+      if (!inputEl) return;
+
+      try {
+        const { data, error } = await window.supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'carousel_interval_minutes')
+          .maybeSingle();
+
+        if (data && data.value) {
+          inputEl.value = data.value;
+        }
+      } catch (error) {
+        console.warn('Erreur lors du chargement de la configuration:', error);
+      }
+    }
+
+    // Sauvegarder la configuration de l'intervalle du carrousel
+    async function saveCarouselIntervalConfig() {
+      const inputEl = document.getElementById('carousel-interval');
+      if (!inputEl) return;
+
+      const seconds = parseInt(inputEl.value, 10);
+      if (isNaN(seconds) || seconds < 1) {
+        alert('Veuillez entrer un nombre valide de secondes (minimum 1).');
+        return;
+      }
+
+      try {
+        const { error } = await window.supabase
+          .from('settings')
+          .upsert({ key: 'carousel_interval_minutes', value: seconds.toString() });
+
+        if (error) {
+          throw error;
+        }
+
+        if (window.notificationSystem) {
+          window.notificationSystem.success(`Intervalle mis à jour à ${seconds} seconde(s).`);
+        } else {
+          alert(`Intervalle mis à jour à ${seconds} seconde(s).`);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la configuration:', error);
+        if (window.notificationSystem) {
+          window.notificationSystem.error('Erreur lors de la mise à jour de l\'intervalle.');
+        } else {
+          alert('Erreur lors de la mise à jour de l\'intervalle.');
+        }
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Ouvrir la modale d'édition de témoignage
+    function openEditTestimonialModal(id, texte, auteur) {
+      document.getElementById('editTestimonialId').value = id;
+      document.getElementById('editTestimonialText').value = texte;
+      document.getElementById('editTestimonialAuthor').value = auteur;
+      document.getElementById('editTestimonialModal').style.display = 'flex';
+    }
+
+    // Fermer la modale d'édition
+    function closeEditTestimonialModal() {
+      document.getElementById('editTestimonialModal').style.display = 'none';
+    }
+
+    // Supprimer un témoignage
+    async function deleteTestimonial(id) {
+      if (!confirm('Êtes-vous sûr de vouloir supprimer ce témoignage ?')) return;
+      
+      try {
+        await window.testimonialsService.deleteTestimonial(id);
+        if (window.notificationSystem) {
+          window.notificationSystem.success('Témoignage supprimé avec succès.');
+        } else {
+          alert('Témoignage supprimé avec succès.');
+        }
+        loadTestimonialsList();
+      } catch (error) {
+        console.error('Erreur lors de la suppression du témoignage:', error);
+        if (window.notificationSystem) {
+          window.notificationSystem.error('Erreur lors de la suppression du témoignage.');
+        } else {
+          alert('Erreur lors de la suppression du témoignage.');
+        }
+      }
+    }
+
     async function saveHomeContent(type, payload, successMessage) {
       if (!window.supabaseDB || !window.supabaseDB.getClient()) return;
       try {
@@ -222,22 +393,43 @@
       // Appliquer l'état lecture seule ou édition selon le rôle
       setContentEditState();
 
-      // Bouton de déconnexion simple
+      // Bouton de déconnexion
       const logoutBtn = document.getElementById('logoutBtn');
       if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.addEventListener('click', async () => {
           if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-            localStorage.removeItem('appRole');
-            localStorage.removeItem('appUser');
-            localStorage.removeItem('appUserName');
-            localStorage.removeItem('appLoginTime');
-            localStorage.removeItem('appDept');
-            window.location.href = 'login.html';
+            try {
+              // Déconnexion via l'API Supabase
+              if (window.supabase && window.supabase.auth) {
+                await window.supabase.auth.signOut();
+              }
+
+              // Nettoyage explicite des données de session
+              localStorage.clear();
+              sessionStorage.clear();
+
+              // Redirection forcée
+              window.location.replace('login.html');
+            } catch (error) {
+              console.error('Erreur lors de la déconnexion:', error);
+              // En cas d'erreur, forcer tout de même le nettoyage et la redirection
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.replace('login.html');
+            }
           }
         });
       }
 
       loadExistingContent();
+      loadTestimonialsList();
+      loadCarouselIntervalConfig();
+
+      // Gestion de la configuration du carrousel
+      const saveConfigBtn = document.getElementById('save-config-btn');
+      if (saveConfigBtn) {
+        saveConfigBtn.addEventListener('click', saveCarouselIntervalConfig);
+      }
 
       // Gestion des formulaires
       document.getElementById('verseForm').addEventListener('submit', async (e) => {
@@ -252,10 +444,35 @@
       document.getElementById('testimonialForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!window.homeContentCanEdit) return;
-        await saveHomeContent('testimony', {
-          content: document.getElementById('testimonialContent').value.trim(),
-          author: document.getElementById('testimonialAuthorInput').value.trim()
-        }, 'Témoignage enregistré.');
+        
+        const texte = document.getElementById('testimonialContent').value.trim();
+        const auteur = document.getElementById('testimonialAuthorInput').value.trim();
+        
+        if (!texte || !auteur) {
+          alert('Veuillez remplir tous les champs.');
+          return;
+        }
+
+        try {
+          await window.testimonialsService.createTestimonial({ texte, auteur, is_active: true });
+          if (window.notificationSystem) {
+            window.notificationSystem.success('Témoignage enregistré avec succès.');
+          } else {
+            alert('Témoignage enregistré avec succès.');
+          }
+          // Réinitialiser le formulaire
+          document.getElementById('testimonialContent').value = '';
+          document.getElementById('testimonialAuthorInput').value = '';
+          // Actualiser la liste des témoignages
+          loadTestimonialsList();
+        } catch (error) {
+          console.error('Erreur lors de l\'enregistrement du témoignage:', error);
+          if (window.notificationSystem) {
+            window.notificationSystem.error('Erreur lors de l\'enregistrement du témoignage.');
+          } else {
+            alert('Erreur lors de l\'enregistrement du témoignage.');
+          }
+        }
       });
 
       document.getElementById('videoForm').addEventListener('submit', async (e) => {
@@ -266,8 +483,72 @@
           videoUrl: document.getElementById('videoUrl').value.trim()
         }, 'Vidéo enregistrée.');
       });
+
+      // Gestion de la modale d'édition de témoignage
+      const cancelBtn = document.getElementById('cancelTestimonialEditBtn');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeEditTestimonialModal);
+      }
+
+      const saveBtn = document.getElementById('saveTestimonialEditBtn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+          const id = document.getElementById('editTestimonialId').value;
+          const texte = document.getElementById('editTestimonialText').value.trim();
+          const auteur = document.getElementById('editTestimonialAuthor').value.trim();
+
+          if (!texte || !auteur) {
+            alert('Veuillez remplir tous les champs.');
+            return;
+          }
+
+          try {
+            await window.testimonialsService.updateTestimonial(parseInt(id), { texte, auteur });
+            if (window.notificationSystem) {
+              window.notificationSystem.success('Témoignage mis à jour avec succès.');
+            } else {
+              alert('Témoignage mis à jour avec succès.');
+            }
+            closeEditTestimonialModal();
+            loadTestimonialsList();
+          } catch (error) {
+            console.error('Erreur lors de la mise à jour du témoignage:', error);
+            if (window.notificationSystem) {
+              window.notificationSystem.error('Erreur lors de la mise à jour du témoignage.');
+            } else {
+              alert('Erreur lors de la mise à jour du témoignage.');
+            }
+          }
+        });
+      }
+
+      // Fermer la modale en cliquant à l'extérieur
+      const modal = document.getElementById('editTestimonialModal');
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeEditTestimonialModal();
+          }
+        });
+      }
     });
   </script>
+
+  <!-- Modale d'édition de témoignage -->
+  <div id="editTestimonialModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Modifier le témoignage</h3>
+      <input type="hidden" id="editTestimonialId" />
+      <label for="editTestimonialText">Texte :</label>
+      <textarea id="editTestimonialText" rows="4"></textarea>
+      <label for="editTestimonialAuthor">Auteur :</label>
+      <input type="text" id="editTestimonialAuthor" />
+      <div class="modal-actions">
+        <button id="saveTestimonialEditBtn" class="primary">Enregistrer</button>
+        <button id="cancelTestimonialEditBtn" class="secondary">Annuler</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
 

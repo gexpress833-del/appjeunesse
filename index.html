@@ -530,13 +530,16 @@
 
       <section class="home-section" id="temoignage">
         <h2>Témoignage de la jeunesse</h2>
-        <div class="testimonial-card" id="testimonialCard">
-          <p class="testimonial-text" id="testimonialText">
-            Les témoignages des jeunes seront publiés ici pour encourager et fortifier la foi.
-          </p>
-          <div class="testimonial-meta">
-            <span id="testimonialAuthor" class="testimonial-author"></span>
+        <div class="testimonial-carousel">
+          <button type="button" class="carousel-arrow prev" aria-label="Témoignage précédent">❮</button>
+          <div class="testimonial-viewport">
+            <div id="testimonialContainer" class="testimonial-track"></div>
           </div>
+          <button type="button" class="carousel-arrow next" aria-label="Témoignage suivant">❯</button>
+          <div id="testimonialDots" class="carousel-dots"></div>
+        </div>
+        <div id="testimonialEmpty" class="testimonial-empty" style="display:none;">
+          Aucun témoignage n'est encore publié. Les témoignages des jeunes apparaîtront ici dès leur publication par l'équipe.
         </div>
       </section>
 
@@ -618,6 +621,7 @@
   <script src="js/services/events.service.js"></script>
   <script src="js/services/attendances.service.js"></script>
   <script src="js/services/home-contents.service.js"></script>
+  <script src="js/services/testimonials.service.js"></script>
 
   <!-- Interface legacy Supabase -->
   <script src="js/supabase.js"></script>
@@ -909,10 +913,169 @@
     window.onDataReloaded = function () {
       try {
         renderHomeEvents();
+        renderTestimonials();
       } catch (e) {
         console.warn('Erreur lors du rendu de la page d\'accueil:', e);
       }
     };
+
+    // Variables pour le carrousel de témoignages
+    let testimonialSlides = [];
+    let currentTestimonialSlide = 0;
+    let testimonialAutoTimer = null;
+    let carouselIntervalSeconds = 5; // Valeur par défaut
+
+    // Charger la configuration de l'intervalle du carrousel
+    async function loadCarouselIntervalConfig() {
+      try {
+        const { data, error } = await window.supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'carousel_interval_minutes')
+          .maybeSingle();
+
+        if (data && data.value) {
+          carouselIntervalSeconds = parseInt(data.value, 10);
+        }
+      } catch (error) {
+        console.warn('Erreur lors du chargement de la configuration du carrousel:', error);
+      }
+    }
+
+    // Rendre les témoignages
+    async function renderTestimonials() {
+      const container = document.getElementById('testimonialContainer');
+      const emptyState = document.getElementById('testimonialEmpty');
+      const dotsContainer = document.getElementById('testimonialDots');
+
+      if (!container || !emptyState || !dotsContainer) return;
+
+      // Charger la configuration de l'intervalle
+      await loadCarouselIntervalConfig();
+
+      try {
+        const testimonials = await window.testimonialsService.getAllActiveTestimonials();
+        
+        if (!testimonials || testimonials.length === 0) {
+          container.innerHTML = '';
+          emptyState.style.display = 'block';
+          dotsContainer.innerHTML = '';
+          return;
+        }
+
+        emptyState.style.display = 'none';
+        testimonialSlides = testimonials;
+
+        container.innerHTML = '';
+        dotsContainer.innerHTML = '';
+
+        testimonials.forEach((testimonial, index) => {
+          const card = document.createElement('article');
+          card.className = 'testimonial-card';
+          card.innerHTML = `
+            <p class="testimonial-text">"${testimonial.texte}"</p>
+            <div class="testimonial-meta">
+              <span class="testimonial-author">— ${testimonial.auteur}</span>
+            </div>
+          `;
+          container.appendChild(card);
+
+          // Créer les points de navigation
+          const dot = document.createElement('button');
+          dot.className = 'carousel-dot' + (index === 0 ? ' active' : '');
+          dot.setAttribute('aria-label', `Témoignage ${index + 1}`);
+          dot.addEventListener('click', () => goToTestimonialSlide(index));
+          dotsContainer.appendChild(dot);
+        });
+
+        initTestimonialCarousel();
+      } catch (error) {
+        console.error('Erreur lors du chargement des témoignages:', error);
+        emptyState.style.display = 'block';
+        container.innerHTML = '';
+      }
+    }
+
+    // Initialiser le carrousel de témoignages
+    function initTestimonialCarousel() {
+      const track = document.getElementById('testimonialContainer');
+      const dotsContainer = document.getElementById('testimonialDots');
+      const prevBtn = document.querySelector('.testimonial-carousel .carousel-arrow.prev');
+      const nextBtn = document.querySelector('.testimonial-carousel .carousel-arrow.next');
+      const viewport = document.querySelector('.testimonial-viewport');
+
+      if (!track || !dotsContainer || !prevBtn || !nextBtn || !viewport) return;
+
+      const total = testimonialSlides.length;
+
+      // Si aucun ou un seul témoignage, pas de carrousel
+      if (total <= 1) {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+        dotsContainer.style.display = 'none';
+        return;
+      }
+
+      prevBtn.style.display = 'block';
+      nextBtn.style.display = 'block';
+      dotsContainer.style.display = 'flex';
+
+      prevBtn.addEventListener('click', () => {
+        goToTestimonialSlide(currentTestimonialSlide - 1);
+      });
+
+      nextBtn.addEventListener('click', () => {
+        goToTestimonialSlide(currentTestimonialSlide + 1);
+      });
+
+      // Pause au survol (Desktop)
+      viewport.addEventListener('mouseenter', pauseTestimonialAutoSlide);
+      viewport.addEventListener('mouseleave', startTestimonialAutoSlide);
+
+      // Pause au toucher (Mobile)
+      viewport.addEventListener('touchstart', pauseTestimonialAutoSlide, { passive: true });
+      viewport.addEventListener('touchend', startTestimonialAutoSlide);
+
+      // Démarrer le carrousel automatique
+      startTestimonialAutoSlide();
+    }
+
+    function goToTestimonialSlide(index, stopAuto = true) {
+      const total = testimonialSlides.length;
+      if (!total) return;
+
+      currentTestimonialSlide = ((index % total) + total) % total;
+      
+      const track = document.getElementById('testimonialContainer');
+      const dots = document.querySelectorAll('#testimonialDots .carousel-dot');
+      
+      if (track) {
+        track.style.transform = `translateX(-${currentTestimonialSlide * 100}%)`;
+      }
+
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentTestimonialSlide);
+      });
+
+      if (stopAuto) {
+        pauseTestimonialAutoSlide();
+        startTestimonialAutoSlide();
+      }
+    }
+
+    function startTestimonialAutoSlide() {
+      if (testimonialAutoTimer) clearInterval(testimonialAutoTimer);
+      testimonialAutoTimer = setInterval(() => {
+        goToTestimonialSlide(currentTestimonialSlide + 1, false);
+      }, carouselIntervalSeconds * 1000);
+    }
+
+    function pauseTestimonialAutoSlide() {
+      if (testimonialAutoTimer) {
+        clearInterval(testimonialAutoTimer);
+        testimonialAutoTimer = null;
+      }
+    }
 
     // Helper pour convertir une URL vidéo en URL "embed" (YouTube)
     function getEmbedUrl(rawUrl) {

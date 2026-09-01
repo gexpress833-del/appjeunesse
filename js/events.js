@@ -70,7 +70,6 @@ function getStatusLabel(status) {
 }
 
 function renderEventsGrid(filterStatus = 'all') {
-  console.log('🎨 renderEventsGrid appelée avec filtre:', filterStatus);
   const eventsGrid = document.getElementById("eventsGrid");
   
   if (!eventsGrid) {
@@ -149,7 +148,6 @@ function renderEventsGrid(filterStatus = 'all') {
       <div class="event-card-image">
         ${(() => {
           const photoSrc = getEventPhotoUrl(evt);
-          console.log('🖼️ Rendu photo pour', evt.name, ':', photoSrc);
           return photoSrc
             ? `<img src="${photoSrc}" alt="Photo de ${evt.name}" loading="lazy" onerror="console.error('❌ Impossible de charger la photo:', this.src); this.style.display='none';">`
             : '📅';

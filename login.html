@@ -226,169 +226,170 @@
   <script src="js/services/auth.service.js"></script>
   <script src="js/services/profiles.service.js"></script>
 
-  <script src="js/data.js"></script>
   <script src="js/notifications.js"></script>
   <script>
-    // Rediriger automatiquement si une session Supabase valide existe
-    (async function autoRedirectIfLoggedIn() {
-      try {
-        const session = await window.authService.getSession();
-        if (session) {
-          const profile = await window.authService.getCurrentProfile();
-          if (profile && profile.role) {
-            const rolePages = {
-              admin: 'admin.html',
-              secretariat: 'secretariat.html',
-              responsable: 'responsable.html',
-              user: 'user.html'
-            };
-            const target = rolePages[profile.role];
-            if (target) {
-              window.location.href = target;
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Rediriger automatiquement si une session valide existe
+      (async function autoRedirectIfLoggedIn() {
+        try {
+          const session = await window.authService.getSession();
+          if (session) {
+            const profile = await window.authService.getCurrentProfile();
+            if (profile && profile.role) {
+              const rolePages = {
+                admin: 'admin.html',
+                secretariat: 'secretariat.html',
+                responsable: 'responsable.html',
+                user: 'user.html'
+              };
+              const target = rolePages[profile.role];
+              if (target) {
+                window.location.href = target;
+              }
             }
           }
+        } catch (e) {
+          console.warn('Impossible de vérifier la session existante:', e);
         }
-      } catch (e) {
-        console.warn('Impossible de vérifier la session existante:', e);
-      }
-    })();
+      })();
 
-    // Enhanced login functionality
-    const loginForm = document.getElementById('loginForm');
-    const loginBtn = document.getElementById('loginBtn');
-    const errorMessage = document.getElementById('errorMessage');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
+      // Enhanced login functionality
+      const loginForm = document.getElementById('loginForm');
+      const loginBtn = document.getElementById('loginBtn');
+      const errorMessage = document.getElementById('errorMessage');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
 
-    // Vérifier que Supabase est configuré
-    async function checkSupabaseSetup() {
-      if (!window.supabase || !window.SUPABASE_CONFIG) {
-        console.warn('⚠️ Supabase n\'est pas configuré. Configurez-le via supabase-config.html');
-        showError('Supabase n\'est pas configuré. <a href="supabase-config.html" style="color: #60a5fa;">Configurer maintenant</a>');
-        return false;
-      }
-      return true;
-    }
-    
-    // Vérifier la configuration au chargement
-    checkSupabaseSetup();
-
-    function showError(message) {
-      if (window.notificationSystem) {
-        window.notificationSystem.error(message);
-        return;
+      // Vérifier que le service est configuré
+      async function checkServiceSetup() {
+        if (!window.supabase || !window.SUPABASE_CONFIG) {
+          console.warn('⚠️ Service non configuré');
+          showError('Erreur de connexion au service. <a href="supabase-config.html" style="color: #60a5fa;">Configurer maintenant</a>');
+          return false;
+        }
+        return true;
       }
       
-      errorMessage.innerHTML = message;
-      errorMessage.classList.add('show');
-      setTimeout(() => {
-        errorMessage.classList.remove('show');
-      }, 5000);
-    }
+      // Vérifier la configuration au chargement
+      checkServiceSetup();
 
-    function setLoading(loading) {
-      loginBtn.classList.toggle('loading', loading);
-      loginBtn.disabled = loading;
-      if (loading) {
-        loginBtn.querySelector('.btn-text').textContent = 'Connexion...';
-      } else {
-        loginBtn.querySelector('.btn-text').textContent = 'Se connecter';
-      }
-    }
-
-    function redirectToRole(role) {
-      const rolePages = {
-        admin: 'admin.html',
-        secretariat: 'secretariat.html',
-        responsable: 'responsable.html',
-        user: 'user.html'
-      };
-      
-      window.location.href = rolePages[role] || 'user.html';
-    }
-
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const email = emailInput.value.trim();
-      const password = passwordInput.value.trim();
-      
-      if (!email || !password) {
-        showError('Veuillez remplir tous les champs');
-        return;
-      }
-      
-      setLoading(true);
-      
-      try {
-        // Connexion via Supabase Auth
-        const { data, error } = await window.authService.signIn(email, password);
-        
-        if (error) {
-          showError(error.message || 'Email ou mot de passe incorrect');
-          setLoading(false);
+      function showError(message) {
+        if (window.notificationSystem) {
+          window.notificationSystem.error(message);
           return;
         }
         
-        // Récupérer le profil utilisateur
-        const profile = await window.authService.getCurrentProfile();
-        
-        if (!profile) {
-          showError('Profil utilisateur non trouvé. Contactez l\'administrateur.');
-          setLoading(false);
-          return;
-        }
-        
-        // Check user status
-        if (profile.status === 'pending') {
-          showError('Votre compte est en attente d\'attribution de rôle par l\'administrateur. Veuillez patienter.');
-          setLoading(false);
-          return;
-        }
-        
-        if (profile.status === 'inactive') {
-          showError('Votre compte a été désactivé. Contactez l\'administrateur.');
-          setLoading(false);
-          return;
-        }
-        
-        if (!profile.role) {
-          showError('Aucun rôle attribué à votre compte. Contactez l\'administrateur.');
-          setLoading(false);
-          return;
-        }
-        
-        // Success animation
-        loginBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        loginBtn.querySelector('.btn-text').textContent = 'Connexion réussie !';
-        
-        // Sauvegarder le rôle et les infos utilisateur dans localStorage
-        localStorage.setItem('appRole', profile.role);
-        localStorage.setItem('appUser', profile.username || email);
-        localStorage.setItem('appUserName', profile.full_name || profile.username || email);
-        if (profile.dept) {
-          localStorage.setItem('appDept', profile.dept);
-        }
-        localStorage.setItem('appLoginTime', Date.now().toString());
-        
+        errorMessage.innerHTML = message;
+        errorMessage.classList.add('show');
         setTimeout(() => {
-          redirectToRole(profile.role);
-        }, 1000);
-        
-      } catch (error) {
-        console.error('Erreur de connexion:', error);
-        showError('Erreur de connexion. Veuillez réessayer.');
-        setLoading(false);
+          errorMessage.classList.remove('show');
+        }, 5000);
       }
-    });
 
-    // Auto-focus email field
-    emailInput.focus();
+      function setLoading(loading) {
+        loginBtn.classList.toggle('loading', loading);
+        loginBtn.disabled = loading;
+        if (loading) {
+          loginBtn.querySelector('.btn-text').textContent = 'Connexion...';
+        } else {
+          loginBtn.querySelector('.btn-text').textContent = 'Se connecter';
+        }
+      }
 
-    // Clear error on input
-    [emailInput, passwordInput].forEach(input => {
-      input.addEventListener('input', () => {
-        errorMessage.classList.remove('show');
+      function redirectToRole(role) {
+        const rolePages = {
+          admin: 'admin.html',
+          secretariat: 'secretariat.html',
+          responsable: 'responsable.html',
+          user: 'user.html'
+        };
+        
+        window.location.href = rolePages[role] || 'user.html';
+      }
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        
+        if (!email || !password) {
+          showError('Veuillez remplir tous les champs');
+          return;
+        }
+        
+        setLoading(true);
+        
+        try {
+          // Connexion via le service d'authentification
+          const { data, error } = await window.authService.signIn(email, password);
+          
+          if (error) {
+            showError(error.message || 'Email ou mot de passe incorrect');
+            setLoading(false);
+            return;
+          }
+          
+          // Récupérer le profil utilisateur
+          const profile = await window.authService.getCurrentProfile();
+          
+          if (!profile) {
+            showError('Profil utilisateur non trouvé. Contactez l\'administrateur.');
+            setLoading(false);
+            return;
+          }
+          
+          // Check user status
+          if (profile.status === 'pending') {
+            showError('Votre compte est en attente d\'attribution de rôle par l\'administrateur. Veuillez patienter.');
+            setLoading(false);
+            return;
+          }
+          
+          if (profile.status === 'inactive') {
+            showError('Votre compte a été désactivé. Contactez l\'administrateur.');
+            setLoading(false);
+            return;
+          }
+          
+          if (!profile.role) {
+            showError('Aucun rôle attribué à votre compte. Contactez l\'administrateur.');
+            setLoading(false);
+            return;
+          }
+          
+          // Success animation
+          loginBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          loginBtn.querySelector('.btn-text').textContent = 'Connexion réussie !';
+          
+          // Sauvegarder le rôle et les infos utilisateur dans localStorage
+          localStorage.setItem('appRole', profile.role);
+          localStorage.setItem('appUser', profile.username || email);
+          localStorage.setItem('appUserName', profile.full_name || profile.username || email);
+          if (profile.dept) {
+            localStorage.setItem('appDept', profile.dept);
+          }
+          localStorage.setItem('appLoginTime', Date.now().toString());
+          
+          setTimeout(() => {
+            redirectToRole(profile.role);
+          }, 1000);
+          
+        } catch (error) {
+          console.error('Erreur de connexion:', error);
+          showError('Erreur de connexion. Veuillez réessayer.');
+          setLoading(false);
+        }
+      });
+
+      // Auto-focus email field
+      emailInput.focus();
+
+      // Clear error on input
+      [emailInput, passwordInput].forEach(input => {
+        input.addEventListener('input', () => {
+          errorMessage.classList.remove('show');
+        });
       });
     });
   </script>

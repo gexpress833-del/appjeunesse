@@ -22,12 +22,12 @@ const appState = {
   attendances: []
 };
 
-// Vérifier que Supabase est disponible
+// Vérifier que le service est disponible
 function checkSupabaseRequired() {
   if (!window.supabaseDB || !window.supabaseDB.getClient()) {
-    console.error('❌ Supabase non configuré. Configurez window.SUPABASE_CONFIG avant le chargement.');
+    console.error('❌ Service non configuré. Configurez window.SUPABASE_CONFIG avant le chargement.');
     if (window.notificationSystem) {
-      window.notificationSystem.error('Supabase n\'est pas configuré. Vérifiez votre configuration.');
+      window.notificationSystem.error('Erreur de connexion au service. Vérifiez votre configuration.');
     }
     return false;
   }

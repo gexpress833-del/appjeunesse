@@ -193,15 +193,32 @@ async function updateHeaderProfilePhoto(username, userName) {
   }
 }
 
-function setupLogoutButton() {
+async function setupLogoutButton() {
   const logoutBtn = document.querySelector('.logout-btn');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', (e) => {
+    logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       
       if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        clearSession();
-        window.location.href = 'login.html';
+        try {
+          // Déconnexion via l'API Supabase
+          if (window.supabase && window.supabase.auth) {
+            await window.supabase.auth.signOut();
+          }
+
+          // Nettoyage explicite des données de session
+          localStorage.clear();
+          sessionStorage.clear();
+
+          // Redirection forcée
+          window.location.replace('login.html');
+        } catch (error) {
+          console.error('Erreur lors de la déconnexion:', error);
+          // En cas d'erreur, forcer tout de même le nettoyage et la redirection
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.replace('login.html');
+        }
       }
     });
   }
