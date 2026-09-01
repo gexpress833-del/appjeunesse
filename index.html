@@ -531,12 +531,17 @@
       <section class="home-section" id="temoignage">
         <h2>Témoignage de la jeunesse</h2>
         <div class="testimonial-carousel">
-          <button type="button" class="carousel-arrow prev" aria-label="Témoignage précédent">❮</button>
+          <!-- Boutons de navigation -->
+          <button type="button" id="prevTestimonial" class="carousel-btn prev-btn" aria-label="Témoignage précédent">&lt;</button>
+          <button type="button" id="nextTestimonial" class="carousel-btn next-btn" aria-label="Témoignage suivant">&gt;</button>
+
+          <!-- Contenu du témoignage -->
           <div class="testimonial-viewport">
             <div id="testimonialContainer" class="testimonial-track"></div>
           </div>
-          <button type="button" class="carousel-arrow next" aria-label="Témoignage suivant">❯</button>
-          <div id="testimonialDots" class="carousel-dots"></div>
+
+          <!-- Puces d'indication -->
+          <div id="testimonialDots" class="dots-container"></div>
         </div>
         <div id="testimonialEmpty" class="testimonial-empty" style="display:none;">
           Aucun témoignage n'est encore publié. Les témoignages des jeunes apparaîtront ici dès leur publication par l'équipe.
@@ -1000,8 +1005,8 @@
     function initTestimonialCarousel() {
       const track = document.getElementById('testimonialContainer');
       const dotsContainer = document.getElementById('testimonialDots');
-      const prevBtn = document.querySelector('.testimonial-carousel .carousel-arrow.prev');
-      const nextBtn = document.querySelector('.testimonial-carousel .carousel-arrow.next');
+      const prevBtn = document.getElementById('prevTestimonial');
+      const nextBtn = document.getElementById('nextTestimonial');
       const viewport = document.querySelector('.testimonial-viewport');
 
       if (!track || !dotsContainer || !prevBtn || !nextBtn || !viewport) return;
@@ -1016,8 +1021,8 @@
         return;
       }
 
-      prevBtn.style.display = 'block';
-      nextBtn.style.display = 'block';
+      prevBtn.style.display = 'flex';
+      nextBtn.style.display = 'flex';
       dotsContainer.style.display = 'flex';
 
       prevBtn.addEventListener('click', () => {

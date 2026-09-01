@@ -2503,6 +2503,11 @@ body[data-role="admin"] .secretariat-only {
 .testimonial-carousel {
   position: relative;
   margin-top: 1rem;
+  padding: 40px 60px 20px 60px; /* Espace interne pour ne pas chevaucher le texte */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .testimonial-viewport {
@@ -2511,6 +2516,7 @@ body[data-role="admin"] .secretariat-only {
   border: 1px solid var(--border);
   background: var(--surface);
   min-height: 200px;
+  width: 100%;
 }
 
 .testimonial-track {
@@ -2551,11 +2557,45 @@ body[data-role="admin"] .secretariat-only {
   font-style: italic;
 }
 
-.carousel-dots {
+/* Style des boutons en position absolue */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s ease, transform 0.2s ease;
+  font-size: 1.2rem;
+}
+
+.carousel-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* Ancrage précis à gauche et à droite */
+.prev-btn {
+  left: 20px;
+}
+
+.next-btn {
+  right: 20px;
+}
+
+/* Alignement des puces en bas */
+.dots-container {
+  margin-top: 20px;
+  display: flex;
+  gap: 8px;
 }
 
 .carousel-dot {
@@ -2577,39 +2617,7 @@ body[data-role="admin"] .secretariat-only {
   border-color: var(--accent);
 }
 
-.carousel-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
-  z-index: 10;
-}
-
-.carousel-arrow:hover {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
-}
-
-.carousel-arrow.prev {
-  left: 0.5rem;
-}
-
-.carousel-arrow.next {
-  right: 0.5rem;
-}
-
+/* Modale d'édition de témoignage */
 @media (max-width: 640px) {
   .testimonial-carousel {
     margin-left: -0.5rem;
