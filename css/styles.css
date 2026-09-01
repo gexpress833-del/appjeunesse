@@ -2540,6 +2540,8 @@ body[data-role="admin"] .secretariat-only {
   justify-content: center;
   align-items: center;
   text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .testimonial-track .testimonial-text {
@@ -2552,6 +2554,10 @@ body[data-role="admin"] .secretariat-only {
   letter-spacing: 0.02em;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   max-width: 800px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  text-align: center;
 }
 
 .testimonial-track .testimonial-author {
@@ -2681,39 +2687,103 @@ body[data-role="admin"] .secretariat-only {
 
 @media (max-width: 480px) {
   .testimonial-carousel {
-    padding: 20px 30px 15px 30px;
+    padding: 15px 20px 10px 20px;
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 100%;
   }
 
   .testimonial-viewport {
-    min-height: 200px;
-    border-radius: 1rem;
+    min-height: 180px;
+    border-radius: 0.75rem;
   }
 
   .testimonial-track .testimonial-card {
-    padding: 2rem 1rem;
+    padding: 1.5rem 0.75rem;
+  }
+
+  .testimonial-track .testimonial-text {
+    font-size: clamp(0.85rem, 4vw, 1rem);
+    line-height: 1.5;
+    margin: 0 0 1rem 0;
+  }
+
+  .testimonial-track .testimonial-author {
+    font-size: clamp(0.8rem, 3vw, 0.9rem);
   }
 
   .carousel-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
   }
 
   .prev-btn {
-    left: 8px;
+    left: 5px;
   }
 
   .next-btn {
-    right: 8px;
+    right: 5px;
   }
 
   .dots-container {
-    gap: 8px;
+    gap: 6px;
+    margin-top: 15px;
   }
 
   .carousel-dot {
     width: 8px;
     height: 8px;
+  }
+}
+
+/* Très petits écrans (260x320 et similaires) */
+@media (max-width: 320px) {
+  .testimonial-carousel {
+    padding: 10px 15px 8px 15px;
+  }
+
+  .testimonial-viewport {
+    min-height: 150px;
+    border-radius: 0.5rem;
+  }
+
+  .testimonial-track .testimonial-card {
+    padding: 1rem 0.5rem;
+  }
+
+  .testimonial-track .testimonial-text {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .testimonial-track .testimonial-author {
+    font-size: 0.75rem;
+  }
+
+  .carousel-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .prev-btn {
+    left: 3px;
+  }
+
+  .next-btn {
+    right: 3px;
+  }
+
+  .dots-container {
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .carousel-dot {
+    width: 6px;
+    height: 6px;
   }
 }
 
