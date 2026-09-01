@@ -427,8 +427,22 @@
       return (Date.now() - parseInt(loginTime)) <= sessionTimeout;
     }
 
-    function checkSupabaseSession() {
-      return window.supabaseDB.checkSession();
+    async function checkSupabaseSession() {
+      try {
+        if (window.authService && window.authService.getSession) {
+          const session = await window.authService.getSession();
+          return !!session;
+        }
+        // Fallback : vérifier localStorage
+        const loginTime = localStorage.getItem('loginTime');
+        if (!loginTime) return false;
+        
+        const sessionTimeout = 7 * 24 * 60 * 60 * 1000; // 7 jours
+        return (Date.now() - parseInt(loginTime)) <= sessionTimeout;
+      } catch (error) {
+        console.error('Erreur lors de la vérification de session:', error);
+        return false;
+      }
     }
 
     function initReportsPage() {
