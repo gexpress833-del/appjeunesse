@@ -69,8 +69,33 @@ const supabaseDB = {
 
     if (error) throw error;
 
-    // Le profile est créé automatiquement par auth.service.signUp
-    return data.user;
+    // Créer le profile dans la table profiles
+    const profileData = {
+      id: data.user.id,
+      username: user.username,
+      full_name: user.name,
+      email: user.email,
+      birth_date: user.birthDate,
+      address: user.address,
+      role: user.role || null,
+      status: user.status || 'pending',
+      dept: user.dept || null,
+      role_assigned_by: user.roleAssignedBy || null,
+      role_assigned_at: user.roleAssignedAt || null,
+      status_changed_by: null,
+      status_changed_at: null,
+      notes: user.notes || null
+    };
+
+    try {
+      const profile = await window.profilesService?.createProfile(profileData);
+      return { user: data.user, profile };
+    } catch (profileError) {
+      console.error('Erreur lors de la création du profile:', profileError);
+      // En cas d'erreur, supprimer l'utilisateur Auth créé
+      await window.supabase.auth.admin.deleteUser(data.user.id);
+      throw new Error('Erreur lors de la création du profile: ' + profileError.message);
+    }
   },
 
   async updateUser(username, updates) {
@@ -83,12 +108,8 @@ const supabaseDB = {
     const profile = await this.getProfileByUsername(username);
     if (!profile) throw new Error('Profile non trouvé');
     
-    // Supprimer l'utilisateur via Supabase Auth
-    const { error } = await window.supabase.auth.admin.deleteUser(profile.id);
-    if (error) throw error;
-    
-    // Le profile sera supprimé automatiquement par CASCADE
-    return true;
+    // Supprimer le profile (l'utilisateur Auth sera supprimé par CASCADE)
+    return this.deleteProfile(profile.id);
   },
 
   // ============================================================================
