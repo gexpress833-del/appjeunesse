@@ -124,6 +124,52 @@
       font-family: "JetBrains Mono", monospace;
     }
 
+    /* Navigation principale */
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem 0;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .nav-link {
+      padding: 0.6rem 1.2rem;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 0.75rem;
+      color: var(--text-bright);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav-link:hover {
+      background: rgba(0, 212, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .nav-link:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      nav {
+        gap: 0.4rem;
+        padding: 0.8rem 0;
+      }
+
+      .nav-link {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.85rem;
+      }
+    }
+
     .home-section p {
       margin: 0 0 1.25rem;
       color: var(--muted);
@@ -411,6 +457,310 @@
       }
     }
 
+    .live-history-container {
+      margin-top: 1rem;
+    }
+
+    .live-history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .history-placeholder {
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+      padding: 2rem;
+      grid-column: 1 / -1;
+    }
+
+    .live-history-card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .live-history-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15);
+    }
+
+    .live-history-thumbnail {
+      position: relative;
+      padding-top: 56.25%;
+      background: var(--surface-elevated);
+      overflow: hidden;
+    }
+
+    .live-history-thumbnail img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .live-history-thumbnail .live-badge {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      background: rgba(239, 68, 68, 0.9);
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .live-history-thumbnail .ended-badge {
+      background: rgba(100, 116, 139, 0.9);
+    }
+
+    .live-history-thumbnail .duration-badge {
+      position: absolute;
+      bottom: 0.75rem;
+      right: 0.75rem;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .live-history-content {
+      padding: 1rem;
+    }
+
+    .live-history-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .live-history-description {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .live-history-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .live-history-date {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .live-history-views {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .live-history-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .live-history-content {
+        padding: 0.875rem;
+      }
+
+      .live-history-title {
+        font-size: 0.95rem;
+      }
+
+      .live-history-description {
+        font-size: 0.85rem;
+      }
+    }
+
+    /* Modale de rediffusion de live */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      position: relative;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      max-width: 900px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .live-replay-content {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 2rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .live-replay-video-container {
+      position: relative;
+      padding-top: 56.25%;
+      background: var(--surface-elevated);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .live-replay-video-container .video-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .live-replay-video-container .video-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .live-replay-info {
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+    }
+
+    .live-replay-description {
+      color: var(--text-bright);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+
+    .live-replay-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .live-replay-date,
+    .live-replay-views {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .modal-content {
+        width: 100%;
+        max-height: 95vh;
+        border-radius: 0;
+      }
+
+      .modal-header {
+        padding: 1rem;
+      }
+
+      .modal-header h3 {
+        font-size: 1.1rem;
+      }
+
+      .modal-body {
+        padding: 1rem;
+      }
+
+      .live-replay-info {
+        padding: 0.875rem;
+      }
+
+      .live-replay-description {
+        font-size: 0.9rem;
+      }
+    }
+
     .events-grid {
       margin-top: 1rem;
     }
@@ -652,12 +1002,15 @@
           <a href="login.html" class="btn-primary" id="homeAccessBtn">🔑 Se connecter</a>
         </div>
       </header>
-
-      <nav class="nav">
-        <a href="#presentation">Présentation</a>
-        <a href="#fonctionnement">Fonctionnement</a>
-        <a href="#evenements">Événements</a>
+      <nav>
+        <a href="#presentation" class="nav-link">Accueil</a>
+        <a href="#verset" class="nav-link">Verset</a>
+        <a href="#temoignage" class="nav-link">Témoignages</a>
+        <a href="#video" class="nav-link">Live</a>
+        <a href="#live-history" class="nav-link">Historique</a>
+        <a href="#evenements" class="nav-link">Événements</a>
       </nav>
+      <main>
 
       <section class="home-hero" id="presentation">
         <div class="home-hero-left">
@@ -734,16 +1087,17 @@
       </section>
 
       <section class="home-section" id="video">
-        <h2>Vidéo à la une</h2>
+        <h2>🔴 Live Stream</h2>
         <div class="video-container" id="videoContainer">
           <div class="video-card" id="videoCard">
             <div class="video-frame" id="videoFrame">
               <p class="video-placeholder">
-                Aucune vidéo n'a encore été mise en avant. Lorsqu'un message sera publié par l'équipe, il apparaîtra ici.
+                Aucune vidéo live n'est en cours pour le moment.<br>
+                Revenez lors du prochain live pour interagir en temps réel.
               </p>
             </div>
             <div class="video-actions">
-              <button class="like-button" id="likeButton">
+              <button class="like-button" id="likeButton" disabled>
                 <span class="like-icon">❤️</span>
                 <span class="like-count" id="likeCount">0</span>
               </button>
@@ -754,12 +1108,21 @@
               <h3>Chat en direct</h3>
             </div>
             <div class="chat-messages" id="chatMessages">
-              <p class="chat-placeholder">Connectez-vous pour participer au chat</p>
+              <p class="chat-placeholder">Le chat sera disponible lors du prochain live</p>
             </div>
             <div class="chat-input" id="chatInput">
-              <input type="text" id="messageInput" placeholder="Écrivez votre message..." disabled>
+              <input type="text" id="messageInput" placeholder="Le chat sera disponible lors du live..." disabled>
               <button id="sendMessage" disabled>Envoyer</button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section" id="live-history">
+        <h2>📺 Historique des Lives</h2>
+        <div class="live-history-container" id="liveHistoryContainer">
+          <div class="live-history-grid" id="liveHistoryGrid">
+            <p class="history-placeholder">Aucun live passé pour le moment</p>
           </div>
         </div>
       </section>
@@ -815,6 +1178,31 @@
           <strong>Événements</strong> pour l'afficher automatiquement ici.
       </div>
       </section>
+    </main>
+
+    <!-- Modale de rediffusion de live -->
+    <div id="liveReplayModal" class="modal" style="display: none;">
+      <div class="modal-overlay" id="liveReplayOverlay"></div>
+      <div class="modal-content live-replay-content">
+        <div class="modal-header">
+          <h3 id="liveReplayTitle">Rediffusion</h3>
+          <button class="modal-close" id="liveReplayClose">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="live-replay-video-container" id="liveReplayVideoContainer">
+            <div class="video-frame" id="liveReplayVideoFrame">
+              <p class="video-placeholder">Chargement de la vidéo...</p>
+            </div>
+          </div>
+          <div class="live-replay-info" id="liveReplayInfo">
+            <p class="live-replay-description" id="liveReplayDescription"></p>
+            <div class="live-replay-meta">
+              <span class="live-replay-date" id="liveReplayDate"></span>
+              <span class="live-replay-views" id="liveReplayViews"></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1351,7 +1739,13 @@
           if (frame) {
             const embedUrl = getEmbedUrl(video.video_url);
             if (embedUrl) {
-              frame.innerHTML = `<iframe src="${embedUrl}" title="${video.title || 'Vidéo à la une'}" allowfullscreen loading="lazy"></iframe>`;
+              frame.innerHTML = `<iframe src="${embedUrl}" title="${video.title || 'Live Stream'}" allowfullscreen loading="lazy"></iframe>`;
+              // Activer le chat et les likes car une vidéo est en ligne
+              isVideoLive = true;
+              enableLiveStreamControls();
+              
+              // Créer ou mettre à jour l'enregistrement du live en cours et incrémenter les vues
+              await trackLiveStreamView(video);
             } else {
               // Fallback: lien externe si la plateforme n'autorise pas l'embed
               const safeUrl = video.video_url;
@@ -1365,9 +1759,71 @@
               `;
             }
           }
+        } else {
+          // Aucune vidéo en ligne, désactiver les contrôles
+          isVideoLive = false;
+          disableLiveStreamControls();
         }
       } catch (error) {
         console.warn('Erreur lors du chargement du contenu d\'accueil:', error);
+      }
+    }
+
+    // Tracker les vues du live en cours
+    async function trackLiveStreamView(video) {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) return;
+
+      try {
+        // Vérifier si un live avec le même stream_id existe déjà
+        const { data: existingStream, error: fetchError } = await supabase
+          .from('live_streams')
+          .select('*')
+          .eq('stream_id', currentStreamId)
+          .maybeSingle();
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Erreur lors de la vérification du live:', fetchError);
+          return;
+        }
+
+        if (existingStream) {
+          // Mettre à jour le live existant et incrémenter les vues
+          const { error: updateError } = await supabase
+            .from('live_streams')
+            .update({ 
+              view_count: supabase.raw('view_count + 1'),
+              is_live: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingStream.id);
+
+          if (updateError) {
+            console.error('Erreur lors de la mise à jour du live:', updateError);
+          }
+        } else {
+          // Créer un nouveau live
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          const { error: insertError } = await supabase
+            .from('live_streams')
+            .insert({
+              title: video.title || 'Live Stream',
+              description: video.description || '',
+              video_url: video.video_url,
+              thumbnail_url: video.thumbnail_url || null,
+              stream_id: currentStreamId,
+              is_live: true,
+              view_count: 1,
+              created_by: user?.id || null
+            });
+
+          if (insertError) {
+            console.error('Erreur lors de la création du live:', insertError);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du tracking des vues:', error);
       }
     }
 
@@ -1383,6 +1839,55 @@
     let currentStreamId = 'main'; // ID du stream actuel
     let currentUser = null;
     let hasUserLiked = false;
+    let isVideoLive = false; // Indique si une vidéo est en ligne
+
+    // Activer les contrôles du live stream
+    function enableLiveStreamControls() {
+      const likeButton = document.getElementById('likeButton');
+      const messageInput = document.getElementById('messageInput');
+      const sendButton = document.getElementById('sendMessage');
+      const chatMessages = document.getElementById('chatMessages');
+
+      if (likeButton) likeButton.disabled = false;
+      
+      if (currentUser) {
+        if (messageInput) {
+          messageInput.disabled = false;
+          messageInput.placeholder = 'Écrivez votre message...';
+        }
+        if (sendButton) sendButton.disabled = false;
+        if (chatMessages && chatMessages.querySelector('.chat-placeholder')) {
+          chatMessages.innerHTML = '<p class="chat-placeholder">Connectez-vous pour participer au chat</p>';
+        }
+      } else {
+        if (messageInput) {
+          messageInput.disabled = true;
+          messageInput.placeholder = 'Connectez-vous pour participer au chat';
+        }
+        if (sendButton) sendButton.disabled = true;
+        if (chatMessages) {
+          chatMessages.innerHTML = '<p class="chat-placeholder">Connectez-vous pour participer au chat</p>';
+        }
+      }
+    }
+
+    // Désactiver les contrôles du live stream
+    function disableLiveStreamControls() {
+      const likeButton = document.getElementById('likeButton');
+      const messageInput = document.getElementById('messageInput');
+      const sendButton = document.getElementById('sendMessage');
+      const chatMessages = document.getElementById('chatMessages');
+
+      if (likeButton) likeButton.disabled = true;
+      if (messageInput) {
+        messageInput.disabled = true;
+        messageInput.placeholder = 'Le chat sera disponible lors du live...';
+      }
+      if (sendButton) sendButton.disabled = true;
+      if (chatMessages) {
+        chatMessages.innerHTML = '<p class="chat-placeholder">Le chat sera disponible lors du prochain live</p>';
+      }
+    }
 
     // Initialiser le chat et les likes en temps réel
     async function initLiveStream() {
@@ -1395,6 +1900,12 @@
       // Vérifier si l'utilisateur est connecté
       const { data: { user } } = await supabase.auth.getUser();
       currentUser = user;
+
+      // Si aucune vidéo n'est en ligne, les contrôles restent désactivés
+      if (!isVideoLive) {
+        disableLiveStreamControls();
+        return;
+      }
 
       // Activer les contrôles si l'utilisateur est connecté
       if (currentUser) {
@@ -1686,11 +2197,208 @@
       }
     }
 
+    // Charger l'historique des lives
+    async function loadLiveHistory() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) return;
+
+      try {
+        const { data: streams, error } = await supabase
+          .from('live_streams')
+          .select('*')
+          .order('started_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+
+        const historyGrid = document.getElementById('liveHistoryGrid');
+        if (!historyGrid) return;
+
+        if (!streams || streams.length === 0) {
+          historyGrid.innerHTML = '<p class="history-placeholder">Aucun live passé pour le moment</p>';
+          return;
+        }
+
+        historyGrid.innerHTML = '';
+        streams.forEach(stream => {
+          const card = createLiveHistoryCard(stream);
+          historyGrid.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement de l\'historique des lives:', error);
+      }
+    }
+
+    // Créer une carte pour un live dans l'historique
+    function createLiveHistoryCard(stream) {
+      const card = document.createElement('div');
+      card.className = 'live-history-card';
+      
+      const thumbnailUrl = stream.thumbnail_url || 'https://via.placeholder.com/320x180?text=Live';
+      
+      // Calculer la durée si le live est terminé
+      let duration = '';
+      if (stream.ended_at && stream.started_at) {
+        const durationMs = new Date(stream.ended_at) - new Date(stream.started_at);
+        const durationMins = Math.floor(durationMs / 60000);
+        const durationHours = Math.floor(durationMins / 60);
+        const remainingMins = durationMins % 60;
+        
+        if (durationHours > 0) {
+          duration = `${durationHours}h ${remainingMins}min`;
+        } else {
+          duration = `${remainingMins}min`;
+        }
+      }
+
+      // Formater la date
+      const formattedDate = new Date(stream.started_at).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      card.innerHTML = `
+        <div class="live-history-thumbnail">
+          <img src="${thumbnailUrl}" alt="${escapeHtml(stream.title)}" loading="lazy">
+          <span class="live-badge ${stream.is_live ? '' : 'ended-badge'}">
+            ${stream.is_live ? '🔴 EN DIRECT' : '📺 TERMINÉ'}
+          </span>
+          ${duration ? `<span class="duration-badge">${duration}</span>` : ''}
+        </div>
+        <div class="live-history-content">
+          <h3 class="live-history-title">${escapeHtml(stream.title)}</h3>
+          ${stream.description ? `<p class="live-history-description">${escapeHtml(stream.description)}</p>` : ''}
+          <div class="live-history-meta">
+            <span class="live-history-date">📅 ${formattedDate}</span>
+            <span class="live-history-views">👁️ ${stream.view_count || 0} vues</span>
+          </div>
+        </div>
+      `;
+
+      // Ajouter un clic pour ouvrir la modale de rediffusion
+      card.addEventListener('click', () => {
+        openLiveReplayModal(stream);
+      });
+
+      return card;
+    }
+
+    // Ouvrir la modale de rediffusion
+    async function openLiveReplayModal(stream) {
+      const modal = document.getElementById('liveReplayModal');
+      const title = document.getElementById('liveReplayTitle');
+      const description = document.getElementById('liveReplayDescription');
+      const date = document.getElementById('liveReplayDate');
+      const views = document.getElementById('liveReplayViews');
+      const videoFrame = document.getElementById('liveReplayVideoFrame');
+
+      if (!modal || !title || !description || !date || !views || !videoFrame) return;
+
+      // Mettre à jour le titre
+      title.textContent = stream.title;
+
+      // Mettre à jour la description
+      description.textContent = stream.description || '';
+
+      // Formater et afficher la date
+      const formattedDate = new Date(stream.started_at).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      date.textContent = `📅 ${formattedDate}`;
+
+      // Incrémenter le compteur de vues
+      await incrementViewCount(stream.id);
+
+      // Afficher le nombre de vues (incrémenté)
+      views.textContent = `👁️ ${(stream.view_count || 0) + 1} vues`;
+
+      // Charger la vidéo
+      const embedUrl = getEmbedUrl(stream.video_url);
+      if (embedUrl) {
+        videoFrame.innerHTML = `<iframe src="${embedUrl}" title="${escapeHtml(stream.title)}" allowfullscreen loading="lazy"></iframe>`;
+      } else {
+        videoFrame.innerHTML = `
+          <p class="video-placeholder">
+            Cette vidéo ne peut pas être intégrée automatiquement ici.<br>
+            <a href="${stream.video_url}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: underline;">
+              Ouvrir la vidéo dans un nouvel onglet
+            </a>
+          </p>
+        `;
+      }
+
+      // Afficher la modale
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Incrémenter le compteur de vues d'un live
+    async function incrementViewCount(streamId) {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) return;
+
+      try {
+        const { error } = await supabase
+          .from('live_streams')
+          .update({ view_count: supabase.raw('view_count + 1') })
+          .eq('id', streamId);
+
+        if (error) {
+          console.error('Erreur lors de l\'incrémentation des vues:', error);
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'incrémentation des vues:', error);
+      }
+    }
+
+    // Fermer la modale de rediffusion
+    function closeLiveReplayModal() {
+      const modal = document.getElementById('liveReplayModal');
+      const videoFrame = document.getElementById('liveReplayVideoFrame');
+
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+
+      if (videoFrame) {
+        videoFrame.innerHTML = '<p class="video-placeholder">Chargement de la vidéo...</p>';
+      }
+    }
+
+    // Initialiser les écouteurs d'événements pour la modale
+    function initLiveReplayModal() {
+      const overlay = document.getElementById('liveReplayOverlay');
+      const closeBtn = document.getElementById('liveReplayClose');
+
+      if (overlay) {
+        overlay.addEventListener('click', closeLiveReplayModal);
+      }
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeLiveReplayModal);
+      }
+
+      // Fermer avec la touche Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeLiveReplayModal();
+        }
+      });
+    }
+
     // Initialiser le bouton d'accès et le contenu statique dès le chargement de la page
     document.addEventListener('DOMContentLoaded', () => {
       initHomeAccessButton();
       loadHomeStaticContent();
       initLiveStream();
+      loadLiveHistory();
+      initLiveReplayModal();
     });
 
     // Nettoyer lors de la fermeture de la page

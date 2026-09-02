@@ -54,13 +54,13 @@
 
       <div id="notifications" class="notifications"></div>
 
-      <!-- Formulaire de création d'utilisateur (SEUL le Secrétaire) -->
-      <section class="secretariat-only" id="userCreationSection">
+      <!-- Formulaire de création d'utilisateur (Admin et Secrétaire) -->
+      <section class="admin-secretariat-only" id="userCreationSection">
         <div class="card">
           <h3>👤 Créer un nouvel utilisateur</h3>
           <div class="creation-info">
-            <p><strong>🔒 Réservé au secrétaire uniquement</strong></p>
-            <p>Seul le secrétaire peut créer de nouveaux comptes utilisateurs. L'administrateur se contente d'attribuer les rôles.</p>
+            <p><strong>🔒 Réservé à l'administrateur et au secrétaire</strong></p>
+            <p>L'administrateur peut créer des comptes avec attribution directe de rôle. Le secrétaire crée des comptes sans rôle (en attente d'attribution par l'admin).</p>
           </div>
           <form id="userCreationForm">
             <div class="form-row">
@@ -90,6 +90,23 @@
             <div class="form-control">
               <label for="newUserPassword">Mot de passe temporaire</label>
               <input type="password" id="newUserPassword" required placeholder="Minimum 6 caractères">
+            </div>
+            <!-- Attribution de rôle (Admin uniquement) -->
+            <div class="form-control admin-only" id="roleAssignmentField" style="display: none;">
+              <label for="newUserRole">Rôle à attribuer</label>
+              <select id="newUserRole">
+                <option value="">Sans rôle (en attente)</option>
+                <option value="admin">Administrateur</option>
+                <option value="secretariat">Secrétariat</option>
+                <option value="responsable">Responsable de département</option>
+                <option value="user">Utilisateur</option>
+              </select>
+            </div>
+            <div class="form-control admin-only" id="departmentAssignmentField" style="display: none;">
+              <label for="newUserDepartment">Département</label>
+              <select id="newUserDepartment">
+                <option value="">Sélectionner un département</option>
+              </select>
             </div>
             <div class="form-actions">
               <button type="submit" class="primary">👤 Créer l'utilisateur</button>

@@ -20,21 +20,27 @@ function initUsersPage() {
   // Afficher/masquer les sections selon le rôle
   const userCreationSection = document.getElementById('userCreationSection');
   const roleManagementSection = document.getElementById('roleManagementSection');
+  const roleAssignmentField = document.getElementById('roleAssignmentField');
+  const departmentAssignmentField = document.getElementById('departmentAssignmentField');
   
   console.log('Current role:', currentRole); // Debug
   console.log('User creation section:', userCreationSection); // Debug
   console.log('Role management section:', roleManagementSection); // Debug
   
   if (currentRole === 'secretariat') {
-    // SEUL le secrétaire peut créer des comptes
+    // Le secrétaire peut créer des comptes SANS attribution de rôle
     if (userCreationSection) userCreationSection.style.display = 'block';
     if (roleManagementSection) roleManagementSection.style.display = 'none';
-    console.log('Secrétaire: formulaire de création affiché'); // Debug
+    if (roleAssignmentField) roleAssignmentField.style.display = 'none';
+    if (departmentAssignmentField) departmentAssignmentField.style.display = 'none';
+    console.log('Secrétaire: formulaire de création affiché sans attribution de rôle'); // Debug
   } else if (currentRole === 'admin') {
-    // Admin ne peut PAS créer de comptes, seulement attribuer des rôles
-    if (userCreationSection) userCreationSection.style.display = 'none';
+    // L'admin peut créer des comptes AVEC attribution de rôle ET gérer les rôles
+    if (userCreationSection) userCreationSection.style.display = 'block';
     if (roleManagementSection) roleManagementSection.style.display = 'block';
-    console.log('Admin: seulement attribution de rôles affichée'); // Debug
+    if (roleAssignmentField) roleAssignmentField.style.display = 'block';
+    if (departmentAssignmentField) departmentAssignmentField.style.display = 'none';
+    console.log('Admin: formulaire de création avec attribution de rôle affiché'); // Debug
   } else {
     console.log('Rôle non autorisé:', currentRole); // Debug
   }
@@ -68,6 +74,12 @@ function setupEventListeners() {
   const userCreationForm = document.getElementById('userCreationForm');
   if (userCreationForm) {
     userCreationForm.addEventListener('submit', handleUserCreation);
+  }
+  
+  // Sélection de rôle dans le formulaire de création (Admin uniquement)
+  const newUserRoleSelect = document.getElementById('newUserRole');
+  if (newUserRoleSelect) {
+    newUserRoleSelect.addEventListener('change', handleNewUserRoleSelection);
   }
   
   // Bouton d'annulation
@@ -123,10 +135,10 @@ async function handleUserCreation(e) {
   e.preventDefault();
   
   const currentRole = localStorage.getItem('appRole');
-  // SEUL le secrétaire peut créer des comptes utilisateurs
-  if (currentRole !== 'secretariat') {
+  // L'admin et le secrétaire peuvent créer des comptes utilisateurs
+  if (!['admin', 'secretariat'].includes(currentRole)) {
     if (window.notificationSystem) {
-      window.notificationSystem.error('Seul le secrétaire peut créer des comptes utilisateurs');
+      window.notificationSystem.error('Seul l\'administrateur et le secrétaire peuvent créer des comptes utilisateurs');
     }
     return;
   }
@@ -140,10 +152,27 @@ async function handleUserCreation(e) {
     password: document.getElementById('newUserPassword').value
   };
   
+  // Récupérer le rôle et le département (Admin uniquement)
+  let selectedRole = null;
+  let selectedDept = null;
+  
+  if (currentRole === 'admin') {
+    selectedRole = document.getElementById('newUserRole').value || null;
+    selectedDept = document.getElementById('newUserDepartment').value || null;
+  }
+  
   // Validation
   if (!formData.username || !formData.fullName || !formData.email || !formData.birthDate || !formData.address || !formData.password) {
     if (window.notificationSystem) {
       window.notificationSystem.error('Tous les champs sont requis');
+    }
+    return;
+  }
+  
+  // Validation du rôle et département pour l'admin
+  if (currentRole === 'admin' && selectedRole === 'responsable' && !selectedDept) {
+    if (window.notificationSystem) {
+      window.notificationSystem.error('Veuillez sélectionner un département pour le responsable');
     }
     return;
   }
@@ -208,6 +237,9 @@ async function handleUserCreation(e) {
     return;
   }
   
+  // Déterminer le statut selon le rôle
+  const status = selectedRole ? USER_STATUS.ACTIVE : USER_STATUS.PENDING;
+  
   // Créer le nouvel utilisateur
   const newUser = {
     username: formData.username,
@@ -216,11 +248,13 @@ async function handleUserCreation(e) {
     birthDate: formData.birthDate,
     address: formData.address,
     password: formData.password, // Transmis à Supabase Auth pour hashage sécurisé
-    role: null, // Pas de rôle attribué initialement
-    status: USER_STATUS.PENDING,
+    role: selectedRole, // Rôle attribué par l'admin, null pour le secrétaire
+    status: status,
     createdBy: localStorage.getItem('appUser'),
     createdAt: new Date().toISOString(),
-    dept: null
+    dept: selectedRole === 'responsable' ? selectedDept : null,
+    roleAssignedBy: selectedRole ? localStorage.getItem('appUser') : null,
+    roleAssignedAt: selectedRole ? new Date().toISOString() : null
   };
   
   // Créer dans Supabase
@@ -235,7 +269,9 @@ async function handleUserCreation(e) {
       role: newUser.role,
       status: newUser.status,
       createdBy: newUser.createdBy,
-      dept: newUser.dept
+      dept: newUser.dept,
+      roleAssignedBy: newUser.roleAssignedBy,
+      roleAssignedAt: newUser.roleAssignedAt
     });
   } catch (error) {
     console.error('Erreur lors de la création de l\'utilisateur dans Supabase:', error);
@@ -247,10 +283,11 @@ async function handleUserCreation(e) {
   
   // Notification de succès
   if (window.notificationSystem) {
-    window.notificationSystem.success(
-      `Utilisateur ${formData.fullName} créé avec succès. En attente d'attribution de rôle par l'administrateur.`,
-      { duration: 6000 }
-    );
+    const message = selectedRole 
+      ? `Utilisateur ${formData.fullName} créé avec succès. Rôle ${getRoleLabel(selectedRole)} attribué.`
+      : `Utilisateur ${formData.fullName} créé avec succès. En attente d'attribution de rôle par l'administrateur.`;
+    
+    window.notificationSystem.success(message, { duration: 6000 });
   }
   
   // Réinitialiser le formulaire et actualiser la liste
@@ -263,21 +300,56 @@ function resetUserCreationForm() {
   if (form) {
     form.reset();
   }
+  
+  // Réinitialiser l'affichage du champ département
+  const departmentAssignmentField = document.getElementById('departmentAssignmentField');
+  if (departmentAssignmentField) {
+    departmentAssignmentField.style.display = 'none';
+  }
+}
+
+function handleNewUserRoleSelection() {
+  const selectedRole = document.getElementById('newUserRole').value;
+  const departmentAssignmentField = document.getElementById('departmentAssignmentField');
+  
+  if (selectedRole === 'responsable') {
+    departmentAssignmentField.style.display = 'block';
+    document.getElementById('newUserDepartment').required = true;
+  } else {
+    departmentAssignmentField.style.display = 'none';
+    document.getElementById('newUserDepartment').required = false;
+  }
 }
 
 function loadDepartmentOptions() {
+  // Remplir le select pour la modal d'attribution de rôle
   const departmentSelect = document.getElementById('assignDepartment');
-  if (!departmentSelect) return;
+  if (departmentSelect) {
+    departmentSelect.innerHTML = '<option value="">Sélectionner un département</option>';
+    
+    if (window.appState && window.appState.departments) {
+      window.appState.departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        departmentSelect.appendChild(option);
+      });
+    }
+  }
   
-  departmentSelect.innerHTML = '<option value="">Sélectionner un département</option>';
-  
-  if (window.appState && window.appState.departments) {
-    window.appState.departments.forEach(dept => {
-      const option = document.createElement('option');
-      option.value = dept;
-      option.textContent = dept;
-      departmentSelect.appendChild(option);
-    });
+  // Remplir le select pour le formulaire de création (Admin uniquement)
+  const newUserDepartmentSelect = document.getElementById('newUserDepartment');
+  if (newUserDepartmentSelect) {
+    newUserDepartmentSelect.innerHTML = '<option value="">Sélectionner un département</option>';
+    
+    if (window.appState && window.appState.departments) {
+      window.appState.departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        newUserDepartmentSelect.appendChild(option);
+      });
+    }
   }
 }
 
