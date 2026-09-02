@@ -108,7 +108,20 @@ const supabaseDB = {
   async updateUser(username, updates) {
     const profile = await this.getProfileByUsername(username);
     if (!profile) throw new Error('Profile non trouvé');
-    return this.updateProfile(profile.id, updates);
+    
+    // Convertir les noms de propriétés camelCase en snake_case
+    const mappedUpdates = {};
+    for (const key in updates) {
+      if (key === 'birthDate') {
+        mappedUpdates['birth_date'] = updates[key];
+      } else if (key === 'name') {
+        mappedUpdates['full_name'] = updates[key];
+      } else {
+        mappedUpdates[key] = updates[key];
+      }
+    }
+    
+    return this.updateProfile(profile.id, mappedUpdates);
   },
 
   async deleteUser(username) {

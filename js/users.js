@@ -372,7 +372,7 @@ async function renderUsersGrid(statusFilter = 'all') {
       username: user.username,
       name: user.name,
       email: user.email,
-      birthDate: user.birth_date,
+      birth_date: user.birth_date,
       address: user.address,
       password: user.password,
       role: user.role,
@@ -457,10 +457,10 @@ async function renderUsersGrid(statusFilter = 'all') {
             <span class="detail-value">${user.dept}</span>
           </div>
         ` : ''}
-        ${user.birthDate ? `
+        ${user.birth_date ? `
           <div class="user-detail-item">
             <span class="detail-label">Date de naissance :</span>
-            <span class="detail-value">${formatDate(user.birthDate)} (${calculateAge(user.birthDate)} ans)</span>
+            <span class="detail-value">${formatDate(user.birth_date)} (${calculateAge(user.birth_date)} ans)</span>
           </div>
         ` : ''}
         ${user.address ? `
@@ -596,7 +596,7 @@ async function openRoleAssignmentModal(username) {
       username: user.username,
       name: user.name,
       email: user.email,
-      birthDate: user.birth_date,
+      birth_date: user.birth_date,
       address: user.address,
       password: user.password,
       role: user.role,
@@ -621,12 +621,12 @@ async function openRoleAssignmentModal(username) {
     
     // Afficher les informations personnelles si disponibles
     const personalInfoSection = document.getElementById('modalUserPersonalInfo');
-    if (userFormatted.birthDate || userFormatted.address) {
+    if (userFormatted.birth_date || userFormatted.address) {
       personalInfoSection.style.display = 'block';
       
-      if (userFormatted.birthDate) {
-        document.getElementById('modalUserBirthDateDisplay').textContent = formatDate(userFormatted.birthDate);
-        document.getElementById('modalUserAge').textContent = `${calculateAge(userFormatted.birthDate)} ans`;
+      if (userFormatted.birth_date) {
+        document.getElementById('modalUserBirthDateDisplay').textContent = formatDate(userFormatted.birth_date);
+        document.getElementById('modalUserAge').textContent = `${calculateAge(userFormatted.birth_date)} ans`;
       } else {
         document.getElementById('modalUserBirthDateDisplay').textContent = 'Non renseigné';
         document.getElementById('modalUserAge').textContent = '-';
@@ -840,7 +840,7 @@ async function openUserEditModal(username) {
       username: user.username,
       name: user.name,
       email: user.email,
-      birthDate: user.birth_date,
+      birth_date: user.birth_date,
       address: user.address
     };
 
@@ -890,7 +890,7 @@ async function handleUserEditSave(event) {
   const updates = {
     name: fullNameInput ? fullNameInput.value.trim() : '',
     email: emailInput ? emailInput.value.trim() : '',
-    birthDate: birthDateInput ? birthDateInput.value : null,
+    birth_date: birthDateInput ? birthDateInput.value : null,
     address: addressInput ? addressInput.value.trim() : ''
   };
 
