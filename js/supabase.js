@@ -55,7 +55,7 @@ const supabaseDB = {
   },
 
   async createUser(user) {
-    // Créer l'utilisateur via Supabase Auth
+    // Créer l'utilisateur via Supabase Auth avec auto-confirm
     const { data, error } = await window.supabase.auth.signUp({
       email: user.email,
       password: user.password,
@@ -63,16 +63,24 @@ const supabaseDB = {
         data: {
           username: user.username,
           full_name: user.name
-        }
+        },
+        emailRedirectTo: window.location.origin
       }
     });
 
     if (error) throw error;
 
+    // Si l'utilisateur n'est pas automatiquement connecté (confirmation email requise)
+    // Nous devons quand même créer le profile
+    const userId = data.user?.id;
+    if (!userId) {
+      throw new Error('ID utilisateur non disponible après création');
+    }
+
     // Créer le profile directement dans la table profiles
     try {
       const profileData = {
-        id: data.user.id,
+        id: userId,
         username: user.username,
         full_name: user.name,
         email: user.email,
@@ -97,7 +105,7 @@ const supabaseDB = {
       console.error('Erreur lors de la création du profile:', profileError);
       // En cas d'erreur, supprimer l'utilisateur Auth créé
       try {
-        await window.supabase.auth.admin.deleteUser(data.user.id);
+        await window.supabase.auth.admin.deleteUser(userId);
       } catch (deleteError) {
         console.error('Erreur lors de la suppression de l\'utilisateur:', deleteError);
       }
