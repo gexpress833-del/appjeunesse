@@ -69,40 +69,44 @@ const supabaseDB = {
 
     if (error) throw error;
 
-    // Créer le profile manuellement dans la table profiles
-    try {
-      const profileData = {
-        id: data.user.id,
-        username: user.username,
-        full_name: user.name,
-        email: user.email,
-        birth_date: user.birthDate,
-        address: user.address,
-        role: user.role || null,
-        status: user.status || 'pending',
-        dept: user.dept || null,
-        role_assigned_by: user.roleAssignedBy || null,
-        role_assigned_at: user.roleAssignedAt || null,
-        status_changed_by: null,
-        status_changed_at: null,
-        notes: user.notes || null,
-        created_by: user.createdBy || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const profile = await window.profilesService?.createProfile(profileData);
-      return { user: data.user, profile };
-    } catch (profileError) {
-      console.error('Erreur lors de la création du profile:', profileError);
-      // En cas d'erreur, supprimer l'utilisateur Auth créé
+    // Attendre que l'utilisateur soit disponible dans auth.users (polling)
+    const maxRetries = 15;
+    const retryDelay = 300; // 300ms
+    
+    for (let i = 0; i < maxRetries; i++) {
       try {
-        await window.supabase.auth.admin.deleteUser(data.user.id);
-      } catch (deleteError) {
-        console.error('Erreur lors de la suppression de l\'utilisateur:', deleteError);
+        // Essayer de créer le profile via la fonction RPC
+        const { data: profileResult, error: rpcError } = await window.supabase
+          .rpc('create_profile_for_user', {
+            p_user_id: data.user.id,
+            p_username: user.username,
+            p_full_name: user.name,
+            p_email: user.email,
+            p_birth_date: user.birthDate,
+            p_address: user.address,
+            p_role: user.role || null,
+            p_status: user.status || 'pending',
+            p_dept: user.dept || null,
+            p_role_assigned_by: user.roleAssignedBy || null,
+            p_role_assigned_at: user.roleAssignedAt || null,
+            p_created_by: user.createdBy || null,
+            p_notes: user.notes || null
+          });
+        
+        if (!rpcError && profileResult) {
+          // Profile créé avec succès
+          const profile = await this.getProfileByUsername(user.username);
+          return { user: data.user, profile };
+        }
+      } catch (rpcError) {
+        console.log('Tentative de création de profile (essai', i + 1, '/', maxRetries, ')');
       }
-      throw new Error('Erreur lors de la création du profile: ' + profileError.message);
+      
+      // Attendre avant de réessayer
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
+
+    throw new Error('Timeout: Impossible de créer le profile après plusieurs tentatives. Vérifiez que la fonction RPC create_profile_for_user existe dans Supabase.');
   },
 
   async updateUser(username, updates) {
