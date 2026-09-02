@@ -56,7 +56,6 @@ const supabaseDB = {
 
   async createUser(user) {
     // Créer l'utilisateur via Supabase Auth
-    // Le trigger handle_new_user créera automatiquement le profile dans la table profiles
     const { data, error } = await window.supabase.auth.signUp({
       email: user.email,
       password: user.password,
@@ -70,34 +69,39 @@ const supabaseDB = {
 
     if (error) throw error;
 
-    // Attendre un peu que le trigger crée le profile
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Mettre à jour le profile avec les données supplémentaires (rôle, département, etc.)
+    // Créer le profile manuellement dans la table profiles
     try {
-      const profile = await this.getProfileByUsername(user.username);
-      
-      if (profile) {
-        const updates = {
-          birth_date: user.birthDate,
-          address: user.address,
-          role: user.role || null,
-          status: user.status || 'pending',
-          dept: user.dept || null,
-          role_assigned_by: user.roleAssignedBy || null,
-          role_assigned_at: user.roleAssignedAt || null,
-          notes: user.notes || null
-        };
-        
-        await this.updateProfile(profile.id, updates);
-        return { user: data.user, profile: { ...profile, ...updates } };
+      const profileData = {
+        id: data.user.id,
+        username: user.username,
+        full_name: user.name,
+        email: user.email,
+        birth_date: user.birthDate,
+        address: user.address,
+        role: user.role || null,
+        status: user.status || 'pending',
+        dept: user.dept || null,
+        role_assigned_by: user.roleAssignedBy || null,
+        role_assigned_at: user.roleAssignedAt || null,
+        status_changed_by: null,
+        status_changed_at: null,
+        notes: user.notes || null,
+        created_by: user.createdBy || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const profile = await window.profilesService?.createProfile(profileData);
+      return { user: data.user, profile };
+    } catch (profileError) {
+      console.error('Erreur lors de la création du profile:', profileError);
+      // En cas d'erreur, supprimer l'utilisateur Auth créé
+      try {
+        await window.supabase.auth.admin.deleteUser(data.user.id);
+      } catch (deleteError) {
+        console.error('Erreur lors de la suppression de l\'utilisateur:', deleteError);
       }
-      
-      return { user: data.user, profile: null };
-    } catch (updateError) {
-      console.error('Erreur lors de la mise à jour du profile:', updateError);
-      // Ne pas supprimer l'utilisateur, le profile existe déjà
-      return { user: data.user, profile: null };
+      throw new Error('Erreur lors de la création du profile: ' + profileError.message);
     }
   },
 
