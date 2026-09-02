@@ -226,6 +226,191 @@
       text-align: center;
     }
 
+    .video-container {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .video-actions {
+      display: flex;
+      justify-content: center;
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .like-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+    }
+
+    .like-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent);
+    }
+
+    .like-button.liked {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+    }
+
+    .like-icon {
+      font-size: 1.2rem;
+    }
+
+    .like-count {
+      font-weight: 500;
+    }
+
+    .live-chat {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      display: flex;
+      flex-direction: column;
+      height: 400px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .chat-header h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--text-bright);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-placeholder {
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+
+    .chat-message {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      border-left: 3px solid var(--accent);
+    }
+
+    .chat-message .message-author {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .chat-message .message-text {
+      color: var(--text-bright);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .chat-message .message-time {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    .chat-input {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: #fff;
+      outline: none;
+    }
+
+    .chat-input input:focus {
+      border-color: var(--accent);
+    }
+
+    .chat-input input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .chat-input button {
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 0.5rem;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .chat-input button:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .chat-input button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 1024px) {
+      .video-container {
+        grid-template-columns: 1fr;
+      }
+
+      .live-chat {
+        height: 350px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .video-container {
+        gap: 1rem;
+      }
+
+      .live-chat {
+        height: 300px;
+      }
+
+      .chat-input input {
+        font-size: 0.9rem;
+      }
+
+      .chat-input button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+      }
+    }
+
     .events-grid {
       margin-top: 1rem;
     }
@@ -550,11 +735,31 @@
 
       <section class="home-section" id="video">
         <h2>Vidéo à la une</h2>
-        <div class="video-card" id="videoCard">
-          <div class="video-frame" id="videoFrame">
-            <p class="video-placeholder">
-              Aucune vidéo n'a encore été mise en avant. Lorsqu'un message sera publié par l'équipe, il apparaîtra ici.
-            </p>
+        <div class="video-container" id="videoContainer">
+          <div class="video-card" id="videoCard">
+            <div class="video-frame" id="videoFrame">
+              <p class="video-placeholder">
+                Aucune vidéo n'a encore été mise en avant. Lorsqu'un message sera publié par l'équipe, il apparaîtra ici.
+              </p>
+            </div>
+            <div class="video-actions">
+              <button class="like-button" id="likeButton">
+                <span class="like-icon">❤️</span>
+                <span class="like-count" id="likeCount">0</span>
+              </button>
+            </div>
+          </div>
+          <div class="live-chat" id="liveChat">
+            <div class="chat-header">
+              <h3>Chat en direct</h3>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+              <p class="chat-placeholder">Connectez-vous pour participer au chat</p>
+            </div>
+            <div class="chat-input" id="chatInput">
+              <input type="text" id="messageInput" placeholder="Écrivez votre message..." disabled>
+              <button id="sendMessage" disabled>Envoyer</button>
+            </div>
           </div>
         </div>
       </section>
@@ -1166,11 +1371,330 @@
       }
     }
 
+    // Fonction de nettoyage HTML pour protéger contre XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Variables globales pour le live stream
+    let liveChannel = null;
+    let currentStreamId = 'main'; // ID du stream actuel
+    let currentUser = null;
+    let hasUserLiked = false;
+
+    // Initialiser le chat et les likes en temps réel
+    async function initLiveStream() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) {
+        console.warn('Supabase client non disponible');
+        return;
+      }
+
+      // Vérifier si l'utilisateur est connecté
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUser = user;
+
+      // Activer les contrôles si l'utilisateur est connecté
+      if (currentUser) {
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendMessage');
+        if (messageInput) messageInput.disabled = false;
+        if (sendButton) sendButton.disabled = false;
+      }
+
+      // Charger l'historique des commentaires
+      await loadCommentsHistory();
+
+      // Charger le nombre de likes et vérifier si l'utilisateur a liké
+      await loadLikes();
+
+      // Initialiser les écouteurs d'événements
+      setupLiveStreamListeners();
+
+      // S'abonner aux événements Realtime
+      subscribeToRealtime();
+    }
+
+    // Charger l'historique des commentaires
+    async function loadCommentsHistory() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) return;
+
+      try {
+        const { data: comments, error } = await supabase
+          .from('live_comments')
+          .select('*')
+          .eq('stream_id', currentStreamId)
+          .order('created_at', { ascending: true })
+          .limit(50);
+
+        if (error) throw error;
+
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+
+        if (!comments || comments.length === 0) {
+          chatMessages.innerHTML = '<p class="chat-placeholder">Aucun message pour le moment</p>';
+          return;
+        }
+
+        chatMessages.innerHTML = '';
+        comments.forEach(comment => {
+          addCommentToChat(comment);
+        });
+
+        // Défiler vers le bas
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      } catch (error) {
+        console.error('Erreur lors du chargement des commentaires:', error);
+      }
+    }
+
+    // Charger le nombre de likes et vérifier si l'utilisateur a liké
+    async function loadLikes() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) return;
+
+      try {
+        // Compter le nombre total de likes
+        const { count, error: countError } = await supabase
+          .from('live_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('stream_id', currentStreamId);
+
+        if (countError) throw countError;
+
+        const likeCount = document.getElementById('likeCount');
+        if (likeCount) likeCount.textContent = count || 0;
+
+        // Vérifier si l'utilisateur a déjà liké
+        if (currentUser) {
+          const { data: userLike, error: likeError } = await supabase
+            .from('live_likes')
+            .select('*')
+            .eq('stream_id', currentStreamId)
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+
+          if (!likeError && userLike) {
+            hasUserLiked = true;
+            const likeButton = document.getElementById('likeButton');
+            if (likeButton) likeButton.classList.add('liked');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des likes:', error);
+      }
+    }
+
+    // Ajouter un commentaire au chat
+    function addCommentToChat(comment) {
+      const chatMessages = document.getElementById('chatMessages');
+      if (!chatMessages) return;
+
+      // Supprimer le placeholder s'il existe
+      const placeholder = chatMessages.querySelector('.chat-placeholder');
+      if (placeholder) placeholder.remove();
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'chat-message';
+      messageDiv.innerHTML = `
+        <div class="message-author">${escapeHtml(comment.user_name)}</div>
+        <div class="message-text">${escapeHtml(comment.message)}</div>
+        <div class="message-time">${new Date(comment.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+      `;
+      chatMessages.appendChild(messageDiv);
+
+      // Défiler vers le bas
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Configurer les écouteurs d'événements
+    function setupLiveStreamListeners() {
+      const likeButton = document.getElementById('likeButton');
+      const messageInput = document.getElementById('messageInput');
+      const sendButton = document.getElementById('sendMessage');
+
+      // Bouton like
+      if (likeButton) {
+        likeButton.addEventListener('click', toggleLike);
+      }
+
+      // Envoi de message
+      if (sendButton) {
+        sendButton.addEventListener('click', sendMessage);
+      }
+
+      // Envoi avec Entrée
+      if (messageInput) {
+        messageInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+      }
+    }
+
+    // Basculer le like
+    async function toggleLike() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase || !currentUser) {
+        alert('Vous devez être connecté pour liker');
+        return;
+      }
+
+      try {
+        if (hasUserLiked) {
+          // Supprimer le like
+          const { error } = await supabase
+            .from('live_likes')
+            .delete()
+            .eq('stream_id', currentStreamId)
+            .eq('user_id', currentUser.id);
+
+          if (error) throw error;
+
+          hasUserLiked = false;
+          const likeButton = document.getElementById('likeButton');
+          if (likeButton) likeButton.classList.remove('liked');
+        } else {
+          // Ajouter le like
+          const { error } = await supabase
+            .from('live_likes')
+            .insert({
+              stream_id: currentStreamId,
+              user_id: currentUser.id
+            });
+
+          if (error) throw error;
+
+          hasUserLiked = true;
+          const likeButton = document.getElementById('likeButton');
+          if (likeButton) likeButton.classList.add('liked');
+        }
+
+        // Recharger le compteur
+        await loadLikes();
+      } catch (error) {
+        console.error('Erreur lors du like:', error);
+      }
+    }
+
+    // Envoyer un message
+    async function sendMessage() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase || !currentUser) {
+        alert('Vous devez être connecté pour envoyer un message');
+        return;
+      }
+
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput?.value?.trim();
+
+      if (!message) return;
+
+      try {
+        // Récupérer le nom de l'utilisateur depuis le profil
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', currentUser.id)
+          .single();
+
+        const userName = profile 
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Anonyme'
+          : 'Anonyme';
+
+        const { error } = await supabase
+          .from('live_comments')
+          .insert({
+            stream_id: currentStreamId,
+            user_id: currentUser.id,
+            user_name: userName,
+            message: message
+          });
+
+        if (error) throw error;
+
+        // Vider le champ
+        if (messageInput) messageInput.value = '';
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi du message:', error);
+        alert('Erreur lors de l\'envoi du message');
+      }
+    }
+
+    // S'abonner aux événements Realtime
+    function subscribeToRealtime() {
+      const supabase = window.supabaseDB?.getClient();
+      if (!supabase) return;
+
+      liveChannel = supabase
+        .channel('live-stream-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'live_comments',
+            filter: `stream_id=eq.${currentStreamId}`
+          },
+          (payload) => {
+            addCommentToChat(payload.new);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'live_likes',
+            filter: `stream_id=eq.${currentStreamId}`
+          },
+          (payload) => {
+            loadLikes();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'live_likes',
+            filter: `stream_id=eq.${currentStreamId}`
+          },
+          (payload) => {
+            loadLikes();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Abonné au live stream');
+          } else if (status === 'CLOSED') {
+            console.log('Connexion live stream fermée');
+          }
+        });
+    }
+
+    // Nettoyer la souscription Realtime lors de la fermeture
+    function cleanupLiveStream() {
+      if (liveChannel) {
+        liveChannel.unsubscribe();
+        liveChannel = null;
+      }
+    }
+
     // Initialiser le bouton d'accès et le contenu statique dès le chargement de la page
     document.addEventListener('DOMContentLoaded', () => {
       initHomeAccessButton();
       loadHomeStaticContent();
+      initLiveStream();
     });
+
+    // Nettoyer lors de la fermeture de la page
+    window.addEventListener('beforeunload', cleanupLiveStream);
   </script>
 </body>
 </html>
