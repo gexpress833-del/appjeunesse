@@ -8,12 +8,15 @@ CREATE TABLE IF NOT EXISTS photos (
   description TEXT,
   image_url TEXT NOT NULL,
   cloudinary_public_id TEXT NOT NULL,
+  event_id TEXT,
+  event_name TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Index pour optimiser les requêtes
 CREATE INDEX IF NOT EXISTS idx_photos_created_at ON photos(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_photos_event_name ON photos(event_name);
 
 -- Activer Row Level Security (RLS)
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;

@@ -251,6 +251,104 @@
       opacity: 0.5;
     }
 
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .event-section {
+      margin-bottom: 2rem;
+    }
+
+    .event-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 0.75rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .event-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    .event-count {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .search-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 0.75rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 0.6rem;
+      color: var(--text-bright);
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .event-filter {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .event-filter-btn {
+      padding: 0.5rem 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 0.5rem;
+      color: var(--text-bright);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .event-filter-btn:hover {
+      background: rgba(0, 212, 255, 0.15);
+      border-color: var(--accent);
+    }
+
+    .event-filter-btn.active {
+      background: rgba(0, 212, 255, 0.2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     @media (max-width: 640px) {
       .photos-container {
         padding: 1rem;
@@ -291,24 +389,35 @@
       </div>
 
       <div class="upload-section">
-        <h2>Ajouter une photo</h2>
+        <h2>Ajouter des photos</h2>
         <div id="uploadError" class="error" style="display: none;"></div>
         <div id="uploadSuccess" class="success" style="display: none;"></div>
         <form id="uploadForm">
           <div class="form-group">
-            <label for="photoTitle">Titre *</label>
-            <input type="text" id="photoTitle" required placeholder="Titre de la photo" />
+            <label for="photoEventName">Événement *</label>
+            <input type="text" id="photoEventName" required placeholder="ex: Retraite Spirituelle 2024" />
           </div>
           <div class="form-group">
-            <label for="photoDescription">Description</label>
-            <textarea id="photoDescription" placeholder="Description de la photo (optionnel)"></textarea>
+            <label for="photoTitle">Titre par défaut (optionnel)</label>
+            <input type="text" id="photoTitle" placeholder="Si vide, utilise le nom de l'événement" />
+          </div>
+          <div class="form-group">
+            <label for="photoDescription">Description (optionnel)</label>
+            <textarea id="photoDescription" placeholder="Description des photos (optionnel)"></textarea>
           </div>
           <div class="file-input-wrapper">
-            <label for="photoFile">Image *</label>
-            <input type="file" id="photoFile" accept="image/*" required />
+            <label for="photoFile">Images *</label>
+            <input type="file" id="photoFile" accept="image/*" multiple required />
+            <small style="color: var(--muted); font-size: 0.8rem;">Vous pouvez sélectionner plusieurs fichiers</small>
+          </div>
+          <div id="uploadProgress" style="display: none;">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText" style="color: var(--muted); font-size: 0.85rem; margin-top: 0.5rem;">0 / 0 photos téléversées</p>
           </div>
           <button type="submit" class="upload-btn" id="uploadBtn">
-            <span>☁️</span> Téléverser
+            <span>☁️</span> Téléverser les photos
           </button>
         </form>
       </div>
@@ -324,7 +433,14 @@
         <p>Aucune photo pour le moment</p>
       </div>
 
-      <div id="gallery" class="gallery-grid"></div>
+      <div class="search-section">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Rechercher par événement..." />
+        <div class="event-filter" id="eventFilter">
+          <button class="event-filter-btn active" data-event="all">Tous</button>
+        </div>
+      </div>
+
+      <div id="gallery"></div>
     </div>
   </div>
 
@@ -335,6 +451,8 @@
     let photosChannel = null;
     let CLOUDINARY_UPLOAD_PRESET = '';
     let CLOUDINARY_CLOUD_NAME = '';
+    let allPhotos = [];
+    let currentEventFilter = 'all';
 
     // Fonction pour charger la configuration Supabase et Cloudinary
     async function loadConfig() {
@@ -448,6 +566,114 @@
       return card;
     }
 
+    // Fonction pour regrouper les photos par événements
+    function groupPhotosByEvent(photos) {
+      const grouped = {};
+      
+      photos.forEach(photo => {
+        const eventName = photo.event_name || 'Sans événement';
+        if (!grouped[eventName]) {
+          grouped[eventName] = [];
+        }
+        grouped[eventName].push(photo);
+      });
+      
+      return grouped;
+    }
+
+    // Fonction pour afficher les photos regroupées par événements
+    function renderPhotosByEvents(photos) {
+      const gallery = document.getElementById('gallery');
+      const emptyState = document.getElementById('emptyState');
+      
+      if (photos.length === 0) {
+        gallery.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      gallery.innerHTML = '';
+      
+      const grouped = groupPhotosByEvent(photos);
+      const eventNames = Object.keys(grouped).sort((a, b) => {
+        // Mettre "Sans événement" à la fin
+        if (a === 'Sans événement') return 1;
+        if (b === 'Sans événement') return -1;
+        return a.localeCompare(b);
+      });
+      
+      eventNames.forEach(eventName => {
+        const eventPhotos = grouped[eventName];
+        const eventSection = document.createElement('div');
+        eventSection.className = 'event-section';
+        
+        eventSection.innerHTML = `
+          <div class="event-header">
+            <h3 class="event-title">📅 ${escapeHtml(eventName)}</h3>
+            <span class="event-count">${eventPhotos.length} photo${eventPhotos.length > 1 ? 's' : ''}</span>
+          </div>
+          <div class="gallery-grid"></div>
+        `;
+        
+        const grid = eventSection.querySelector('.gallery-grid');
+        eventPhotos.forEach(photo => {
+          grid.appendChild(createPhotoCard(photo));
+        });
+        
+        gallery.appendChild(eventSection);
+      });
+    }
+
+    // Fonction pour mettre à jour les filtres d'événements
+    function updateEventFilters(photos) {
+      const eventFilter = document.getElementById('eventFilter');
+      const events = [...new Set(photos.map(p => p.event_name || 'Sans événement'))].sort();
+      
+      eventFilter.innerHTML = '<button class="event-filter-btn active" data-event="all">Tous</button>';
+      
+      events.forEach(eventName => {
+        const btn = document.createElement('button');
+        btn.className = 'event-filter-btn';
+        btn.dataset.event = eventName;
+        btn.textContent = eventName;
+        eventFilter.appendChild(btn);
+      });
+      
+      // Ajouter les écouteurs d'événements
+      eventFilter.querySelectorAll('.event-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          eventFilter.querySelectorAll('.event-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentEventFilter = btn.dataset.event;
+          filterPhotos();
+        });
+      });
+    }
+
+    // Fonction pour filtrer les photos
+    function filterPhotos() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      
+      let filtered = allPhotos;
+      
+      // Filtrer par événement
+      if (currentEventFilter !== 'all') {
+        filtered = filtered.filter(p => (p.event_name || 'Sans événement') === currentEventFilter);
+      }
+      
+      // Filtrer par recherche
+      if (searchTerm) {
+        filtered = filtered.filter(p => 
+          (p.event_name || '').toLowerCase().includes(searchTerm) ||
+          (p.title || '').toLowerCase().includes(searchTerm) ||
+          (p.description || '').toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      renderPhotosByEvents(filtered);
+    }
+
     // Fonction de nettoyage HTML pour protéger contre XSS
     function escapeHtml(text) {
       const div = document.createElement('div');
@@ -458,36 +684,23 @@
     // Fonction pour charger les photos depuis Supabase
     async function loadPhotos() {
       const loading = document.getElementById('loading');
-      const gallery = document.getElementById('gallery');
-      const emptyState = document.getElementById('emptyState');
       
       loading.style.display = 'block';
-      gallery.innerHTML = '';
       
       try {
-        const supabase = window.supabaseDB?.getClient();
-        if (!supabase) {
-          throw new Error('Client Supabase non initialisé');
-        }
-
-        const { data: photos, error } = await supabase
+        const { data, error } = await window.supabase
           .from('photos')
           .select('*')
           .order('created_at', { ascending: false });
-
+        
         if (error) throw error;
-
+        
         loading.style.display = 'none';
-
-        if (photos.length === 0) {
-          emptyState.style.display = 'block';
-          return;
-        }
-
-        emptyState.style.display = 'none';
-        photos.forEach(photo => {
-          gallery.appendChild(createPhotoCard(photo));
-        });
+        
+        allPhotos = data || [];
+        updateEventFilters(allPhotos);
+        renderPhotosByEvents(allPhotos);
+        
       } catch (error) {
         console.error('Erreur lors du chargement des photos:', error);
         loading.style.display = 'none';
@@ -557,48 +770,93 @@
       e.preventDefault();
       
       const uploadBtn = document.getElementById('uploadBtn');
-      const title = document.getElementById('photoTitle').value;
-      const description = document.getElementById('photoDescription').value;
+      const eventName = document.getElementById('photoEventName').value.trim();
+      const defaultTitle = document.getElementById('photoTitle').value.trim();
+      const description = document.getElementById('photoDescription').value.trim();
       const fileInput = document.getElementById('photoFile');
-      const file = fileInput.files[0];
+      const files = Array.from(fileInput.files);
 
-      if (!file) {
-        showError('Veuillez sélectionner une image');
+      if (!eventName) {
+        showError('Veuillez entrer un nom d\'événement');
         return;
       }
 
+      if (files.length === 0) {
+        showError('Veuillez sélectionner au moins une image');
+        return;
+      }
+
+      const uploadProgress = document.getElementById('uploadProgress');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      
+      uploadProgress.style.display = 'block';
       uploadBtn.disabled = true;
       uploadBtn.innerHTML = '<span>⏳</span> Téléversement en cours...';
 
-      try {
-        // Uploader vers Cloudinary
-        const cloudinaryData = await uploadToCloudinary(file);
+      let uploadedCount = 0;
+      let errorCount = 0;
+      const totalFiles = files.length;
 
-        // Sauvegarder dans Supabase
+      try {
         const supabase = window.supabaseDB?.getClient();
         if (!supabase) {
           throw new Error('Client Supabase non initialisé');
         }
 
-        const { error } = await supabase
-          .from('photos')
-          .insert({
-            title: title,
-            description: description,
-            image_url: cloudinaryData.secure_url,
-            cloudinary_public_id: cloudinaryData.public_id
-          });
+        // Uploader chaque fichier
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const fileTitle = defaultTitle || eventName;
+          
+          try {
+            // Uploader vers Cloudinary
+            const cloudinaryData = await uploadToCloudinary(file);
 
-        if (error) throw error;
+            // Sauvegarder dans Supabase
+            const { error } = await supabase
+              .from('photos')
+              .insert({
+                title: fileTitle,
+                description: description,
+                image_url: cloudinaryData.secure_url,
+                cloudinary_public_id: cloudinaryData.public_id,
+                event_name: eventName,
+                event_id: eventName.toLowerCase().replace(/\s+/g, '-')
+              });
 
-        showSuccess('Photo téléversée avec succès !');
-        document.getElementById('uploadForm').reset();
+            if (error) throw error;
+            
+            uploadedCount++;
+          } catch (fileError) {
+            console.error(`Erreur pour le fichier ${file.name}:`, fileError);
+            errorCount++;
+          }
+
+          // Mettre à jour la progression
+          const progress = ((i + 1) / totalFiles) * 100;
+          progressFill.style.width = `${progress}%`;
+          progressText.textContent = `${uploadedCount + errorCount} / ${totalFiles} photos traitées`;
+        }
+
+        uploadProgress.style.display = 'none';
+        
+        if (uploadedCount > 0) {
+          showSuccess(`${uploadedCount} photo${uploadedCount > 1 ? 's' : ''} téléversée${uploadedCount > 1 ? 's' : ''} avec succès pour l'événement "${eventName}"!`);
+          document.getElementById('uploadForm').reset();
+          await loadPhotos();
+        }
+        
+        if (errorCount > 0) {
+          showError(`${errorCount} photo${errorCount > 1 ? 's' : ''} n'ont${errorCount > 1 ? ' pas' : 'a pas'} pu être téléversée${errorCount > 1 ? 's' : ''}`);
+        }
       } catch (error) {
         console.error('Erreur lors de l\'upload:', error);
         showError(error.message || 'Erreur lors du téléversement');
+        uploadProgress.style.display = 'none';
       } finally {
         uploadBtn.disabled = false;
-        uploadBtn.innerHTML = '<span>☁️</span> Téléverser';
+        uploadBtn.innerHTML = '<span>☁️</span> Téléverser les photos';
       }
     });
 
@@ -609,6 +867,9 @@
         await loadPhotos();
         subscribeToPhotos();
       }
+      
+      // Ajouter l'écouteur pour la recherche
+      document.getElementById('searchInput').addEventListener('input', filterPhotos);
     });
 
     // Nettoyage lors de la fermeture de la page
