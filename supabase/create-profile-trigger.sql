@@ -2,18 +2,49 @@
 -- Ce trigger crée automatiquement un profile dans la table profiles
 -- lorsqu'un nouvel utilisateur est créé dans auth.users
 
--- Fonction pour créer le profile automatiquement
+-- Fonction pour créer le profile automatiquement avec toutes les colonnes
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, full_name, email, role, status)
+  INSERT INTO public.profiles (
+    id,
+    username,
+    full_name,
+    email,
+    role,
+    status,
+    dept,
+    birth_date,
+    address,
+    profile_photo_url,
+    created_by,
+    role_assigned_by,
+    role_assigned_at,
+    status_changed_by,
+    status_changed_at,
+    notes,
+    created_at,
+    updated_at
+  )
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     NEW.email,
     NULL,
-    'pending'
+    'pending',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NOW(),
+    NOW()
   );
   RETURN NEW;
 END;
