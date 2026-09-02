@@ -153,24 +153,29 @@ async function createProfile(userId, metadata) {
  * @returns {Promise<Object>} Profile de l'utilisateur
  */
 async function getCurrentProfile() {
-  const user = await getCurrentUser();
-  
-  if (!user) {
+  try {
+    const session = await getSession();
+    
+    if (!session || !session.user) {
+      return null;
+    }
+
+    const { data, error } = await window.supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      console.error('Erreur récupération profile:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Erreur dans getCurrentProfile:', error);
     return null;
   }
-
-  const { data, error } = await window.supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (error) {
-    console.error('Erreur récupération profile:', error);
-    throw error;
-  }
-
-  return data;
 }
 
 /**
